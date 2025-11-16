@@ -8,7 +8,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputFechaStats = document.getElementById('input-fecha-stats');
     const btnVerStatsDia = document.getElementById('btn-ver-stats-dia');
     const resultadoStatsDia = document.getElementById('resultado-stats-dia');
+    
+    // --- ¡NUEVO! Referencias a los filtros ---
     const activityFilterRadios = document.querySelectorAll('.activity-filter input');
+    const topicSubFilter = document.querySelector('.topic-sub-filter');
+    const topicFilterRadios = document.querySelectorAll('.topic-sub-filter input');
+    const filtrosTiempo = document.querySelector('.filtros');
+    const filtroDiaBox = document.querySelector('.filtro-dia');
 
     let miGrafico; 
 
@@ -25,17 +31,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const minutos = totalMinutos % 60;
         return `${horas} horas y ${minutos} minutos`;
     }
+    
+    function generarColor(index) {
+        const HUE_START = 200; 
+        const HUE_STEP = 40;   
+        const hue = (HUE_START + (index * HUE_STEP)) % 360;
+        return `hsla(${hue}, 70%, 60%, 0.7)`;
+    }
 
     // --- Función para pivotar datos para el gráfico "Conjunto" ---
     function pivotData(dataRows, labels) {
-        // Inicializa los datasets
         const datasets = {
             'estudio': { label: 'Estudio', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['estudio'], stack: 'A' },
             'clase': { label: 'Clase', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['clase'], stack: 'A' },
             'psicotecnicos': { label: 'Psicotécnicos', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['psicotecnicos'], stack: 'A' }
         };
 
-        // Rellena los datos
         dataRows.forEach(row => {
             const label = row.label ?? row.label_mes;
             const tipo = row.tipo;
@@ -46,8 +57,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets[tipo].data[index] = total;
             }
         });
-
-        // Devuelve solo los datasets que tienen algún dato
         return Object.values(datasets).filter(ds => ds.data.some(d => d > 0));
     }
 
@@ -59,8 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let datasets = [];
         let chartType = 'bar';
         let isStacked = false;
+        let indexAxis = 'x'; // Eje X por defecto
         
-        // --- Lógica de Unidades (Minutos vs Horas) ---
         let unidad = 'horas';
         if (filtroTiempo === 'today' || (filtroTiempo === 'day' && filtroActividad !== 'conjunto')) {
             unidad = 'minutos';
@@ -68,8 +77,25 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const convertirUnidad = (val) => (unidad === 'horas' ? (val / 60) : val);
 
-        // --- Lógica de Tipo de Gráfico (Simple vs Apilado) ---
-        if (filtroActividad === 'conjunto') {
+        if (filtroActividad === 'temas') {
+            // --- Lógica para Gráfico de Temas ---
+            chartType = 'bar';
+            indexAxis = 'y'; // ¡Horizontal!
+            isStacked = false;
+
+            const data = dataRows.map(row => convertirUnidad(row.total_minutos));
+            const colores = dataRows.map((_, index) => generarColor(index));
+            
+            datasets.push({
+                label: 'Horas por Tema',
+                data: data,
+                backgroundColor: colores,
+                borderColor: colores.map(c => c.replace('0.7', '1')),
+                borderWidth: 1
+            });
+            
+        } else if (filtroActividad === 'conjunto') {
+            // --- Lógica para Gráfico Conjunto ---
             isStacked = true;
             chartType = 'bar';
             
@@ -80,15 +106,11 @@ document.addEventListener('DOMContentLoaded', () => {
             datasets = pivotedData;
 
         } else {
-            // Gráfico simple
+            // --- Lógica para Gráfico Simple (Estudio, Clase, etc.) ---
             isStacked = false;
             chartType = 'bar';
             
-            let color;
-            if (filtroActividad === 'estudio') color = TIPO_COLORES['estudio'];
-            else if (filtroActividad === 'clase') color = TIPO_COLORES['clase'];
-            else if (filtroActividad === 'psicotecnicos') color = TIPO_COLORES['psicotecnicos'];
-            else color = TIPO_COLORES['estudio'];
+            let color = TIPO_COLORES[filtroActividad] || TIPO_COLORES['estudio'];
             
             const data = labels.map(label => {
                 const row = dataRows.find(r => (r.label ?? r.label_mes) === label);
@@ -104,9 +126,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // --- Definir etiquetas ---
-        const etiquetaLeyenda = (unidad === 'minutos') ? 'Minutos' : 'Horas';
         const etiquetaEjeY = (unidad === 'minutos') ? 'Minutos' : 'Horas';
+        const etiquetaEjeX = (unidad === 'minutos' || filtroActividad === 'temas') ? 'Horas' : '';
 
         // Formatear etiquetas de hora para el eje X
         let formattedLabels = labels;
@@ -121,30 +142,51 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: datasets
             },
             options: {
+                indexAxis: indexAxis, // 'x' para vertical, 'y' para horizontal
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: isStacked },
-                    y: {
-                        beginAtZero: true,
+                    x: { 
                         stacked: isStacked,
-                        title: { display: true, text: etiquetaEjeY }
+                        beginAtZero: true,
+                        title: { display: true, text: (indexAxis === 'x' ? '' : etiquetaEjeX) }
+                    },
+                    y: {
+                        stacked: isStacked,
+                        beginAtZero: true,
+                        title: { display: true, text: (indexAxis === 'y' ? '' : etiquetaEjeY) },
+                        ticks: { autoSkip: false }
                     }
                 },
                 plugins: {
+                    legend: {
+                        display: (filtroActividad === 'conjunto') // Mostrar leyenda solo para 'conjunto'
+                    },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
                                 let label = context.dataset.label || '';
+                                let value = (indexAxis === 'y') ? context.parsed.x : context.parsed.y;
                                 if (label) { label += ': '; }
-                                if (context.parsed.y !== null) {
+                                if (value !== null) {
                                     if (unidad === 'minutos') {
-                                        label += context.parsed.y + ' min';
+                                        label += value + ' min';
                                     } else {
-                                        label += parseFloat(context.parsed.y).toFixed(2) + ' h';
+                                        label += parseFloat(value).toFixed(2) + ' h';
                                     }
                                 }
                                 return label;
                             }
+                        }
+                    },
+                    datalabels: { // Plugin para etiquetas en el gráfico de Temas
+                        display: (filtroActividad === 'temas'), // Solo mostrar para 'temas'
+                        color: '#333', 
+                        anchor: 'end', 
+                        align: 'right', 
+                        offset: 4,     
+                        font: { weight: 'bold' },
+                        formatter: function(value, context) {
+                            return parseFloat(value).toFixed(2) + ' h';
                         }
                     }
                 }
@@ -154,15 +196,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Función Principal de Fetch ---
     async function cargarEstadisticas() {
-        
+        if (miGrafico) miGrafico.destroy();
         canvas.style.display = 'block';
 
-        const filtroTiempo = document.querySelector('.filtro-btn.active').dataset.filtro;
         const filtroActividad = document.querySelector('.activity-filter input:checked').value;
         
-        if(filtroTiempo === 'day') return; 
+        // Mostrar/ocultar filtros de tiempo
+        if (filtroActividad === 'temas') {
+            filtrosTiempo.classList.add('hidden');
+            filtroDiaBox.classList.add('hidden');
+            topicSubFilter.classList.remove('hidden');
+        } else {
+            filtrosTiempo.classList.remove('hidden');
+            filtroDiaBox.classList.remove('hidden');
+            topicSubFilter.classList.add('hidden');
+        }
 
-        let url = `api/api-stats.php?filtro=${filtroTiempo}&tipo=${filtroActividad}`;
+        // Definir qué filtros se envían a la API
+        let filtroTiempo = document.querySelector('.filtro-btn.active').dataset.filtro;
+        let url;
+
+        if (filtroActividad === 'temas') {
+            const filtroTema = document.querySelector('.topic-sub-filter input:checked').value;
+            url = `api/api-stats.php?tipo=temas&filtro_tema=${filtroTema}`;
+            filtroTiempo = 'all-time'; // Para que la lógica del gráfico sepa que es horizontal
+        } else {
+            url = `api/api-stats.php?filtro=${filtroTiempo}&tipo=${filtroActividad}`;
+        }
         
         try {
             const response = await fetch(url);
@@ -171,14 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (data.success) {
                 const tiempoFormateado = formatearMinutos(data.total_minutos);
-                let titulo = "Hoy";
-                if(filtroTiempo === 'week') titulo = "Esta Semana";
-                if(filtroTiempo === 'month') titulo = "Este Mes";
-                if(filtroTiempo === 'year') titulo = "Este Año";
-                resumenTexto.innerHTML = `Total ${titulo}: <strong>${tiempoFormateado}</strong>`;
+                let titulo = "Total"; // Título por defecto para 'temas'
+                if(filtroTiempo === 'today') titulo = "Total Hoy";
+                if(filtroTiempo === 'week') titulo = "Total Esta Semana";
+                if(filtroTiempo === 'month') titulo = "Total Este Mes";
+                if(filtroTiempo === 'year') titulo = "Total Este Año";
+                resumenTexto.innerHTML = `${titulo}: <strong>${tiempoFormateado}</strong>`;
 
-                // Preparar etiquetas (labels) para el gráfico
-                let labels = [...new Set(data.data_rows.map(r => r.label ?? r.label_mes))];
+                let labels = [...new Set(data.data_rows.map(r => r.label ?? r.label_mes ?? r.tema))];
 
                 if (data.data_rows.length > 0) {
                     dibujarGrafico(labels, data.data_rows, filtroActividad, filtroTiempo);
@@ -192,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error(error);
-            resumenTexto.textContent = "Error de red. Revisa la consola (F12) para más detalles.";
+            resumenTexto.textContent = "Error de red. Revisa la consola (F12).";
         }
     }
 
@@ -235,26 +295,20 @@ document.addEventListener('DOMContentLoaded', () => {
         btn.addEventListener('click', () => {
             filtroBotones.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
-            if(btn.dataset.filtro !== 'day') {
-                cargarEstadisticas();
-            }
+            cargarEstadisticas();
         });
     });
 
     activityFilterRadios.forEach(radio => {
-        radio.addEventListener('change', () => {
-            if(document.querySelector('.filtro-btn.active').dataset.filtro === 'day') {
-                consultarDiaEspecifico();
-            } else {
-                cargarEstadisticas();
-            }
-        });
+        radio.addEventListener('change', cargarEstadisticas);
+    });
+    
+    topicFilterRadios.forEach(radio => {
+        radio.addEventListener('change', cargarEstadisticas);
     });
 
     btnVerStatsDia.addEventListener('click', () => {
         filtroBotones.forEach(b => b.classList.remove('active'));
-        // (No activamos ningún botón de filtro de tiempo)
         consultarDiaEspecifico();
     });
 

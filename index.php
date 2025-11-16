@@ -32,24 +32,26 @@
                 <button class="activity-btn" data-activity="psicotecnicos">Psicotécnicos</button>
             </div>
             
+            <div class="topic-input-container">
+                <input type="text" id="topic-input" placeholder="¿Qué estás estudiando/viendo?">
+            </div>
+            
             <div id="pomodoro-ui">
                 <div class="tabs">
                     <button class="tab-btn active" data-mode="estudio">Estudio</button>
                     <button class="tab-btn" data-mode="descanso">Descanso</button>
                 </div>
-                
                 <div class="pomodoro-counter">
                     Pomodoros de hoy: <span id="pomodoro-count-display">0</span>
                 </div>
-
                 <div class="timer" id="timer-display">30:00</div>
-
                 <div class="controles">
                     <button id="btn-iniciar">Iniciar</button>
                     <button id="btn-pausa">Pausa</button>
                     <button id="btn-reset">Guardar y Reset</button>
                 </div>
 
+                <button id="btn-pomodoro-manual" class="btn-manual-add">Añadir Tiempo Manual</button>
                 <div class="config">
                     <h3><span id="config-icon">⚙️</span> Configuración</h3>
                     <div class="config-grid">
@@ -78,6 +80,7 @@
                 </div>
                 <button id="btn-stopwatch-manual" class="btn-manual-add">Añadir Tiempo Manual</button>
             </div>
+
             <a href="stats.php" class="stats-link">Ver Estadísticas 📊</a>
         </div>
 

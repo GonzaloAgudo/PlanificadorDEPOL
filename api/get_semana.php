@@ -5,14 +5,24 @@ header('Content-Type: application/json');
 if (!isset($_SESSION['user_id'])) { exit; }
 $user_id = $_SESSION['user_id'];
 
+// Recibe la fecha de inicio (Lunes) y fin (Domingo) de la semana
+$start_date = $_GET['start'] ?? '';
+$end_date = $_GET['end'] ?? '';
+
+if (empty($start_date) || empty($end_date)) {
+    echo json_encode(['success' => false, 'message' => 'Fechas no proporcionadas']);
+    exit;
+}
+
 $tareas = [];
-// --- CAMBIO AQUÍ ---
-$sql = "SELECT id, dia_semana, texto, completada 
+// Busca tareas DENTRO de ese rango de fechas
+$sql = "SELECT id, fecha_tarea, texto, completada 
         FROM tareas_semanales 
-        WHERE user_id = ?
-        ORDER BY FIELD(dia_semana, 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'), orden ASC";
+        WHERE user_id = ? AND fecha_tarea BETWEEN ? AND ?
+        ORDER BY fecha_tarea ASC, orden ASC";
+
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("iss", $user_id, $start_date, $end_date);
 $stmt->execute();
 $result = $stmt->get_result();
 

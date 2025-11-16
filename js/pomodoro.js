@@ -9,6 +9,8 @@ const tabBotones = document.querySelectorAll('.tab-btn');
 const inputDescansoLargo = document.getElementById('input-descanso-largo');
 const inputCicloPomodoro = document.getElementById('input-ciclo-pomodoro');
 const pomodoroCountDisplay = document.getElementById('pomodoro-count-display');
+// --- ¡NUEVA REFERENCIA! ---
+const btnPomodoroManual = document.getElementById('btn-pomodoro-manual');
 
 // --- Referencias al DOM de Tareas ---
 const newTaskInput = document.getElementById('new-task-input');
@@ -25,6 +27,8 @@ const btnStopwatchStart = document.getElementById('btn-stopwatch-start');
 const btnStopwatchPause = document.getElementById('btn-stopwatch-pause');
 const btnStopwatchSave = document.getElementById('btn-stopwatch-save');
 const btnStopwatchManual = document.getElementById('btn-stopwatch-manual');
+const topicInputContainer = document.querySelector('.topic-input-container');
+const topicInput = document.getElementById('topic-input');
 
 // --- Estado del Temporizador ---
 let tiempoTotalSegundos = 30 * 60;
@@ -35,6 +39,7 @@ let intervaloTimer = null;
 let duracionEstudioActual = 30;
 let pomodoroCount = 0; 
 let pomodorosHoy = 0; 
+let pomodoroEndTime = 0;
 
 // --- Estado del Cronómetro ---
 let stopwatchInterval = null;
@@ -43,7 +48,7 @@ let stopwatchElapsedTime = 0;
 let stopwatchPaused = true;
 let currentActivity = 'estudio'; 
 
-const audioAlarma = new Audio('assets/alarma.mp3'); 
+const audioAlarma = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_2c0a0a38f3.mp3'); 
 
 // --- Lógica del Selector de Actividad ---
 function switchActivity(newActivity) {
@@ -60,18 +65,41 @@ function switchActivity(newActivity) {
     if (newActivity === 'estudio') {
         pomodoroUI.style.display = 'block';
         stopwatchUI.style.display = 'none';
+        topicInputContainer.style.display = 'block'; 
         resetTimer(); 
-    } else {
+    } else if (newActivity === 'clase') {
         pomodoroUI.style.display = 'none';
         stopwatchUI.style.display = 'block';
+        topicInputContainer.style.display = 'block'; 
+    } else { // Psicotécnicos
+        pomodoroUI.style.display = 'none';
+        stopwatchUI.style.display = 'block';
+        topicInputContainer.style.display = 'none'; 
     }
 }
 
-// --- Lógica del Pomodoro ---
+// --- Validación de Tema ---
+function getValidatedTopic() {
+    const tema = topicInput.value.trim();
+    if (currentActivity === 'psicotecnicos') {
+        return { valid: true, topic: null };
+    }
+    if (tema === '') {
+        const userConfirmed = confirm("No has especificado un tema.\n¿Quieres continuar y guardarlo sin tema?");
+        if (userConfirmed) {
+            return { valid: true, topic: null }; 
+        } else {
+            return { valid: false, topic: null }; 
+        }
+    }
+    return { valid: true, topic: tema };
+}
 
+// --- Lógica del Pomodoro ---
 function actualizarDisplay() {
-    const minutos = Math.floor(tiempoRestante / 60);
-    const segundos = tiempoRestante % 60;
+    const displayTime = Math.max(0, tiempoRestante);
+    const minutos = Math.floor(displayTime / 60);
+    const segundos = displayTime % 60;
     timerDisplay.textContent = `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
     document.title = `${timerDisplay.textContent} - ${esEstudio ? 'Estudio' : 'Descanso'}`;
 }
@@ -82,7 +110,18 @@ function cambiarModo(modo) {
     tabBotones.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.mode === modo);
     });
-    tiempoTotalSegundos = (esEstudio ? parseInt(inputEstudio.value) : parseInt(inputDescanso.value)) * 60;
+
+    if (esEstudio) {
+        tiempoTotalSegundos = parseInt(inputEstudio.value) * 60;
+    } else {
+        const cicloTarget = parseInt(inputCicloPomodoro.value);
+        if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
+            tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
+        } else {
+            tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
+        }
+    }
+
     tiempoRestante = tiempoTotalSegundos;
     actualizarDisplay();
     btnIniciar.textContent = "Iniciar";
@@ -90,16 +129,24 @@ function cambiarModo(modo) {
 
 function iniciarTimer() {
     if (enPausa) {
+        if (esEstudio && tiempoRestante === tiempoTotalSegundos) {
+            const validation = getValidatedTopic();
+            if (!validation.valid) {
+                return; 
+            }
+        }
+        
         audioAlarma.load(); 
         enPausa = false;
         btnIniciar.textContent = "Iniciar";
+        
         if (tiempoRestante === tiempoTotalSegundos) {
-            if(esEstudio) {
+             if(esEstudio) {
                 duracionEstudioActual = parseInt(inputEstudio.value);
                 tiempoTotalSegundos = duracionEstudioActual * 60;
             } else {
                 const cicloTarget = parseInt(inputCicloPomodoro.value);
-                if (cicloTarget > 0 && pomodoroCount === 0) {
+                if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
                      tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
                 } else {
                      tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
@@ -107,18 +154,28 @@ function iniciarTimer() {
             }
             tiempoRestante = tiempoTotalSegundos;
         }
+        
+        pomodoroEndTime = Date.now() + (tiempoRestante * 1000);
+        
         intervaloTimer = setInterval(() => {
-            tiempoRestante--;
+            const msRestantes = pomodoroEndTime - Date.now();
+            tiempoRestante = Math.round(msRestantes / 1000);
             actualizarDisplay();
             if (tiempoRestante < 0) terminarSesion();
-        }, 1000);
+        }, 1000); 
     }
 }
 
 function pausarTimer() {
-    enPausa = true;
-    clearInterval(intervaloTimer);
-    btnIniciar.textContent = "Continuar";
+    if (!enPausa) { 
+        enPausa = true;
+        clearInterval(intervaloTimer);
+        const msRestantes = pomodoroEndTime - Date.now();
+        tiempoRestante = Math.round(msRestantes / 1000);
+        if (tiempoRestante < 0) tiempoRestante = 0;
+        actualizarDisplay(); 
+        btnIniciar.textContent = "Continuar";
+    }
 }
 
 function resetTimer() {
@@ -130,12 +187,19 @@ function resetTimer() {
 function guardarYResetear() { 
     pausarTimer();
     if (esEstudio) {
-        const tiempoTotalConfiguradoSegundos = duracionEstudioActual * 60;
-        const tiempoEstudiadoSegundos = tiempoTotalConfiguradoSegundos - tiempoRestante;
+        const tiempoEstudiadoSegundos = (duracionEstudioActual * 60) - tiempoRestante;
         const minutosEstudiados = Math.round(tiempoEstudiadoSegundos / 60);
+
         if (minutosEstudiados > 0) {
-            guardarSesionEnBD(minutosEstudiados, 'estudio'); 
+            const validation = getValidatedTopic(); 
+            if (!validation.valid) {
+                pausarTimer(); 
+                return;
+            }
+            
+            guardarSesionEnBD(minutosEstudiados, 'estudio', validation.topic); 
             pomodorosHoy++;
+            pomodoroCount++; 
             pomodoroCountDisplay.textContent = pomodorosHoy;
         }
     }
@@ -144,29 +208,39 @@ function guardarYResetear() {
 
 function terminarSesion() {
     pausarTimer();
-    audioAlarma.play(); 
+    audioAlarma.play().catch(error => console.warn("No se pudo reproducir el sonido:", error));
+    
     if (esEstudio) {
         pomodoroCount++; 
         pomodorosHoy++; 
         pomodoroCountDisplay.textContent = pomodorosHoy; 
         
-        guardarSesionEnBD(duracionEstudioActual, 'estudio'); 
+        const validation = getValidatedTopic(); 
+        if (validation.valid) { 
+            guardarSesionEnBD(duracionEstudioActual, 'estudio', validation.topic); 
+        }
         
         const cicloTarget = parseInt(inputCicloPomodoro.value);
-        cambiarModo('descanso'); 
-        if (cicloTarget > 0 && pomodoroCount >= cicloTarget) {
+        
+        // Determinar tiempo de descanso
+        if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
             tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
-            pomodoroCount = 0; 
+        } else {
+            tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
         }
-        tiempoRestante = tiempoTotalSegundos;
+        
+        cambiarModo('descanso'); // Cambia a modo descanso
+        
+        tiempoRestante = tiempoTotalSegundos; 
+        pomodoroEndTime = Date.now() + (tiempoRestante * 1000); 
         actualizarDisplay();
+
     } else {
         cambiarModo('estudio');
     }
 }
 
 // --- Lógica del Cronómetro ---
-
 function formatStopwatchTime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
@@ -178,11 +252,20 @@ function formatStopwatchTime(ms) {
 function updateStopwatchDisplay() {
     const now = Date.now();
     const elapsedTime = now - stopwatchStartTime + stopwatchElapsedTime;
-    stopwatchDisplay.textContent = formatStopwatchTime(elapsedTime);
+    const timeString = formatStopwatchTime(elapsedTime);
+    stopwatchDisplay.textContent = timeString;
+    document.title = `${timeString} - ${currentActivity.charAt(0).toUpperCase() + currentActivity.slice(1)}`;
 }
 
 function startStopwatch() {
     if (stopwatchPaused) {
+        if (stopwatchElapsedTime === 0) {
+            const validation = getValidatedTopic();
+            if (!validation.valid) {
+                return; 
+            }
+        }
+        audioAlarma.load(); 
         stopwatchPaused = false;
         stopwatchStartTime = Date.now();
         stopwatchInterval = setInterval(updateStopwatchDisplay, 1000);
@@ -206,37 +289,60 @@ function resetStopwatch(save = false) {
         totalMinutes = Math.round((stopwatchElapsedTime / 1000) / 60);
     }
     if (save && totalMinutes > 0) {
-        guardarSesionEnBD(totalMinutes, currentActivity);
+        const validation = getValidatedTopic();
+        if (!validation.valid) {
+            pauseStopwatch(); 
+            return;
+        }
+        guardarSesionEnBD(totalMinutes, currentActivity, validation.topic);
     }
     stopwatchElapsedTime = 0;
     stopwatchStartTime = 0;
     stopwatchDisplay.textContent = "00:00:00";
     btnStopwatchStart.textContent = "Iniciar";
+    document.title = "Pomodoro Timer"; 
 }
 
 function addManualTime() {
     pauseStopwatch();
-    const input = prompt("Introduce el tiempo total en MINUTOS:");
-    if (input === null || input.trim() === '') {
-        return; 
+    
+    // 1. Validar el tema
+    const validation = getValidatedTopic();
+    if (!validation.valid) {
+        return;
     }
+    
+    // 2. Pedir minutos
+    const input = prompt("Introduce el tiempo total en MINUTOS:");
+    if (input === null || input.trim() === '') { return; }
     const duration = parseInt(input, 10);
     if (isNaN(duration) || duration <= 0) {
         alert('Por favor, introduce un número válido de minutos.');
         return;
     }
-    guardarSesionEnBD(duration, currentActivity);
+    
+    // 3. Guardar (¡CON EL TEMA!)
+    guardarSesionEnBD(duration, currentActivity, validation.topic);
     alert(`${duration} minutos de '${currentActivity}' guardados con éxito.`);
-    resetStopwatch(false);
+    
+    // Si era un pomodoro, actualiza el contador de hoy
+    if (currentActivity === 'estudio') {
+        pomodorosHoy++;
+        pomodoroCountDisplay.textContent = pomodorosHoy;
+        pomodoroCount = pomodorosHoy % (parseInt(inputCicloPomodoro.value) || 4);
+    }
+    
+    resetStopwatch(false); // Resetea el crono
+    resetTimer(); // Resetea el pomodoro
 }
 
-// --- Función de BD (Modificada para aceptar tipo) ---
-async function guardarSesionEnBD(duracion, tipo) { 
+// --- Función de BD (Modificada para aceptar TEMA) ---
+async function guardarSesionEnBD(duracion, tipo, tema = null) { 
     try {
         await fetch('api/guardar_sesion.php', { 
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ duracion: duracion, tipo: tipo }) 
+            body: JSON.stringify({ duracion: duracion, tipo: tipo, tema: tema }) 
         });
     } catch (error) {
         console.error('Error de red al guardar:', error);
@@ -244,20 +350,16 @@ async function guardarSesionEnBD(duracion, tipo) {
 }
 
 // --- LÓGICA DE LAS TAREAS (CONECTADA A LA BD) ---
+// (Esta sección no necesita más cambios)
 
 function renderTask(task) {
     const listItem = document.createElement('li');
     listItem.className = 'task-item';
     listItem.setAttribute('data-id', task.id); 
-    
-    // ¡NUEVO! Lógica de color dinámica
-    // (Llama a la función de colorRules.js)
     applyColorRule(listItem, task.texto);
-
     if (task.completada) {
         listItem.classList.add('completed');
     }
-
     listItem.innerHTML = `
         <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
         <span class="task-text">${task.texto}</span>
@@ -270,9 +372,7 @@ function renderTask(task) {
 async function loadAndRenderTasks() {
     taskList.innerHTML = 'Cargando tareas...'; 
     try {
-        // Carga las reglas de color PRIMERO
         await fetchColorRules();
-        
         const response = await fetch('api/get_tasks.php'); 
         const data = await response.json();
         taskList.innerHTML = ''; 
@@ -280,6 +380,12 @@ async function loadAndRenderTasks() {
             data.tasks.forEach(task => renderTask(task));
             pomodorosHoy = data.pomodoro_count;
             pomodoroCountDisplay.textContent = pomodorosHoy;
+            const cicloTarget = parseInt(inputCicloPomodoro.value);
+            if (cicloTarget > 0) {
+                pomodoroCount = pomodorosHoy % cicloTarget;
+            } else {
+                pomodoroCount = 0;
+            }
         } else {
             taskList.innerHTML = 'Error al cargar tareas.';
         }
@@ -307,10 +413,7 @@ async function editTask(id, currentText, taskElement) {
             const data = await response.json();
             if (data.success) {
                 taskElement.querySelector('.task-text').textContent = newText;
-                
-                // Re-aplica la regla de color
                 applyColorRule(taskElement, newText);
-
             } else { alert(data.message); }
         } catch (error) { alert('Error de red al editar tarea.'); }
     }
@@ -341,6 +444,9 @@ btnStopwatchStart.addEventListener('click', startStopwatch);
 btnStopwatchPause.addEventListener('click', pauseStopwatch);
 btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
 btnStopwatchManual.addEventListener('click', addManualTime); 
+
+// --- ¡LISTENER AÑADIDO! ---
+btnPomodoroManual.addEventListener('click', addManualTime);
 
 // Listener del Selector de Actividad
 activityBotones.forEach(btn => {

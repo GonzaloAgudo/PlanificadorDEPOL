@@ -17,7 +17,7 @@
                 <li><a href="stats.php">Estadísticas</a></li>
                 <li><a href="semana.php">Planificador Semanal</a></li>
                 <li><a href="calendario.php">Calendario</a></li>
-                <li><a href="ajustes.php">Ajustes</a></li>
+                <li><a href="ajustes.php">Ajustes</a></li> 
                 <li><a href="logout.php" class="logout-link">Cerrar Sesión</a></li>
             </ul>
 	</nav>

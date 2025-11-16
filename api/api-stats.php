@@ -12,7 +12,6 @@ date_default_timezone_set('Europe/Madrid');
 $tipo = $_GET['tipo'] ?? 'estudio'; 
 $filtro = $_GET['filtro'] ?? 'today';
 
-// --- ¡CORRECCIÓN DE SINTAXIS AQUÍ! (Era 'success's') ---
 $response = [ 'success' => true, 'data_rows' => [], 'total_minutos' => 0 ];
 
 try {
@@ -20,8 +19,35 @@ try {
     $params = [];
     $tipos_params = "";
 
+    // --- ¡NUEVA LÓGICA PARA 'TEMAS'! ---
+    if ($tipo == 'temas') {
+        $filtro_tema = $_GET['filtro_tema'] ?? 'ambas';
+        
+        $sql = "SELECT tema, SUM(duracion_minutos) as total_minutos 
+                FROM sesiones_estudio 
+                WHERE user_id = ? 
+                AND tema IS NOT NULL AND tema != ''";
+        
+        $params[] = $user_id;
+        $tipos_params = "i";
+
+        if ($filtro_tema == 'estudio') {
+            $sql .= " AND tipo = 'estudio'";
+        } elseif ($filtro_tema == 'clase') {
+            $sql .= " AND tipo = 'clase'";
+        } else {
+            // 'ambas' - no añade más filtros
+            $sql .= " AND (tipo = 'estudio' OR tipo = 'clase')";
+        }
+        
+        $sql .= " GROUP BY tema 
+                  ORDER BY
+                    CASE WHEN tema LIKE 'Tema %' THEN 1 ELSE 2 END ASC,
+                    CAST(SUBSTRING(tema FROM 6) AS UNSIGNED) ASC,
+                    tema ASC";
+
     // Lógica para 'conjunto'
-    if ($tipo == 'conjunto') {
+    } elseif ($tipo == 'conjunto') {
         $params = [$user_id];
         $tipos_params = "i";
         
@@ -36,7 +62,7 @@ try {
                 $sql = "SELECT DATE_FORMAT(fecha_sesion, '%W') as label, tipo, SUM(duracion_minutos) as total
                         FROM sesiones_estudio
                         WHERE YEARWEEK(fecha_sesion, 1) = YEARWEEK(CURDATE(), 1) AND user_id = ?
-                        GROUP BY label, tipo ORDER BY DAYOFWEEK(fecha_sesion), tipo ASC;";
+                        GROUP BY label, tipo ORDER BY WEEKDAY(fecha_sesion) ASC, tipo ASC;";
                 break;
             case 'month':
                 $sql = "SELECT DATE_FORMAT(fecha_sesion, '%d-%m') as label, tipo, SUM(duracion_minutos) as total
@@ -77,7 +103,7 @@ try {
                 $sql = "SELECT DATE_FORMAT(fecha_sesion, '%W') as label, SUM(duracion_minutos) as total
                         FROM sesiones_estudio
                         WHERE YEARWEEK(fecha_sesion, 1) = YEARWEEK(CURDATE(), 1) AND user_id = ? AND tipo = ?
-                        GROUP BY label ORDER BY DAYOFWEEK(fecha_sesion);";
+                        GROUP BY label ORDER BY WEEKDAY(fecha_sesion) ASC;";
                 break;
             case 'month':
                 $sql = "SELECT DATE_FORMAT(fecha_sesion, '%d-%m') as label, SUM(duracion_minutos) as total
@@ -113,7 +139,7 @@ try {
     $data_rows = [];
 
     while ($row = $result->fetch_assoc()) {
-        $total = (int)($row['total'] ?? 0);
+        $total = (int)($row['total'] ?? ($row['total_minutos'] ?? 0));
         $total_general += $total;
         $data_rows[] = $row;
     }

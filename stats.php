@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas de Estudio</title> 
+    <title>Estadísticas</title> 
     <link rel="icon" href="assets/logo.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
 </head>
@@ -37,7 +37,21 @@
                 <label>
                     <input type="radio" name="activity-type" value="psicotecnicos"> Psicotécnicos
                 </label>
-                <label class="conjunto-label"> <input type="radio" name="activity-type" value="conjunto"> Conjunto
+                <label class="conjunto-label">
+                    <input type="radio" name="activity-type" value="conjunto"> Conjunto
+                </label>
+                <label class="temas-label"> <input type="radio" name="activity-type" value="temas"> Temas
+                </label>
+            </div>
+            <div class="topic-sub-filter hidden">
+                <label>
+                    <input type="radio" name="topic-type" value="ambas" checked> Ambas
+                </label>
+                <label>
+                    <input type="radio" name="topic-type" value="estudio"> Solo Estudio
+                </label>
+                <label>
+                    <input type="radio" name="topic-type" value="clase"> Solo Clase
                 </label>
             </div>
             <div class="filtros">
@@ -50,9 +64,9 @@
             <div class="resumen-stats" id="resumen-texto">
                 Cargando datos...
             </div>
-            <div class="chart-container">
-                <canvas id="statsChart"></canvas>
+            <div class="chart-container" id="chart-container"> <canvas id="statsChart"></canvas>
             </div>
+            
             <div class="filtro-dia">
                 <h3>Consultar un día específico</h3>
                 <input type="date" id="input-fecha-stats">
@@ -64,10 +78,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/nav.js"></script>
-    <script src="js/stats.js"></script>
-
-    <script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script> <script src="js/nav.js"></script>
+    <script src="js/stats.js"></script> <script>
         (function() {
             history.pushState(null, null, location.href);
             window.addEventListener('popstate', function () {
