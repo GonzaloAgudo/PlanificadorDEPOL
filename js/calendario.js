@@ -1,3 +1,10 @@
+import { db, auth } from './firebase-config.js';
+import { 
+    collection, addDoc, query, where, getDocs, 
+    doc, deleteDoc 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { fetchColorRules, applyEventColorRule } from './colorRules.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     
     const calendarBody = document.getElementById('calendar-body');
@@ -8,36 +15,55 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDate = new Date(); 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
+    // Helper para formato YYYY-MM-DD
+    function formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
     async function renderCalendar(date) {
+        if (!auth.currentUser) return;
+
         calendarBody.innerHTML = ''; 
         const year = date.getFullYear();
         const month = date.getMonth(); 
+        
         monthYearTitle.textContent = `${monthNames[month]} ${year}`;
+
         const firstDayOfMonth = new Date(year, month, 1);
         const lastDayOfMonth = new Date(year, month + 1, 0);
-        const lastDayOfPrevMonth = new Date(year, month, 0);
         const daysInMonth = lastDayOfMonth.getDate();
-        const daysInPrevMonth = lastDayOfPrevMonth.getDate();
+        
         let firstDayOfWeek = firstDayOfMonth.getDay() - 1;
         if (firstDayOfWeek === -1) firstDayOfWeek = 6; 
+
+        // Días del mes anterior (vacíos o con lógica si quisieras)
         for (let i = 0; i < firstDayOfWeek; i++) {
-            const day = daysInPrevMonth - firstDayOfWeek + i + 1;
-            calendarBody.appendChild(createDayCell(day, true)); 
+            calendarBody.appendChild(createDayCell(null, true)); 
         }
+
+        // Días del mes actual
         for (let day = 1; day <= daysInMonth; day++) {
-            const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            // Crear fecha segura evitando problemas de zona horaria
+            const currentDayDate = new Date(year, month, day);
+            const dateString = formatDate(currentDayDate);
             calendarBody.appendChild(createDayCell(day, false, dateString));
         }
+
+        // Rellenar hasta el final
         const totalCells = 42; 
         const cellsRendered = firstDayOfWeek + daysInMonth;
         const remainingCells = totalCells - cellsRendered;
-        for (let day = 1; day <= remainingCells; day++) {
-            calendarBody.appendChild(createDayCell(day, true));
-        }
         
-        // ¡NUEVO! Carga las reglas de color PRIMERO
+        for (let day = 1; day <= remainingCells; day++) {
+            calendarBody.appendChild(createDayCell(null, true));
+        }
+
+        // Cargar eventos de Firebase
         await fetchColorRules();
-        fetchEvents(month + 1, year); 
+        fetchEvents(year, month + 1); 
     }
 
     function createDayCell(dayNumber, isOtherMonth, dateString = null) {
@@ -45,12 +71,18 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.className = 'calendar-day';
         if (isOtherMonth) {
             cell.classList.add('day-other-month');
+            // Opcional: poner número del otro mes
+        } else {
+            cell.innerHTML = `<span class="day-number">${dayNumber}</span>`;
         }
-        cell.innerHTML = `<span class="day-number">${dayNumber}</span>`;
-        if (dateString) {
+        
+        if (dateString && !isOtherMonth) {
             cell.setAttribute('data-date', dateString);
-            cell.addEventListener('click', () => {
-                const text = prompt(`Añadir clase para el ${dateString}:`);
+            cell.addEventListener('click', (e) => {
+                // Evitar que se dispare al hacer clic en un evento
+                if(e.target.closest('.calendar-event')) return;
+                
+                const text = prompt(`Añadir evento para el ${dateString}:`);
                 if (text && text.trim() !== '') {
                     addEvent(dateString, text);
                 }
@@ -59,20 +91,35 @@ document.addEventListener('DOMContentLoaded', () => {
         return cell;
     }
 
-    async function fetchEvents(month, year) {
+    async function fetchEvents(year, month) {
         try {
-            const response = await fetch(`api/get_eventos.php?month=${month}&year=${year}`); 
-            const data = await response.json();
-            if (data.success) {
-                data.eventos.forEach(evento => {
-                    const cell = document.querySelector(`.calendar-day[data-date="${evento.fecha_evento}"]`);
-                    if (cell) {
-                        renderEvent(cell, evento);
-                    }
-                });
-            }
+            // Construimos un rango de fechas (strings) para el filtro
+            // Formato simple: YYYY-MM (asumiendo que fecha_evento es YYYY-MM-DD)
+            // Un truco sencillo es buscar por prefijo o rango de strings
+            const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
+            const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
+
+            const q = query(
+                collection(db, "calendario_eventos"),
+                where("user_id", "==", auth.currentUser.uid),
+                where("fecha_evento", ">=", startStr),
+                where("fecha_evento", "<=", endStr)
+            );
+
+            const querySnapshot = await getDocs(q);
+            
+            querySnapshot.forEach(doc => {
+                const evento = doc.data();
+                // Añadimos el ID para poder borrar
+                evento.id = doc.id; 
+                
+                const cell = document.querySelector(`.calendar-day[data-date="${evento.fecha_evento}"]`);
+                if (cell) {
+                    renderEvent(cell, evento);
+                }
+            });
         } catch (error) {
-            console.error('Error de red al cargar eventos:', error);
+            console.error('Error al cargar eventos:', error);
         }
     }
 
@@ -81,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         eventEl.className = 'calendar-event';
         eventEl.setAttribute('data-id', evento.id);
         
-        // ¡NUEVO! Lógica de color dinámica
         applyEventColorRule(eventEl, evento.texto_evento); 
         
         eventEl.innerHTML = `
@@ -91,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         eventEl.querySelector('.delete-event-btn').addEventListener('click', (e) => {
             e.stopPropagation(); 
-            if (confirm('¿Eliminar esta clase?')) {
+            if (confirm('¿Eliminar este evento?')) {
                 deleteEvent(evento.id, eventEl);
             }
         });
@@ -100,41 +146,36 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function addEvent(dateString, text) {
+        if (!auth.currentUser) return;
         try {
-            const response = await fetch('api/add_evento.php', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ date: dateString, text: text })
-            });
-            const data = await response.json();
-            if (data.success) {
-                const cell = document.querySelector(`.calendar-day[data-date="${dateString}"]`);
-                if (cell) {
-                    renderEvent(cell, data.evento);
-                }
-            } else {
-                alert(data.message);
+            const newEvent = {
+                user_id: auth.currentUser.uid,
+                fecha_evento: dateString,
+                texto_evento: text
+            };
+            
+            const docRef = await addDoc(collection(db, "calendario_eventos"), newEvent);
+            
+            // Renderizar inmediatamente
+            const cell = document.querySelector(`.calendar-day[data-date="${dateString}"]`);
+            if (cell) {
+                // Añadimos el ID generado para poder borrarlo sin recargar
+                newEvent.id = docRef.id;
+                renderEvent(cell, newEvent);
             }
         } catch (error) {
-            alert('Error de red al añadir evento.');
+            console.error("Error añadiendo evento:", error);
+            alert('Error al añadir evento.');
         }
     }
 
     async function deleteEvent(id, element) {
         try {
-            const response = await fetch('api/delete_evento.php', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
-            });
-            const data = await response.json();
-            if (data.success) {
-                element.remove(); 
-            } else {
-                alert(data.message);
-            }
+            await deleteDoc(doc(db, "calendario_eventos", id));
+            element.remove(); 
         } catch (error) {
-            alert('Error de red al eliminar evento.');
+            console.error("Error eliminando evento:", error);
+            alert('Error al eliminar evento.');
         }
     }
 
@@ -148,5 +189,10 @@ document.addEventListener('DOMContentLoaded', () => {
         renderCalendar(currentDate);
     });
 
-    renderCalendar(currentDate);
+    // Carga inicial al autenticar
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            renderCalendar(currentDate);
+        }
+    });
 });

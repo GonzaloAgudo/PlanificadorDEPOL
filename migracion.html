@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migración de Datos</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { background-color: #f0f0f0; }
+        main { max-width: 800px; margin: 5rem auto; padding: 2rem; background: #fff; border-radius: 16px; box-shadow: var(--sombra); }
+        h1 { color: var(--color-primario); }
+        textarea { width: 100%; min-height: 200px; font-family: monospace; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
+        .form-group input { font-size: 1rem; padding: 0.5rem; border-radius: 8px; border: 1px solid #ccc; }
+        button { background: var(--color-estudio); color: white; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
+        #status { margin-top: 1rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Herramienta de Migración de MySQL a Firestore</h1>
+        <p><b>Importante:</b> Asegúrate de haber usado "Buscar y Reemplazar" en tu JSON para actualizar los `user_id`.</p>
+        
+        <div class="form-group">
+            <label for="collection-name">Nombre de la Colección en Firebase:</label>
+            <input type="text" id="collection-name" placeholder="Ej: sesiones_estudio, tareas_semanales, ...">
+        </div>
+        
+        <div class="form-group">
+            <label for="json-data">Pega el contenido de tu archivo .json aquí:</label>
+            <textarea id="json-data"></textarea>
+        </div>
+        
+        <button id="migrate-btn">Migrar Datos</button>
+        <p id="status"></p>
+    </main>
+
+    <!-- Cargamos los módulos necesarios -->
+    <script type="module" src="js/firebase-config.js"></script>
+    <script type="module" src="js/migracion.js"></script>
+</body>
+</html>

@@ -1,3 +1,6 @@
+import { db, auth } from './firebase-config.js';
+import { collection, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- Referencias al DOM ---
@@ -9,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnVerStatsDia = document.getElementById('btn-ver-stats-dia');
     const resultadoStatsDia = document.getElementById('resultado-stats-dia');
     
-    // --- ¡NUEVO! Referencias a los filtros ---
     const activityFilterRadios = document.querySelectorAll('.activity-filter input');
     const topicSubFilter = document.querySelector('.topic-sub-filter');
     const topicFilterRadios = document.querySelectorAll('.topic-sub-filter input');
@@ -20,18 +22,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Colores para los gráficos ---
     const TIPO_COLORES = {
-        'estudio': 'rgba(40, 167, 69, 0.7)',  // Verde
-        'clase': 'rgba(111, 66, 193, 0.7)',   // Violeta
-        'psicotecnicos': 'rgba(253, 126, 20, 0.7)' // Naranja
+        'estudio': 'rgba(40, 167, 69, 0.7)',  
+        'clase': 'rgba(111, 66, 193, 0.7)',   
+        'psicotecnicos': 'rgba(253, 126, 20, 0.7)' 
     };
 
-    // --- Funciones de formato ---
     function formatearMinutos(totalMinutos) {
         const horas = Math.floor(totalMinutos / 60);
         const minutos = totalMinutos % 60;
         return `${horas} horas y ${minutos} minutos`;
     }
-    
+
     function generarColor(index) {
         const HUE_START = 200; 
         const HUE_STEP = 40;   
@@ -40,52 +41,78 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Función para pivotar datos para el gráfico "Conjunto" ---
-    function pivotData(dataRows, labels) {
+    function pivotData(sessions, labels, timeUnit) {
         const datasets = {
             'estudio': { label: 'Estudio', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['estudio'], stack: 'A' },
             'clase': { label: 'Clase', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['clase'], stack: 'A' },
             'psicotecnicos': { label: 'Psicotécnicos', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['psicotecnicos'], stack: 'A' }
         };
 
-        dataRows.forEach(row => {
-            const label = row.label ?? row.label_mes;
-            const tipo = row.tipo;
-            const total = row.total;
-            
+        sessions.forEach(s => {
+            let label;
+            const date = s.fecha_sesion.toDate(); // Timestamp a Date
+
+            if (timeUnit === 'today') label = `${date.getHours()}:00`;
+            else if (timeUnit === 'week') {
+                const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                label = days[date.getDay()];
+            }
+            else if (timeUnit === 'month') label = `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}`;
+            else if (timeUnit === 'year') {
+                const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                label = months[date.getMonth()];
+            }
+            else if (timeUnit === 'day') label = 'Total';
+
             const index = labels.indexOf(label);
-            if (index > -1 && datasets[tipo]) {
-                datasets[tipo].data[index] = total;
+            if (index > -1 && datasets[s.tipo]) {
+                datasets[s.tipo].data[index] += s.duracion_minutos;
             }
         });
+        
         return Object.values(datasets).filter(ds => ds.data.some(d => d > 0));
     }
 
-
-    // --- Función para dibujar el Gráfico ---
-    function dibujarGrafico(labels, dataRows, filtroActividad, filtroTiempo) {
+    function dibujarGrafico(labels, sessions, filtroActividad, filtroTiempo) {
         if (miGrafico) miGrafico.destroy();
 
         let datasets = [];
         let chartType = 'bar';
         let isStacked = false;
-        let indexAxis = 'x'; // Eje X por defecto
+        let indexAxis = 'x';
         
         let unidad = 'horas';
         if (filtroTiempo === 'today' || (filtroTiempo === 'day' && filtroActividad !== 'conjunto')) {
             unidad = 'minutos';
         }
-        
         const convertirUnidad = (val) => (unidad === 'horas' ? (val / 60) : val);
 
         if (filtroActividad === 'temas') {
-            // --- Lógica para Gráfico de Temas ---
+            // --- Gráfico de Temas ---
             chartType = 'bar';
-            indexAxis = 'y'; // ¡Horizontal!
-            isStacked = false;
+            indexAxis = 'y'; 
 
-            const data = dataRows.map(row => convertirUnidad(row.total_minutos));
-            const colores = dataRows.map((_, index) => generarColor(index));
+            // Agrupar por tema
+            const temaMap = {};
+            sessions.forEach(s => {
+                if(s.tema) {
+                    temaMap[s.tema] = (temaMap[s.tema] || 0) + s.duracion_minutos;
+                }
+            });
             
+            // Ordenar temas (Tema 1, Tema 2...)
+            const sortedTemas = Object.keys(temaMap).sort((a, b) => {
+                 const numA = parseInt(a.replace(/\D/g, '')) || 999;
+                 const numB = parseInt(b.replace(/\D/g, '')) || 999;
+                 return numA - numB;
+            });
+
+            const data = sortedTemas.map(t => convertirUnidad(temaMap[t]));
+            const colores = sortedTemas.map((_, i) => generarColor(i));
+            
+            // Recalcular labels para el gráfico de temas
+            labels = sortedTemas;
+
             datasets.push({
                 label: 'Horas por Tema',
                 data: data,
@@ -93,33 +120,63 @@ document.addEventListener('DOMContentLoaded', () => {
                 borderColor: colores.map(c => c.replace('0.7', '1')),
                 borderWidth: 1
             });
-            
-        } else if (filtroActividad === 'conjunto') {
-            // --- Lógica para Gráfico Conjunto ---
-            isStacked = true;
-            chartType = 'bar';
-            
-            const pivotedData = pivotData(dataRows, labels);
-            pivotedData.forEach(ds => {
-                ds.data = ds.data.map(convertirUnidad); 
-            });
-            datasets = pivotedData;
 
-        } else {
-            // --- Lógica para Gráfico Simple (Estudio, Clase, etc.) ---
-            isStacked = false;
-            chartType = 'bar';
+            // Máximo para eje X
+            const maxVal = Math.max(...data);
             
+            // Config especial para temas
+            miGrafico = new Chart(ctx, {
+                type: 'bar', 
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    indexAxis: 'y', 
+                    responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        x: { beginAtZero: true, title: { display: true, text: 'Horas' }, max: maxVal * 1.2 },
+                        y: { ticks: { autoSkip: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        datalabels: {
+                            color: '#333', anchor: 'end', align: 'right', offset: 4, font: { weight: 'bold' },
+                            formatter: (value) => parseFloat(value).toFixed(2) + ' h'
+                        }
+                    }
+                },
+                plugins: [ChartDataLabels]
+            });
+            return;
+        } 
+        
+        // --- Gráficos de Tiempo ---
+        
+        if (filtroActividad === 'conjunto') {
+            isStacked = true;
+            const pivotedData = pivotData(sessions, labels, filtroTiempo);
+            pivotedData.forEach(ds => { ds.data = ds.data.map(convertirUnidad); });
+            datasets = pivotedData;
+        } else {
+            isStacked = false;
             let color = TIPO_COLORES[filtroActividad] || TIPO_COLORES['estudio'];
             
-            const data = labels.map(label => {
-                const row = dataRows.find(r => (r.label ?? r.label_mes) === label);
-                return row ? convertirUnidad(row.total) : 0;
+            // Agrupar datos simples
+            const dataMap = new Array(labels.length).fill(0);
+            sessions.forEach(s => {
+                let label;
+                const date = s.fecha_sesion.toDate();
+                if (filtroTiempo === 'today') label = `${date.getHours()}:00`;
+                else if (filtroTiempo === 'week') { const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']; label = days[date.getDay()]; }
+                else if (filtroTiempo === 'month') label = `${String(date.getDate()).padStart(2,'0')}-${String(date.getMonth()+1).padStart(2,'0')}`;
+                else if (filtroTiempo === 'year') { const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']; label = months[date.getMonth()]; }
+                else if (filtroTiempo === 'day') label = 'Total';
+                
+                const idx = labels.indexOf(label);
+                if(idx > -1) dataMap[idx] += s.duracion_minutos;
             });
 
             datasets.push({
                 label: filtroActividad.charAt(0).toUpperCase() + filtroActividad.slice(1),
-                data: data,
+                data: dataMap.map(convertirUnidad),
                 backgroundColor: color,
                 borderColor: color.replace('0.7', '1'),
                 borderWidth: 1
@@ -127,81 +184,32 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         const etiquetaEjeY = (unidad === 'minutos') ? 'Minutos' : 'Horas';
-        const etiquetaEjeX = (unidad === 'minutos' || filtroActividad === 'temas') ? 'Horas' : '';
-
-        // Formatear etiquetas de hora para el eje X
-        let formattedLabels = labels;
-        if (filtroTiempo === 'today') {
-            formattedLabels = labels.map(h => `${h}:00`);
-        }
 
         miGrafico = new Chart(ctx, {
-            type: chartType,
-            data: {
-                labels: formattedLabels,
-                datasets: datasets
-            },
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
             options: {
-                indexAxis: indexAxis, // 'x' para vertical, 'y' para horizontal
                 responsive: true, maintainAspectRatio: false,
                 scales: {
-                    x: { 
-                        stacked: isStacked,
-                        beginAtZero: true,
-                        title: { display: true, text: (indexAxis === 'x' ? '' : etiquetaEjeX) }
-                    },
-                    y: {
-                        stacked: isStacked,
-                        beginAtZero: true,
-                        title: { display: true, text: (indexAxis === 'y' ? '' : etiquetaEjeY) },
-                        ticks: { autoSkip: false }
-                    }
+                    x: { stacked: isStacked },
+                    y: { beginAtZero: true, stacked: isStacked, title: { display: true, text: etiquetaEjeY } }
                 },
                 plugins: {
-                    legend: {
-                        display: (filtroActividad === 'conjunto') // Mostrar leyenda solo para 'conjunto'
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.dataset.label || '';
-                                let value = (indexAxis === 'y') ? context.parsed.x : context.parsed.y;
-                                if (label) { label += ': '; }
-                                if (value !== null) {
-                                    if (unidad === 'minutos') {
-                                        label += value + ' min';
-                                    } else {
-                                        label += parseFloat(value).toFixed(2) + ' h';
-                                    }
-                                }
-                                return label;
-                            }
-                        }
-                    },
-                    datalabels: { // Plugin para etiquetas en el gráfico de Temas
-                        display: (filtroActividad === 'temas'), // Solo mostrar para 'temas'
-                        color: '#333', 
-                        anchor: 'end', 
-                        align: 'right', 
-                        offset: 4,     
-                        font: { weight: 'bold' },
-                        formatter: function(value, context) {
-                            return parseFloat(value).toFixed(2) + ' h';
-                        }
-                    }
+                    legend: { display: (filtroActividad === 'conjunto') },
+                    datalabels: { display: false } // No mostrar etiquetas en barras verticales
                 }
             }
         });
     }
 
-    // --- Función Principal de Fetch ---
     async function cargarEstadisticas() {
         if (miGrafico) miGrafico.destroy();
-        canvas.style.display = 'block';
+        if (!auth.currentUser) return;
 
+        const filtroTiempo = document.querySelector('.filtro-btn.active').dataset.filtro;
         const filtroActividad = document.querySelector('.activity-filter input:checked').value;
         
-        // Mostrar/ocultar filtros de tiempo
+        // UI Toggle
         if (filtroActividad === 'temas') {
             filtrosTiempo.classList.add('hidden');
             filtroDiaBox.classList.add('hidden');
@@ -212,107 +220,160 @@ document.addEventListener('DOMContentLoaded', () => {
             topicSubFilter.classList.add('hidden');
         }
 
-        // Definir qué filtros se envían a la API
-        let filtroTiempo = document.querySelector('.filtro-btn.active').dataset.filtro;
-        let url;
+        if(filtroTiempo === 'day' && filtroActividad !== 'temas') return; 
+
+        // Definir rango de fechas
+        const now = new Date();
+        let startDate = new Date();
+        let endDate = new Date();
+        let labels = [];
 
         if (filtroActividad === 'temas') {
-            const filtroTema = document.querySelector('.topic-sub-filter input:checked').value;
-            url = `api/api-stats.php?tipo=temas&filtro_tema=${filtroTema}`;
-            filtroTiempo = 'all-time'; // Para que la lógica del gráfico sepa que es horizontal
+            // Para temas cargamos TODO (o el último año)
+            startDate = new Date(0); // Desde el principio
         } else {
-            url = `api/api-stats.php?filtro=${filtroTiempo}&tipo=${filtroActividad}`;
+            if (filtroTiempo === 'today') {
+                startDate.setHours(0,0,0,0);
+                endDate.setHours(23,59,59,999);
+                for(let i=0; i<24; i++) labels.push(`${i}:00`);
+            } else if (filtroTiempo === 'week') {
+                const day = startDate.getDay() || 7; 
+                if(day !== 1) startDate.setHours(-24 * (day - 1)); 
+                else startDate.setHours(0,0,0,0);
+                endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6); endDate.setHours(23,59,59,999);
+                labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+            } else if (filtroTiempo === 'month') {
+                startDate.setDate(1); startDate.setHours(0,0,0,0);
+                endDate.setMonth(endDate.getMonth() + 1); endDate.setDate(0); endDate.setHours(23,59,59,999);
+                for(let i=1; i<=endDate.getDate(); i++) labels.push(`${String(i).padStart(2,'0')}-${String(startDate.getMonth()+1).padStart(2,'0')}`);
+            } else if (filtroTiempo === 'year') {
+                startDate.setMonth(0, 1); startDate.setHours(0,0,0,0);
+                endDate.setMonth(11, 31); endDate.setHours(23,59,59,999);
+                labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            }
         }
-        
+
         try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error('Error de red al cargar estadísticas.');
-            const data = await response.json();
+            // Consulta base
+            let q = query(
+                collection(db, "sesiones_estudio"),
+                where("user_id", "==", auth.currentUser.uid),
+                where("fecha_sesion", ">=", Timestamp.fromDate(startDate)),
+                where("fecha_sesion", "<=", Timestamp.fromDate(endDate))
+            );
 
-            if (data.success) {
-                const tiempoFormateado = formatearMinutos(data.total_minutos);
-                let titulo = "Total"; // Título por defecto para 'temas'
-                if(filtroTiempo === 'today') titulo = "Total Hoy";
-                if(filtroTiempo === 'week') titulo = "Total Esta Semana";
-                if(filtroTiempo === 'month') titulo = "Total Este Mes";
-                if(filtroTiempo === 'year') titulo = "Total Este Año";
-                resumenTexto.innerHTML = `${titulo}: <strong>${tiempoFormateado}</strong>`;
+            const querySnapshot = await getDocs(q);
+            let sessions = [];
+            let totalMinutos = 0;
 
-                let labels = [...new Set(data.data_rows.map(r => r.label ?? r.label_mes ?? r.tema))];
-
-                if (data.data_rows.length > 0) {
-                    dibujarGrafico(labels, data.data_rows, filtroActividad, filtroTiempo);
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                // Filtrado manual en cliente para simplificar índices
+                let include = false;
+                
+                if (filtroActividad === 'temas') {
+                    const subFiltro = document.querySelector('.topic-sub-filter input:checked').value;
+                    if (data.tema) {
+                        if (subFiltro === 'ambas' && (data.tipo === 'estudio' || data.tipo === 'clase')) include = true;
+                        else if (subFiltro === 'estudio' && data.tipo === 'estudio') include = true;
+                        else if (subFiltro === 'clase' && data.tipo === 'clase') include = true;
+                    }
+                } else if (filtroActividad === 'conjunto') {
+                    include = true; // Todo cuenta
                 } else {
-                    if (miGrafico) miGrafico.destroy();
-                    resumenTexto.innerHTML += "<br>Aún no hay datos para mostrar.";
+                    if (data.tipo === filtroActividad) include = true;
                 }
 
-            } else {
-                resumenTexto.textContent = `Error: ${data.message || 'No se pudieron cargar los datos.'}`;
-            }
+                if (include) {
+                    sessions.push(data);
+                    totalMinutos += data.duracion_minutos;
+                }
+            });
+
+            const tiempoFormateado = formatearMinutos(totalMinutos);
+            let titulo = "Total";
+            if(filtroTiempo === 'today') titulo = "Total Hoy";
+            else if(filtroTiempo === 'week') titulo = "Total Esta Semana";
+            else if(filtroTiempo === 'month') titulo = "Total Este Mes";
+            else if(filtroTiempo === 'year') titulo = "Total Este Año";
+            
+            resumenTexto.innerHTML = `${titulo}: <strong>${tiempoFormateado}</strong>`;
+
+            dibujarGrafico(labels, sessions, filtroActividad, filtroTiempo);
+
         } catch (error) {
             console.error(error);
-            resumenTexto.textContent = "Error de red. Revisa la consola (F12).";
+            resumenTexto.textContent = "Error cargando datos.";
         }
     }
 
-    // --- Consulta de día específico ---
     async function consultarDiaEspecifico() {
-        const fecha = inputFechaStats.value;
-        if (!fecha) {
-            resultadoStatsDia.textContent = "Selecciona una fecha.";
-            return;
-        }
-        resultadoStatsDia.textContent = "Cargando...";
-
-        const filtroActividad = document.querySelector('.activity-filter input:checked').value;
+        if (miGrafico) miGrafico.destroy();
+        const fechaInput = inputFechaStats.value;
+        if (!fechaInput) return;
         
+        const startOfDay = new Date(fechaInput); startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date(fechaInput); endOfDay.setHours(23,59,59,999);
+        
+        const filtroActividad = document.querySelector('.activity-filter input:checked').value;
+
         try {
-            const response = await fetch(`api/api-stats.php?filtro=day&fecha=${fecha}&tipo=${filtroActividad}`);
-            const data = await response.json();
+            let q = query(
+                collection(db, "sesiones_estudio"),
+                where("user_id", "==", auth.currentUser.uid),
+                where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)),
+                where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay))
+            );
+            const querySnapshot = await getDocs(q);
+            let sessions = [];
+            let totalMinutos = 0;
 
-            if (data.success) {
-                const tiempoFormateado = formatearMinutos(data.total_minutos);
-                resultadoStatsDia.textContent = `Total el ${fecha}: ${tiempoFormateado}`;
-                
-                if (data.data_rows.length > 0) {
-                    let labels = [...new Set(data.data_rows.map(r => r.label ?? r.tipo))];
-                    dibujarGrafico(labels, data.data_rows, filtroActividad, 'day');
-                } else {
-                    if (miGrafico) miGrafico.destroy();
+            querySnapshot.forEach(doc => {
+                const data = doc.data();
+                let include = false;
+                if (filtroActividad === 'conjunto') include = true;
+                else if (data.tipo === filtroActividad) include = true;
+
+                if (include) {
+                    sessions.push(data);
+                    totalMinutos += data.duracion_minutos;
                 }
+            });
 
-            } else {
-                resultadoStatsDia.textContent = `Error: ${data.message}`;
+            const tiempoFormateado = formatearMinutos(totalMinutos);
+            resultadoStatsDia.textContent = `Total el ${fechaInput}: ${tiempoFormateado}`;
+            
+            if (sessions.length > 0) {
+                dibujarGrafico(['Total'], sessions, filtroActividad, 'day');
             }
+
         } catch (error) {
-            resultadoStatsDia.textContent = "Error de red al consultar.";
+            resultadoStatsDia.textContent = "Error al consultar.";
         }
     }
 
-    // --- Listeners ---
+    // Listeners
     filtroBotones.forEach(btn => {
         btn.addEventListener('click', () => {
             filtroBotones.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            cargarEstadisticas();
+            if(btn.dataset.filtro !== 'day') cargarEstadisticas();
         });
     });
 
-    activityFilterRadios.forEach(radio => {
-        radio.addEventListener('change', cargarEstadisticas);
-    });
-    
-    topicFilterRadios.forEach(radio => {
-        radio.addEventListener('change', cargarEstadisticas);
-    });
+    activityFilterRadios.forEach(radio => radio.addEventListener('change', cargarEstadisticas));
+    topicFilterRadios.forEach(radio => radio.addEventListener('change', cargarEstadisticas));
 
     btnVerStatsDia.addEventListener('click', () => {
         filtroBotones.forEach(b => b.classList.remove('active'));
         consultarDiaEspecifico();
     });
 
-    // Carga inicial
-    cargarEstadisticas();
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            cargarEstadisticas();
+        }
+    });
+    
     inputFechaStats.valueAsDate = new Date();
 });

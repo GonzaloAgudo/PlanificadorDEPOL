@@ -1,3 +1,13 @@
+// Importamos Firebase y las configuraciones
+import { db, auth } from './firebase-config.js';
+import { 
+    collection, addDoc, query, where, getDocs, 
+    orderBy, limit, doc, updateDoc, deleteDoc, 
+    writeBatch 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// Importamos las reglas de color
+import { fetchColorRules, applyColorRule } from './colorRules.js';
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const weekGrid = document.querySelector('.week-grid');
@@ -5,7 +15,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevWeekBtn = document.getElementById('prev-week-btn');
     const nextWeekBtn = document.getElementById('next-week-btn');
     
-    // Nombres de meses para el título
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
     // --- Estado de la Semana ---
@@ -28,12 +37,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${y}-${m}-${d}`;
     }
     
-    // --- Función Principal de Carga ---
+    // --- Función Principal de Carga (¡MODIFICADA!) ---
     async function loadWeek(startDate) {
-        // 1. Limpiar todas las listas
-        document.querySelectorAll('.task-list').forEach(list => list.innerHTML = '');
+        if (!auth.currentUser) return; // Esperar a que el usuario esté listo
         
-        // 2. Calcular las 7 fechas de esta semana
+        document.querySelectorAll('.task-list').forEach(list => list.innerHTML = 'Cargando...');
+        
         const dates = [];
         for (let i = 0; i < 7; i++) {
             const date = new Date(startDate);
@@ -44,74 +53,89 @@ document.addEventListener('DOMContentLoaded', () => {
         const monday = dates[0];
         const sunday = dates[6];
 
-        // 3. Actualizar la UI (Títulos y atributos data-date)
         weekTitle.textContent = `Semana del ${monday.getDate()} ${monthNames[monday.getMonth()]} al ${sunday.getDate()} ${monthNames[sunday.getMonth()]} ${sunday.getFullYear()}`;
         
         document.querySelectorAll('.day-column').forEach((col, index) => {
             const date = dates[index];
             col.setAttribute('data-date', formatDate(date));
             col.querySelector('.day-date').textContent = `(${date.getDate()}/${date.getMonth() + 1})`;
+            col.querySelector('.task-list').innerHTML = ''; // Limpiar
         });
 
-        // 4. Cargar las reglas de color (de colorRules.js)
+        // Cargar las reglas de color
         await fetchColorRules();
         
-        // 5. Pedir a la API las tareas para este rango de fechas
+        // Pedir a la API las tareas para este rango de fechas
         try {
-            const response = await fetch(`api/get_semana.php?start=${formatDate(monday)}&end=${formatDate(sunday)}`);
-            const data = await response.json();
+            const q = query(
+                collection(db, "tareas_semanales"),
+                where("user_id", "==", auth.currentUser.uid),
+                where("fecha_tarea", ">=", formatDate(monday)),
+                where("fecha_tarea", "<=", formatDate(sunday)),
+                orderBy("fecha_tarea", "asc"),
+                orderBy("orden", "asc")
+            );
             
-            if (data.success) {
-                // 6. Dibujar las tareas en sus columnas correctas
-                data.tasks.forEach(task => renderTask(task));
-                // 7. Reactivar el drag-and-drop en las listas
-                initSortable(); 
-            } else {
-                console.error(data.message);
-            }
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach(doc => renderTask(doc));
+            
+            initSortable(); 
         } catch (error) {
-            console.error('Error de red:', error);
+            console.error('Error al cargar tareas:', error);
         }
     }
 
-    // --- Lógica de Tareas (Modificada) ---
+    // --- Lógica de Tareas (¡MODIFICADA!) ---
 
     async function saveTaskOrder(taskIds) {
+        if (!auth.currentUser) return;
         try {
-            await fetch('api/update_task_order.php', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task_ids: taskIds })
+            const batch = writeBatch(db);
+            taskIds.forEach((id, index) => {
+                const docRef = doc(db, "tareas_semanales", id);
+                batch.update(docRef, { orden: index + 1 });
             });
+            await batch.commit();
         } catch (error) { console.error('Error al guardar el orden:', error); }
     }
     
     async function moveTask(taskId, newDate, sourceListIds, destListIds) {
+        if (!auth.currentUser) return;
         try {
-            const response = await fetch('api/move_task.php', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    task_id: taskId,
-                    new_date: newDate, // Enviar la nueva fecha
-                    source_list_ids: sourceListIds,
-                    dest_list_ids: destListIds
-                })
+            const batch = writeBatch(db);
+            
+            // 1. Mover y actualizar la fecha de la tarea
+            const taskRef = doc(db, "tareas_semanales", taskId);
+            batch.update(taskRef, { fecha_tarea: newDate });
+            
+            // 2. Reordenar lista de origen
+            sourceListIds.forEach((id, index) => {
+                const docRef = doc(db, "tareas_semanales", id);
+                batch.update(docRef, { orden: index + 1 });
             });
-            const data = await response.json();
-            if (!data.success) { location.reload(); }
-        } catch (error) { console.error('Error al mover la tarea:', error); }
+            
+            // 3. Reordenar lista de destino
+            destListIds.forEach((id, index) => {
+                const docRef = doc(db, "tareas_semanales", id);
+                batch.update(docRef, { orden: index + 1 });
+            });
+            
+            await batch.commit();
+        } catch (error) { 
+            console.error('Error al mover la tarea:', error); 
+            location.reload(); // Recarga si la BD falla
+        }
     }
     
-    function renderTask(task) {
-        // Encuentra la columna por la fecha, no por el nombre del día
+    function renderTask(taskDoc) {
+        const task = taskDoc.data();
         const cell = document.querySelector(`.day-column[data-date="${task.fecha_tarea}"]`);
         if (!cell) return;
 
         const taskList = cell.querySelector('.task-list'); 
         const listItem = document.createElement('li');
         listItem.className = 'task-item'; 
-        listItem.setAttribute('data-id', task.id);
+        listItem.setAttribute('data-id', taskDoc.id); // ID del documento
         
         applyColorRule(listItem, task.texto); // De colorRules.js
 
@@ -141,14 +165,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const getIdsFromList = (listEl) => Array.from(listEl.querySelectorAll('li.task-item')).map(item => item.dataset.id);
 
                     if (sourceList === destList) {
-                        // Reordenar en el mismo día
                         saveTaskOrder(getIdsFromList(sourceList)); 
                     } else {
-                        // Mover a un día diferente
                         const taskId = evt.item.dataset.id;
-                        // ¡NUEVO! Obtenemos la FECHA de la columna de destino
                         const newDate = destList.closest('.day-column').dataset.date;
-                        
                         moveTask(taskId, newDate, getIdsFromList(sourceList), getIdsFromList(destList));
                     }
                 }
@@ -156,43 +176,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    async function addTask(text, date) { // <-- Ahora recibe una fecha
-        if (text.trim() === '') return;
+    async function addTask(text, date) {
+        if (text.trim() === '' || !auth.currentUser) return;
         try {
-            const response = await fetch('api/add_semana.php', { 
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ text: text, date: date }) // <-- Envía la fecha
-            });
-            const data = await response.json();
-            if (data.success) { renderTask(data.task); } else { alert(data.message); }
-        } catch (error) { alert('Error de red al añadir tarea.'); }
+            // Obtener orden más alto
+            const qOrder = query(
+                collection(db, "tareas_semanales"),
+                where("user_id", "==", auth.currentUser.uid),
+                where("fecha_tarea", "==", date),
+                orderBy("orden", "desc"),
+                limit(1)
+            );
+            const snapOrder = await getDocs(qOrder);
+            const newOrder = snapOrder.empty ? 1 : snapOrder.docs[0].data().orden + 1;
+
+            const newTask = {
+                user_id: auth.currentUser.uid,
+                texto: text,
+                fecha_tarea: date,
+                completada: false,
+                orden: newOrder
+            };
+            
+            const docRef = await addDoc(collection(db, "tareas_semanales"), newTask);
+            renderTask({ id: docRef.id, data: () => newTask });
+        } catch (error) { 
+            console.error("Error al añadir tarea:", error);
+            alert('Error al añadir tarea.'); 
+        }
     }
     
     async function editTask(id, currentText, taskElement) {
         const newText = prompt('Editar tarea:', currentText);
-        if (newText !== null && newText.trim() !== '' && newText !== currentText) {
+        if (newText && newText !== currentText) {
             try {
-                const response = await fetch('api/update_task_text.php', { 
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id: id, text: newText })
-                });
-                const data = await response.json();
-                if (data.success) {
-                    taskElement.querySelector('.task-text').textContent = newText;
-                    applyColorRule(taskElement, newText);
-                } else { alert(data.message); }
-            } catch (error) { alert('Error de red al editar tarea.'); }
+                await updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
+                taskElement.querySelector('.task-text').textContent = newText;
+                applyColorRule(taskElement, newText);
+            } catch(e) { console.error(e); }
         }
     }
 
     async function updateTask(id, isCompleted) {
-        try { await fetch('api/update_semana.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, completed: isCompleted }) }); } catch (error) { alert('Error de red al actualizar tarea.'); }
+        try { await updateDoc(doc(db, "tareas_semanales", id), { completada: isCompleted }); } catch(e) { console.error(e); }
     }
 
     async function deleteTask(id) {
-        try { await fetch('api/delete_semana.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) }); } catch (error) { alert('Error de red al eliminar tarea.'); }
+        try { await deleteDoc(doc(db, "tareas_semanales", id)); } catch(e) { console.error(e); }
     }
 
     // --- Event Listeners (Modificados) ---
@@ -201,14 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (e.target.tagName === 'BUTTON' && e.target.closest('.task-input-group')) {
             const dayColumn = e.target.closest('.day-column');
-            const date = dayColumn.dataset.date; // <-- Obtiene la fecha de la columna
+            const date = dayColumn.dataset.date;
             const input = dayColumn.querySelector('input');
-            addTask(input.value, date); // <-- Pasa la fecha
+            addTask(input.value, date);
             input.value = ''; 
         }
 
         if (!listItem) return;
-        const taskId = parseInt(listItem.dataset.id);
+        const taskId = listItem.dataset.id;
 
         if (e.target.classList.contains('task-checkbox')) { const isCompleted = e.target.checked; listItem.classList.toggle('completed', isCompleted); updateTask(taskId, isCompleted); }
         else if (e.target.classList.contains('edit-task-btn')) { const currentText = listItem.querySelector('.task-text').textContent; editTask(taskId, currentText, listItem); }
@@ -219,9 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Enter') {
             if (e.target.tagName === 'INPUT' && e.target.closest('.task-input-group')) {
                 const dayColumn = e.target.closest('.day-column');
-                const date = dayColumn.dataset.date; // <-- Obtiene la fecha
+                const date = dayColumn.dataset.date;
                 const input = e.target;
-                addTask(input.value, date); // <-- Pasa la fecha
+                addTask(input.value, date);
                 input.value = '';
                 e.preventDefault();
             }
@@ -230,12 +260,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Listeners de Navegación de Semana ---
     prevWeekBtn.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() - 7); // Resta 7 días
+        currentWeekStart.setDate(currentWeekStart.getDate() - 7); 
         loadWeek(currentWeekStart);
     });
     
     nextWeekBtn.addEventListener('click', () => {
-        currentWeekStart.setDate(currentWeekStart.getDate() + 7); // Suma 7 días
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7); 
         loadWeek(currentWeekStart);
     });
     
@@ -256,7 +286,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isPanning) return;
         e.preventDefault();
         const x = e.pageX - weekGrid.offsetLeft;
-        const walk = (x - startX) * 2; // Multiplicador para mover más rápido
+        const walk = (x - startX) * 2; 
         weekGrid.scrollLeft = scrollLeft - walk;
     });
     window.addEventListener('mouseup', () => {
@@ -268,6 +298,10 @@ document.addEventListener('DOMContentLoaded', () => {
         weekGrid.classList.remove('is-panning');
     });
 
-    // --- Carga Inicial ---
-    loadWeek(currentWeekStart);
+    // --- Carga Inicial (Esperando Auth) ---
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            loadWeek(currentWeekStart);
+        }
+    });
 });

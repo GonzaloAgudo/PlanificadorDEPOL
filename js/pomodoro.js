@@ -1,23 +1,27 @@
-// --- Referencias al DOM del Temporizador ---
+// Importamos Firebase y las configuraciones
+import { db, auth } from './firebase-config.js';
+import { 
+    collection, addDoc, query, where, getDocs, 
+    orderBy, limit, doc, updateDoc, deleteDoc, 
+    writeBatch, Timestamp 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+// Importamos las reglas de color
+import { fetchColorRules, applyColorRule } from './colorRules.js';
+
+// --- Referencias al DOM ---
 const timerDisplay = document.getElementById('timer-display');
 const inputEstudio = document.getElementById('input-estudio');
 const inputDescanso = document.getElementById('input-descanso');
 const btnIniciar = document.getElementById('btn-iniciar');
 const btnPausa = document.getElementById('btn-pausa');
-const btnReset = document.getElementById('btn-reset'); // Botón rojo
+const btnReset = document.getElementById('btn-reset');
 const tabBotones = document.querySelectorAll('.tab-btn');
 const inputDescansoLargo = document.getElementById('input-descanso-largo');
 const inputCicloPomodoro = document.getElementById('input-ciclo-pomodoro');
 const pomodoroCountDisplay = document.getElementById('pomodoro-count-display');
-// --- ¡NUEVA REFERENCIA! ---
-const btnPomodoroManual = document.getElementById('btn-pomodoro-manual');
-
-// --- Referencias al DOM de Tareas ---
 const newTaskInput = document.getElementById('new-task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
-
-// --- Referencias al DOM de Actividad y Cronómetro ---
 const activitySwitcher = document.querySelector('.activity-switcher');
 const activityBotones = document.querySelectorAll('.activity-btn');
 const pomodoroUI = document.getElementById('pomodoro-ui');
@@ -30,7 +34,7 @@ const btnStopwatchManual = document.getElementById('btn-stopwatch-manual');
 const topicInputContainer = document.querySelector('.topic-input-container');
 const topicInput = document.getElementById('topic-input');
 
-// --- Estado del Temporizador ---
+// --- Estado ---
 let tiempoTotalSegundos = 30 * 60;
 let tiempoRestante = tiempoTotalSegundos;
 let esEstudio = true;
@@ -41,27 +45,35 @@ let pomodoroCount = 0;
 let pomodorosHoy = 0; 
 let pomodoroEndTime = 0;
 
-// --- Estado del Cronómetro ---
 let stopwatchInterval = null;
 let stopwatchStartTime = 0;
 let stopwatchElapsedTime = 0; 
 let stopwatchPaused = true;
 let currentActivity = 'estudio'; 
 
-const audioAlarma = new Audio('https://cdn.pixabay.com/audio/2022/03/15/audio_2c0a0a38f3.mp3'); 
+const audioAlarma = new Audio('assets/alarma.mp3');
 
-// --- Lógica del Selector de Actividad ---
+// --- Helper para obtener fecha local YYYY-MM-DD ---
+// ¡FUNCIÓN CORREGIDA!
+function getLocalTodayDate() {
+    const today = new Date();
+    // Ajusta la fecha a la medianoche local
+    today.setHours(0, 0, 0, 0); 
+    // Convierte a ISO string y coge solo la parte de la fecha
+    const offset = today.getTimezoneOffset();
+    const localToday = new Date(today.getTime() - (offset * 60000));
+    return localToday.toISOString().split('T')[0];
+}
+
+// --- Lógica de Interfaz ---
 function switchActivity(newActivity) {
     currentActivity = newActivity;
-    
     pausarTimer();
     pauseStopwatch();
     resetStopwatch(false); 
-
     activityBotones.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.activity === newActivity);
     });
-
     if (newActivity === 'estudio') {
         pomodoroUI.style.display = 'block';
         stopwatchUI.style.display = 'none';
@@ -71,26 +83,19 @@ function switchActivity(newActivity) {
         pomodoroUI.style.display = 'none';
         stopwatchUI.style.display = 'block';
         topicInputContainer.style.display = 'block'; 
-    } else { // Psicotécnicos
+    } else { 
         pomodoroUI.style.display = 'none';
         stopwatchUI.style.display = 'block';
         topicInputContainer.style.display = 'none'; 
     }
 }
 
-// --- Validación de Tema ---
 function getValidatedTopic() {
     const tema = topicInput.value.trim();
-    if (currentActivity === 'psicotecnicos') {
-        return { valid: true, topic: null };
-    }
+    if (currentActivity === 'psicotecnicos') return { valid: true, topic: null };
     if (tema === '') {
         const userConfirmed = confirm("No has especificado un tema.\n¿Quieres continuar y guardarlo sin tema?");
-        if (userConfirmed) {
-            return { valid: true, topic: null }; 
-        } else {
-            return { valid: false, topic: null }; 
-        }
+        return userConfirmed ? { valid: true, topic: null } : { valid: false, topic: null };
     }
     return { valid: true, topic: tema };
 }
@@ -107,10 +112,7 @@ function actualizarDisplay() {
 function cambiarModo(modo) {
     pausarTimer();
     esEstudio = (modo === 'estudio');
-    tabBotones.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.mode === modo);
-    });
-
+    tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === modo));
     if (esEstudio) {
         tiempoTotalSegundos = parseInt(inputEstudio.value) * 60;
     } else {
@@ -121,7 +123,6 @@ function cambiarModo(modo) {
             tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
         }
     }
-
     tiempoRestante = tiempoTotalSegundos;
     actualizarDisplay();
     btnIniciar.textContent = "Iniciar";
@@ -131,11 +132,8 @@ function iniciarTimer() {
     if (enPausa) {
         if (esEstudio && tiempoRestante === tiempoTotalSegundos) {
             const validation = getValidatedTopic();
-            if (!validation.valid) {
-                return; 
-            }
+            if (!validation.valid) return;
         }
-        
         audioAlarma.load(); 
         enPausa = false;
         btnIniciar.textContent = "Iniciar";
@@ -154,9 +152,7 @@ function iniciarTimer() {
             }
             tiempoRestante = tiempoTotalSegundos;
         }
-        
         pomodoroEndTime = Date.now() + (tiempoRestante * 1000);
-        
         intervaloTimer = setInterval(() => {
             const msRestantes = pomodoroEndTime - Date.now();
             tiempoRestante = Math.round(msRestantes / 1000);
@@ -180,22 +176,19 @@ function pausarTimer() {
 
 function resetTimer() {
     pausarTimer();
-    pomodoroCount = 0; 
+    // pomodoroCount = 0; // No reseteamos ciclo al dar a reset
     cambiarModo('estudio');
 }
 
 function guardarYResetear() { 
     pausarTimer();
     if (esEstudio) {
-        const tiempoEstudiadoSegundos = (duracionEstudioActual * 60) - tiempoRestante;
+        const tiempoTotalConfigurado = parseInt(inputEstudio.value) * 60;
+        const tiempoEstudiadoSegundos = tiempoTotalConfigurado - tiempoRestante;
         const minutosEstudiados = Math.round(tiempoEstudiadoSegundos / 60);
-
         if (minutosEstudiados > 0) {
-            const validation = getValidatedTopic(); 
-            if (!validation.valid) {
-                pausarTimer(); 
-                return;
-            }
+            const validation = getValidatedTopic();
+            if (!validation.valid) { pausarTimer(); return; }
             
             guardarSesionEnBD(minutosEstudiados, 'estudio', validation.topic); 
             pomodorosHoy++;
@@ -208,33 +201,24 @@ function guardarYResetear() {
 
 function terminarSesion() {
     pausarTimer();
-    audioAlarma.play().catch(error => console.warn("No se pudo reproducir el sonido:", error));
-    
+    audioAlarma.play().catch(e => console.warn("Audio error:", e));
     if (esEstudio) {
         pomodoroCount++; 
         pomodorosHoy++; 
         pomodoroCountDisplay.textContent = pomodorosHoy; 
-        
         const validation = getValidatedTopic(); 
-        if (validation.valid) { 
-            guardarSesionEnBD(duracionEstudioActual, 'estudio', validation.topic); 
-        }
-        
+        const tema = validation.valid ? validation.topic : null; 
+        guardarSesionEnBD(duracionEstudioActual, 'estudio', tema); 
         const cicloTarget = parseInt(inputCicloPomodoro.value);
-        
-        // Determinar tiempo de descanso
         if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
             tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
         } else {
             tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
         }
-        
-        cambiarModo('descanso'); // Cambia a modo descanso
-        
+        cambiarModo('descanso'); 
         tiempoRestante = tiempoTotalSegundos; 
         pomodoroEndTime = Date.now() + (tiempoRestante * 1000); 
         actualizarDisplay();
-
     } else {
         cambiarModo('estudio');
     }
@@ -248,7 +232,6 @@ function formatStopwatchTime(ms) {
     const seconds = totalSeconds % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 }
-
 function updateStopwatchDisplay() {
     const now = Date.now();
     const elapsedTime = now - stopwatchStartTime + stopwatchElapsedTime;
@@ -256,14 +239,11 @@ function updateStopwatchDisplay() {
     stopwatchDisplay.textContent = timeString;
     document.title = `${timeString} - ${currentActivity.charAt(0).toUpperCase() + currentActivity.slice(1)}`;
 }
-
 function startStopwatch() {
     if (stopwatchPaused) {
         if (stopwatchElapsedTime === 0) {
             const validation = getValidatedTopic();
-            if (!validation.valid) {
-                return; 
-            }
+            if (!validation.valid) { return; }
         }
         audioAlarma.load(); 
         stopwatchPaused = false;
@@ -272,7 +252,6 @@ function startStopwatch() {
         btnStopwatchStart.textContent = "Iniciar"; 
     }
 }
-
 function pauseStopwatch() {
     if (!stopwatchPaused) {
         stopwatchPaused = true;
@@ -281,7 +260,6 @@ function pauseStopwatch() {
         btnStopwatchStart.textContent = "Continuar";
     }
 }
-
 function resetStopwatch(save = false) {
     pauseStopwatch();
     let totalMinutes = 0;
@@ -290,10 +268,7 @@ function resetStopwatch(save = false) {
     }
     if (save && totalMinutes > 0) {
         const validation = getValidatedTopic();
-        if (!validation.valid) {
-            pauseStopwatch(); 
-            return;
-        }
+        if (!validation.valid) { pauseStopwatch(); return; }
         guardarSesionEnBD(totalMinutes, currentActivity, validation.topic);
     }
     stopwatchElapsedTime = 0;
@@ -302,60 +277,54 @@ function resetStopwatch(save = false) {
     btnStopwatchStart.textContent = "Iniciar";
     document.title = "Pomodoro Timer"; 
 }
-
 function addManualTime() {
     pauseStopwatch();
-    
-    // 1. Validar el tema
     const validation = getValidatedTopic();
-    if (!validation.valid) {
-        return;
-    }
-    
-    // 2. Pedir minutos
+    if (!validation.valid) return;
     const input = prompt("Introduce el tiempo total en MINUTOS:");
-    if (input === null || input.trim() === '') { return; }
+    if (input === null || input.trim() === '') return;
     const duration = parseInt(input, 10);
     if (isNaN(duration) || duration <= 0) {
         alert('Por favor, introduce un número válido de minutos.');
         return;
     }
-    
-    // 3. Guardar (¡CON EL TEMA!)
     guardarSesionEnBD(duration, currentActivity, validation.topic);
     alert(`${duration} minutos de '${currentActivity}' guardados con éxito.`);
-    
-    // Si era un pomodoro, actualiza el contador de hoy
     if (currentActivity === 'estudio') {
         pomodorosHoy++;
         pomodoroCountDisplay.textContent = pomodorosHoy;
         pomodoroCount = pomodorosHoy % (parseInt(inputCicloPomodoro.value) || 4);
     }
-    
-    resetStopwatch(false); // Resetea el crono
-    resetTimer(); // Resetea el pomodoro
+    resetStopwatch(false); 
+    resetTimer(); 
 }
 
-// --- Función de BD (Modificada para aceptar TEMA) ---
+// ===================================================================
+// --- FIREBASE: FUNCIONES DE BASE DE DATOS ---
+// ===================================================================
+
 async function guardarSesionEnBD(duracion, tipo, tema = null) { 
+    if (!auth.currentUser) return alert('Error: No autenticado');
     try {
-        await fetch('api/guardar_sesion.php', { 
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ duracion: duracion, tipo: tipo, tema: tema }) 
+        await addDoc(collection(db, "sesiones_estudio"), {
+            user_id: auth.currentUser.uid,
+            fecha_sesion: Timestamp.now(), 
+            duracion_minutos: duracion,
+            tipo: tipo,
+            tema: tema
         });
+        console.log("Sesión guardada OK");
     } catch (error) {
-        console.error('Error de red al guardar:', error);
+        console.error("Error al guardar sesión: ", error);
+        alert('Error CRÍTICO al guardar: ' + error.message);
     }
 }
 
-// --- LÓGICA DE LAS TAREAS (CONECTADA A LA BD) ---
-// (Esta sección no necesita más cambios)
-
-function renderTask(task) {
+function renderTask(taskDoc) { 
+    const task = taskDoc.data();
     const listItem = document.createElement('li');
     listItem.className = 'task-item';
-    listItem.setAttribute('data-id', task.id); 
+    listItem.setAttribute('data-id', taskDoc.id); 
     applyColorRule(listItem, task.texto);
     if (task.completada) {
         listItem.classList.add('completed');
@@ -371,64 +340,169 @@ function renderTask(task) {
 
 async function loadAndRenderTasks() {
     taskList.innerHTML = 'Cargando tareas...'; 
+    if (!auth.currentUser) return;
+
     try {
         await fetchColorRules();
-        const response = await fetch('api/get_tasks.php'); 
-        const data = await response.json();
-        taskList.innerHTML = ''; 
-        if (data.success) {
-            data.tasks.forEach(task => renderTask(task));
-            pomodorosHoy = data.pomodoro_count;
-            pomodoroCountDisplay.textContent = pomodorosHoy;
-            const cicloTarget = parseInt(inputCicloPomodoro.value);
-            if (cicloTarget > 0) {
-                pomodoroCount = pomodorosHoy % cicloTarget;
-            } else {
-                pomodoroCount = 0;
-            }
+        const todayStr = getLocalTodayDate();
+        console.log("📅 Fecha buscada (APP):", `"${todayStr}"`); // Comillas para ver espacios
+
+        // --- DIAGNÓSTICO: Buscar TODO sin filtros de fecha ni orden ---
+        console.log("🔎 DIAGNÓSTICO: Buscando TODAS las tareas de este usuario...");
+        const debugQuery = query(
+            collection(db, "tareas_semanales"),
+            where("user_id", "==", auth.currentUser.uid)
+        );
+        
+        const debugSnap = await getDocs(debugQuery);
+        
+        if (debugSnap.empty) {
+            console.error("❌ DIAGNÓSTICO: No se encontró NINGUNA tarea para este usuario.");
+            console.log("👉 Verifica que la colección se llame exactamente 'tareas_semanales'.");
+            console.log("👉 Verifica que el user_id en la BD sea exactamente:", auth.currentUser.uid);
         } else {
-            taskList.innerHTML = 'Error al cargar tareas.';
+            console.log(`✅ DIAGNÓSTICO: Se encontraron ${debugSnap.size} tareas en total.`);
+            debugSnap.forEach(doc => {
+                const d = doc.data();
+                console.log("------------------------------------------------");
+                console.log("🆔 ID Documento:", doc.id);
+                console.log("📝 Texto:", `"${d.texto}"`);
+                console.log("📅 Fecha en BD:", `"${d.fecha_tarea}"`); // ¡FÍJATE AQUÍ!
+                console.log("🔢 Orden:", d.orden, "(Tipo:", typeof d.orden, ")");
+                console.log("👤 User ID:", d.user_id);
+                
+                // Comparación directa
+                if (d.fecha_tarea === todayStr) {
+                    console.log("✅ LA FECHA COINCIDE EXACTAMENTE.");
+                } else {
+                    console.warn("⚠️ LA FECHA NO COINCIDE. Diferencia encontrada.");
+                }
+            });
+            console.log("------------------------------------------------");
         }
+        // -----------------------------------------------------------
+
+        // --- Carga Normal ---
+        const tasksQ = query(
+            collection(db, "tareas_semanales"),
+            where("user_id", "==", auth.currentUser.uid),
+            where("fecha_tarea", "==", todayStr),
+            orderBy("orden", "asc")
+        );
+        
+        const tasksSnap = await getDocs(tasksQ);
+        taskList.innerHTML = ''; 
+        
+        if (tasksSnap.empty) {
+            taskList.innerHTML = '<div style="padding:1rem; text-align:center; color:#888">No hay tareas para hoy.</div>';
+        } else {
+            tasksSnap.forEach(doc => renderTask(doc));
+        }
+
+        // (El resto del código de pomodoros sigue igual...)
+        const startOfDay = new Date();
+        startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date();
+        endOfDay.setHours(23,59,59,999);
+
+        const sessionsQ = query(
+            collection(db, "sesiones_estudio"),
+            where("user_id", "==", auth.currentUser.uid),
+            where("tipo", "==", "estudio"),
+            where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)),
+            where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay))
+        );
+        const sessionsSnap = await getDocs(sessionsQ);
+        
+        pomodorosHoy = sessionsSnap.size;
+        pomodoroCountDisplay.textContent = pomodorosHoy;
+        
+        const cicloTarget = parseInt(inputCicloPomodoro.value) || 4;
+        pomodoroCount = pomodorosHoy % cicloTarget;
+
     } catch (error) {
-        taskList.innerHTML = 'Error de red al cargar tareas.';
+        console.error("CRASH cargando datos:", error);
+        taskList.innerHTML = 'Error cargando tareas.';
     }
 }
 
+// --- ¡FUNCIÓN CORREGIDA! ---
 async function addTask() {
     const taskText = newTaskInput.value.trim();
-    if (taskText !== '') {
-        try {
-            const response = await fetch('api/add_task.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: taskText }) }); 
-            const data = await response.json();
-            if (data.success) { renderTask(data.task); newTaskInput.value = ''; } else { alert(data.message); }
-        } catch (error) { alert('Error de red al añadir tarea.'); }
+    console.log("Intentando añadir tarea:", taskText);
+    if (taskText === '' || !auth.currentUser) return;
+    
+    try {
+        const todayStr = getLocalTodayDate();
+        
+        // --- CORRECCIÓN ---
+        // Usamos la consulta que SÍ tenemos (ASC)
+        const qOrder = query(
+            collection(db, "tareas_semanales"),
+            where("user_id", "==", auth.currentUser.uid),
+            where("fecha_tarea", "==", todayStr),
+            orderBy("orden", "asc") // Usamos ASC
+        );
+        const snapOrder = await getDocs(qOrder);
+        
+        // Calculamos el nuevo orden manualmente
+        let newOrder = 1;
+        if (!snapOrder.empty) {
+            // Cogemos el último elemento de la lista ascendente
+            const lastDoc = snapOrder.docs[snapOrder.docs.length - 1];
+            if (lastDoc) {
+                newOrder = lastDoc.data().orden + 1;
+            }
+        }
+        // --- FIN DE LA CORRECCIÓN ---
+
+        const newTask = {
+            user_id: auth.currentUser.uid,
+            texto: taskText,
+            fecha_tarea: todayStr,
+            completada: false,
+            orden: newOrder
+        };
+        
+        console.log("Guardando en Firestore...", newTask);
+        const docRef = await addDoc(collection(db, "tareas_semanales"), newTask);
+        console.log("¡Guardado! ID:", docRef.id);
+        
+        renderTask({ id: docRef.id, data: () => newTask }); 
+        newTaskInput.value = '';
+        
+    } catch (error) {
+        console.error("Error añadiendo tarea:", error);
+        alert('ERROR al añadir tarea: ' + error.message);
     }
 }
 
+// ... (Resto de funciones: editTask, toggle, delete, saveOrder...) ...
 async function editTask(id, currentText, taskElement) {
     const newText = prompt('Editar tarea:', currentText);
-    if (newText !== null && newText.trim() !== '' && newText !== currentText) {
+    if (newText && newText !== currentText) {
         try {
-            const response = await fetch('api/update_task_text.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, text: newText }) }); 
-            const data = await response.json();
-            if (data.success) {
-                taskElement.querySelector('.task-text').textContent = newText;
-                applyColorRule(taskElement, newText);
-            } else { alert(data.message); }
-        } catch (error) { alert('Error de red al editar tarea.'); }
+            await updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
+            taskElement.querySelector('.task-text').textContent = newText;
+            applyColorRule(taskElement, newText);
+        } catch(e) { console.error(e); }
     }
 }
-
 async function toggleTaskCompleted(id, isCompleted) {
-    try { await fetch('api/update_task.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, completed: isCompleted }) }); } catch (error) { alert('Error de red al actualizar tarea.'); } 
+    try { await updateDoc(doc(db, "tareas_semanales", id), { completada: isCompleted }); } catch(e) { console.error(e); }
 }
-
 async function deleteTask(id) {
-    try { await fetch('api/delete_task.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) }); } catch (error) { alert('Error de red al eliminar tarea.'); } 
+    try { await deleteDoc(doc(db, "tareas_semanales", id)); } catch(e) { console.error(e); }
 }
-
 async function saveTaskOrder(taskIds) {
-    try { await fetch('api/update_task_order.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ task_ids: taskIds }) }); } catch (error) { console.error('Error al guardar el orden:', error); alert('Error al guardar el nuevo orden.'); } 
+    if (!auth.currentUser) return;
+    try {
+        const batch = writeBatch(db);
+        taskIds.forEach((id, index) => {
+            batch.update(doc(db, "tareas_semanales", id), { orden: index + 1 });
+        });
+        await batch.commit();
+    } catch(e) { console.error(e); }
 }
 
 // --- Event Listeners ---
@@ -438,39 +512,36 @@ btnReset.addEventListener('click', guardarYResetear);
 tabBotones.forEach(btn => { btn.addEventListener('click', () => cambiarModo(btn.dataset.mode)); });
 addTaskBtn.addEventListener('click', addTask);
 newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
-
-// Listeners del Cronómetro
 btnStopwatchStart.addEventListener('click', startStopwatch);
 btnStopwatchPause.addEventListener('click', pauseStopwatch);
 btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
 btnStopwatchManual.addEventListener('click', addManualTime); 
-
-// --- ¡LISTENER AÑADIDO! ---
-btnPomodoroManual.addEventListener('click', addManualTime);
-
-// Listener del Selector de Actividad
-activityBotones.forEach(btn => {
-    btn.addEventListener('click', () => switchActivity(btn.dataset.activity));
-});
-
+activityBotones.forEach(btn => { btn.addEventListener('click', () => switchActivity(btn.dataset.activity)); });
 taskList.addEventListener('click', (e) => {
     const listItem = e.target.closest('li.task-item');
     if (!listItem) return; 
-    const taskId = parseInt(listItem.dataset.id);
+    const taskId = listItem.dataset.id; 
     if (e.target.classList.contains('task-checkbox')) { const isCompleted = e.target.checked; listItem.classList.toggle('completed', isCompleted); toggleTaskCompleted(taskId, isCompleted); } 
     else if (e.target.classList.contains('edit-task-btn')) { const currentText = listItem.querySelector('.task-text').textContent; editTask(taskId, currentText, listItem); } 
     else if (e.target.classList.contains('delete-task-btn')) { listItem.remove(); deleteTask(taskId); }
 });
 
-// --- Inicializar al cargar la página ---
-actualizarDisplay();
-loadAndRenderTasks(); 
+// Inicializar al verificar Auth
+auth.onAuthStateChanged(user => {
+    if (user) {
+        console.log("Usuario detectado:", user.uid);
+        actualizarDisplay();
+        loadAndRenderTasks(); 
+    } else {
+        console.warn("Usuario NO detectado en Pomodoro.js");
+    }
+});
 
 new Sortable(taskList, {
     animation: 150, handle: '.task-item', filter: '.task-checkbox, .edit-task-btn, .delete-task-btn', 
     onEnd: function (evt) {
         const taskItems = taskList.querySelectorAll('li.task-item');
-        const taskIdsInOrder = Array.from(taskItems).map(item => item.dataset.id);
-        saveTaskOrder(taskIdsInOrder);
+        const taskIds = Array.from(taskItems).map(item => item.dataset.id);
+        saveTaskOrder(taskIds);
     }
 });

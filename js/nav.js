@@ -1,48 +1,57 @@
+// Importa la autenticación y la función de 'signOut'
+import { auth } from './firebase-config.js';
+import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 document.addEventListener('DOMContentLoaded', () => {
     const menuToggle = document.getElementById('menu-toggle');
     const mainNav = document.getElementById('main-nav');
+    const logoutLink = document.querySelector('.logout-link'); // Busca el enlace de logout
     
-    // --- NUEVOS ESTADOS ---
-    let leaveTimer; // Temporizador para el hover
-    let isPinned = false; // Estado de "bloqueo" por clic
+    let leaveTimer; 
+    let isPinned = false; 
 
-    // --- Funciones ---
-    
-    // Abre el menú
     const openMenu = () => {
-        clearTimeout(leaveTimer); // Cancela cualquier cierre pendiente
+        clearTimeout(leaveTimer); 
         mainNav.classList.add('active');
     };
 
-    // Cierra el menú (SÓLO si no está "bloqueado")
     const closeMenu = () => {
         leaveTimer = setTimeout(() => {
-            if (!isPinned) { // La comprobación clave
+            if (!isPinned) { 
                 mainNav.classList.remove('active');
             }
-        }, 300); // 300ms de retardo
+        }, 300); 
     };
 
-    // --- Eventos de Hover (Pasar el cursor) ---
-    
+    // Eventos de Hover
     menuToggle.addEventListener('mouseenter', openMenu);
     mainNav.addEventListener('mouseenter', openMenu);
-    
     menuToggle.addEventListener('mouseleave', closeMenu);
     mainNav.addEventListener('mouseleave', closeMenu);
 
-    // --- ¡NUEVO! Evento de Clic ---
-    
+    // Evento de Clic
     menuToggle.addEventListener('click', () => {
-        // Invierte el estado de "bloqueo"
         isPinned = !isPinned;
-        
         if (isPinned) {
-            // Si acabamos de bloquearlo, nos aseguramos de que esté abierto
             mainNav.classList.add('active');
         } else {
-            // Si lo acabamos de desbloquear (con el clic), lo cerramos
             mainNav.classList.remove('active');
         }
     });
+    
+    // --- ¡NUEVA LÓGICA DE LOGOUT! ---
+    if (logoutLink) {
+        logoutLink.addEventListener('click', (e) => {
+            e.preventDefault(); // Evita que el enlace navegue
+            if (confirm('¿Seguro que quieres cerrar sesión?')) {
+                signOut(auth).then(() => {
+                    // Cierre de sesión exitoso, redirige a login
+                    window.location.href = 'login.html';
+                }).catch((error) => {
+                    console.error('Error al cerrar sesión:', error);
+                });
+            }
+        });
+    }
+    // --- FIN DE LA NUEVA LÓGICA ---
 });

@@ -1,0 +1,13 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Esta regla dice: "Aplica a cualquier documento en cualquier colección"
+    match /{document=**} {
+      // Permite leer y escribir SOLO si el usuario está autenticado
+      allow read, write: if request.auth != null;
+    }
+    
+  }
+}
