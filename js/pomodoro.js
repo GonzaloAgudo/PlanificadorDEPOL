@@ -31,6 +31,9 @@ const btnStopwatchStart = document.getElementById('btn-stopwatch-start');
 const btnStopwatchPause = document.getElementById('btn-stopwatch-pause');
 const btnStopwatchSave = document.getElementById('btn-stopwatch-save');
 const btnStopwatchManual = document.getElementById('btn-stopwatch-manual');
+// --- ¡NUEVA REFERENCIA AÑADIDA! ---
+const btnPomodoroManual = document.getElementById('btn-pomodoro-manual'); 
+
 const topicInputContainer = document.querySelector('.topic-input-container');
 const topicInput = document.getElementById('topic-input');
 
@@ -51,15 +54,12 @@ let stopwatchElapsedTime = 0;
 let stopwatchPaused = true;
 let currentActivity = 'estudio'; 
 
-const audioAlarma = new Audio('assets/alarma.mp3');
+const audioAlarma = new Audio('assets/alarma.mp3'); 
 
 // --- Helper para obtener fecha local YYYY-MM-DD ---
-// ¡FUNCIÓN CORREGIDA!
 function getLocalTodayDate() {
     const today = new Date();
-    // Ajusta la fecha a la medianoche local
     today.setHours(0, 0, 0, 0); 
-    // Convierte a ISO string y coge solo la parte de la fecha
     const offset = today.getTimezoneOffset();
     const localToday = new Date(today.getTime() - (offset * 60000));
     return localToday.toISOString().split('T')[0];
@@ -176,7 +176,7 @@ function pausarTimer() {
 
 function resetTimer() {
     pausarTimer();
-    // pomodoroCount = 0; // No reseteamos ciclo al dar a reset
+    // pomodoroCount = 0; 
     cambiarModo('estudio');
 }
 
@@ -278,7 +278,10 @@ function resetStopwatch(save = false) {
     document.title = "Pomodoro Timer"; 
 }
 function addManualTime() {
+    // Si el temporizador está corriendo, pausarlo
+    pausarTimer();
     pauseStopwatch();
+
     const validation = getValidatedTopic();
     if (!validation.valid) return;
     const input = prompt("Introduce el tiempo total en MINUTOS:");
@@ -290,18 +293,20 @@ function addManualTime() {
     }
     guardarSesionEnBD(duration, currentActivity, validation.topic);
     alert(`${duration} minutos de '${currentActivity}' guardados con éxito.`);
+    
+    // Actualizar contador si es estudio
     if (currentActivity === 'estudio') {
         pomodorosHoy++;
         pomodoroCountDisplay.textContent = pomodorosHoy;
         pomodoroCount = pomodorosHoy % (parseInt(inputCicloPomodoro.value) || 4);
     }
+    
+    // Resetear la interfaz
     resetStopwatch(false); 
     resetTimer(); 
 }
 
-// ===================================================================
 // --- FIREBASE: FUNCIONES DE BASE DE DATOS ---
-// ===================================================================
 
 async function guardarSesionEnBD(duracion, tipo, tema = null) { 
     if (!auth.currentUser) return alert('Error: No autenticado');
@@ -316,7 +321,7 @@ async function guardarSesionEnBD(duracion, tipo, tema = null) {
         console.log("Sesión guardada OK");
     } catch (error) {
         console.error("Error al guardar sesión: ", error);
-        alert('Error CRÍTICO al guardar: ' + error.message);
+        alert('Error de red al guardar la sesión.');
     }
 }
 
@@ -345,61 +350,19 @@ async function loadAndRenderTasks() {
     try {
         await fetchColorRules();
         const todayStr = getLocalTodayDate();
-        console.log("📅 Fecha buscada (APP):", `"${todayStr}"`); // Comillas para ver espacios
 
-        // --- DIAGNÓSTICO: Buscar TODO sin filtros de fecha ni orden ---
-        console.log("🔎 DIAGNÓSTICO: Buscando TODAS las tareas de este usuario...");
-        const debugQuery = query(
-            collection(db, "tareas_semanales"),
-            where("user_id", "==", auth.currentUser.uid)
-        );
-        
-        const debugSnap = await getDocs(debugQuery);
-        
-        if (debugSnap.empty) {
-            console.error("❌ DIAGNÓSTICO: No se encontró NINGUNA tarea para este usuario.");
-            console.log("👉 Verifica que la colección se llame exactamente 'tareas_semanales'.");
-            console.log("👉 Verifica que el user_id en la BD sea exactamente:", auth.currentUser.uid);
-        } else {
-            console.log(`✅ DIAGNÓSTICO: Se encontraron ${debugSnap.size} tareas en total.`);
-            debugSnap.forEach(doc => {
-                const d = doc.data();
-                console.log("------------------------------------------------");
-                console.log("🆔 ID Documento:", doc.id);
-                console.log("📝 Texto:", `"${d.texto}"`);
-                console.log("📅 Fecha en BD:", `"${d.fecha_tarea}"`); // ¡FÍJATE AQUÍ!
-                console.log("🔢 Orden:", d.orden, "(Tipo:", typeof d.orden, ")");
-                console.log("👤 User ID:", d.user_id);
-                
-                // Comparación directa
-                if (d.fecha_tarea === todayStr) {
-                    console.log("✅ LA FECHA COINCIDE EXACTAMENTE.");
-                } else {
-                    console.warn("⚠️ LA FECHA NO COINCIDE. Diferencia encontrada.");
-                }
-            });
-            console.log("------------------------------------------------");
-        }
-        // -----------------------------------------------------------
-
-        // --- Carga Normal ---
+        // 1. Tareas de Hoy
         const tasksQ = query(
             collection(db, "tareas_semanales"),
             where("user_id", "==", auth.currentUser.uid),
             where("fecha_tarea", "==", todayStr),
             orderBy("orden", "asc")
         );
-        
         const tasksSnap = await getDocs(tasksQ);
         taskList.innerHTML = ''; 
-        
-        if (tasksSnap.empty) {
-            taskList.innerHTML = '<div style="padding:1rem; text-align:center; color:#888">No hay tareas para hoy.</div>';
-        } else {
-            tasksSnap.forEach(doc => renderTask(doc));
-        }
+        tasksSnap.forEach(doc => renderTask(doc));
 
-        // (El resto del código de pomodoros sigue igual...)
+        // 2. Contador de Pomodoros
         const startOfDay = new Date();
         startOfDay.setHours(0,0,0,0);
         const endOfDay = new Date();
@@ -421,40 +384,26 @@ async function loadAndRenderTasks() {
         pomodoroCount = pomodorosHoy % cicloTarget;
 
     } catch (error) {
-        console.error("CRASH cargando datos:", error);
+        console.error("Error cargando datos:", error);
         taskList.innerHTML = 'Error cargando tareas.';
     }
 }
 
-// --- ¡FUNCIÓN CORREGIDA! ---
 async function addTask() {
     const taskText = newTaskInput.value.trim();
-    console.log("Intentando añadir tarea:", taskText);
     if (taskText === '' || !auth.currentUser) return;
     
     try {
         const todayStr = getLocalTodayDate();
-        
-        // --- CORRECCIÓN ---
-        // Usamos la consulta que SÍ tenemos (ASC)
         const qOrder = query(
             collection(db, "tareas_semanales"),
             where("user_id", "==", auth.currentUser.uid),
             where("fecha_tarea", "==", todayStr),
-            orderBy("orden", "asc") // Usamos ASC
+            orderBy("orden", "desc"),
+            limit(1)
         );
         const snapOrder = await getDocs(qOrder);
-        
-        // Calculamos el nuevo orden manualmente
-        let newOrder = 1;
-        if (!snapOrder.empty) {
-            // Cogemos el último elemento de la lista ascendente
-            const lastDoc = snapOrder.docs[snapOrder.docs.length - 1];
-            if (lastDoc) {
-                newOrder = lastDoc.data().orden + 1;
-            }
-        }
-        // --- FIN DE LA CORRECCIÓN ---
+        const newOrder = snapOrder.empty ? 1 : snapOrder.docs[0].data().orden + 1;
 
         const newTask = {
             user_id: auth.currentUser.uid,
@@ -464,20 +413,16 @@ async function addTask() {
             orden: newOrder
         };
         
-        console.log("Guardando en Firestore...", newTask);
         const docRef = await addDoc(collection(db, "tareas_semanales"), newTask);
-        console.log("¡Guardado! ID:", docRef.id);
-        
         renderTask({ id: docRef.id, data: () => newTask }); 
         newTaskInput.value = '';
         
     } catch (error) {
         console.error("Error añadiendo tarea:", error);
-        alert('ERROR al añadir tarea: ' + error.message);
+        alert('Error al añadir tarea.');
     }
 }
 
-// ... (Resto de funciones: editTask, toggle, delete, saveOrder...) ...
 async function editTask(id, currentText, taskElement) {
     const newText = prompt('Editar tarea:', currentText);
     if (newText && newText !== currentText) {
@@ -512,11 +457,21 @@ btnReset.addEventListener('click', guardarYResetear);
 tabBotones.forEach(btn => { btn.addEventListener('click', () => cambiarModo(btn.dataset.mode)); });
 addTaskBtn.addEventListener('click', addTask);
 newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+
 btnStopwatchStart.addEventListener('click', startStopwatch);
 btnStopwatchPause.addEventListener('click', pauseStopwatch);
 btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
 btnStopwatchManual.addEventListener('click', addManualTime); 
-activityBotones.forEach(btn => { btn.addEventListener('click', () => switchActivity(btn.dataset.activity)); });
+
+// --- ¡LISTENER AÑADIDO! ---
+if(btnPomodoroManual) {
+    btnPomodoroManual.addEventListener('click', addManualTime);
+}
+
+activityBotones.forEach(btn => {
+    btn.addEventListener('click', () => switchActivity(btn.dataset.activity));
+});
+
 taskList.addEventListener('click', (e) => {
     const listItem = e.target.closest('li.task-item');
     if (!listItem) return; 
@@ -526,14 +481,10 @@ taskList.addEventListener('click', (e) => {
     else if (e.target.classList.contains('delete-task-btn')) { listItem.remove(); deleteTask(taskId); }
 });
 
-// Inicializar al verificar Auth
 auth.onAuthStateChanged(user => {
     if (user) {
-        console.log("Usuario detectado:", user.uid);
         actualizarDisplay();
         loadAndRenderTasks(); 
-    } else {
-        console.warn("Usuario NO detectado en Pomodoro.js");
     }
 });
 
