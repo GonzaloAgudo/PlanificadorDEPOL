@@ -535,7 +535,6 @@ body {
     border-radius: 16px; 
     min-height: 60vh; 
     cursor: grab; 
-    /* --- ¡NUEVO! Deshabilitar selección de texto --- */
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -553,7 +552,6 @@ body {
     padding: 1rem; 
     display: flex; 
     flex-direction: column; 
-    /* --- ¡NUEVO! Deshabilitar selección de texto --- */
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
@@ -627,6 +625,62 @@ body {
 }
 
 /* --- 11. PÁGINA: Ajustes (ajustes.php) --- */
+
+.settings-menu-grid {
+    display: flex;
+    flex-direction: column; /* <--- ESTO los pone uno encima de otro */
+    gap: 15px; /* Un poco más de espacio entre botones */
+    width: 100%; /* Ocupar todo el ancho disponible */
+    max-width: 400px; /* Opcional: Para que no sean gigantes en pantallas grandes */
+    margin: 0 auto 20px auto; /* Centrar el bloque */
+}
+
+.settings-nav-btn {
+    display: flex; /* Usamos flex para controlar la posición del texto e icono */
+    align-items: center;
+    justify-content: flex-start; /* Alineado a la izquierda, queda mejor en lista */
+    gap: 12px; 
+    padding: 12px 20px; /* Botones un poco más grandes */
+    width: 100%; /* <--- ESTO hace que el botón se estire a los lados */
+    background-color: #e9ecef; 
+    border: 1px solid #adb5bd; 
+    border-radius: 8px; 
+    color: #333; 
+    text-decoration: none; 
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Para separar el texto de la flechita si quisieras añadir una a la derecha */
+/* .settings-nav-btn { justify-content: space-between; } */
+
+.settings-nav-btn:hover {
+    background-color: #dde2e6;
+    border-color: #6c757d;
+    transform: translateY(-2px); 
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.settings-nav-btn span.icon {
+    font-size: 1.2rem;
+}
+
+.settings-nav-btn.danger {
+    margin-top: 10px; /* Un extra de separación para el botón de borrar */
+    background-color: #fff5f5;
+    border-color: #f5c6cb;
+    color: #dc3545;
+}
+
+.settings-nav-btn.danger:hover {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
 .settings-layout {
     display: grid;
     place-items: center;
@@ -677,7 +731,7 @@ body {
     gap: 1rem;
     margin-top: 1rem;
 }
-#save-rule-btn {
+#save-rule-btn, #save-session-btn {
     background-color: var(--color-estudio);
     color: white;
     border: none;
@@ -687,7 +741,7 @@ body {
     border-radius: 8px;
     cursor: pointer;
 }
-#cancel-edit-btn {
+#cancel-edit-btn, #cancel-session-btn {
     background-color: var(--color-secundario);
     color: white;
     border: none;
@@ -745,7 +799,73 @@ body {
 .rule-actions .delete-btn:hover { opacity: 1; color: var(--color-peligro); }
 
 
-/* --- 12. Diseño Responsive (Media Queries) --- */
+/* ----------------------------------------------------------
+   ESTILOS AÑADIDOS PARA LAS NUEVAS FUNCIONES DE AJUSTES
+   ---------------------------------------------------------- */
+   
+/* Pestañas */
+.settings-tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+.settings-tab-btn { flex: 1; padding: 0.8rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: all 0.2s; }
+.settings-tab-btn.active { background: var(--color-primario); color: white; border-color: var(--color-primario); box-shadow: 0 2px 5px rgba(0,123,255,0.3); }
+
+/* Select e inputs del formulario de edición */
+.settings-card select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Lista de Historial */
+.history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.history-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+    background: white;
+}
+.history-item:hover { background-color: #f9f9f9; }
+.history-info { flex-grow: 1; }
+.history-date { font-size: 0.85rem; color: var(--color-secundario); display: block; margin-bottom: 2px; }
+.history-title { font-weight: 600; font-size: 1rem; }
+.history-duration { font-weight: bold; color: var(--color-primario); margin: 0 15px; min-width: 70px; text-align: right; }
+.history-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    margin-right: 5px;
+    color: white;
+}
+.history-badge.estudio { background: var(--color-estudio); }
+.history-badge.clase { background: var(--color-clase); }
+.history-badge.psicotecnicos { background: var(--color-psico); }
+
+.btn-secondary-outline {
+    background: white;
+    color: var(--color-secundario);
+    border: 2px solid var(--color-secundario);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-secondary-outline:hover {
+    background: var(--color-secundario);
+    color: white;
+}
+
+/* 12. Diseño Responsive (Media Queries) */
 @media (max-width: 900px) { 
     .content-wrapper { padding: 0.5rem; padding-top: 5rem; }
     .index-layout { flex-direction: column; align-items: center; }
