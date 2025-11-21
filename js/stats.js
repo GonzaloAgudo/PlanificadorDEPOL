@@ -14,13 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const activityFilterRadios = document.querySelectorAll('.activity-filter input');
     const topicSubFilter = document.querySelector('.topic-sub-filter');
-    const topicFilterRadios = document.querySelectorAll('.topic-sub-filter input');
+    const topicFilterCheckboxes = document.querySelectorAll('.topic-sub-filter input');
     const filtrosTiempo = document.querySelector('.filtros');
     const filtroDiaBox = document.querySelector('.filtro-dia');
 
     let miGrafico; 
 
-    // --- Colores para los gráficos ---
     const TIPO_COLORES = {
         'estudio': 'rgba(40, 167, 69, 0.7)',  
         'clase': 'rgba(111, 66, 193, 0.7)',   
@@ -40,7 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
         return `hsla(${hue}, 70%, 60%, 0.7)`;
     }
 
-    // --- Función para pivotar datos para el gráfico "Conjunto" ---
+    function esTestOExamen(tema) {
+        if (!tema) return false;
+        const t = tema.toLowerCase().trim();
+        return t.startsWith('test') || t.startsWith('examen');
+    }
+
     function pivotData(sessions, labels, timeUnit) {
         const datasets = {
             'estudio': { label: 'Estudio', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['estudio'], stack: 'A' },
@@ -50,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sessions.forEach(s => {
             let label;
-            const date = s.fecha_sesion.toDate(); // Timestamp a Date
+            const date = s.fecha_sesion.toDate(); 
 
             if (timeUnit === 'today') label = `${date.getHours()}:00`;
             else if (timeUnit === 'week') {
@@ -69,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets[s.tipo].data[index] += s.duracion_minutos;
             }
         });
-        
         return Object.values(datasets).filter(ds => ds.data.some(d => d > 0));
     }
 
@@ -85,14 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtroTiempo === 'today' || (filtroTiempo === 'day' && filtroActividad !== 'conjunto')) {
             unidad = 'minutos';
         }
+        
         const convertirUnidad = (val) => (unidad === 'horas' ? (val / 60) : val);
 
         if (filtroActividad === 'temas') {
-            // --- Gráfico de Temas ---
             chartType = 'bar';
             indexAxis = 'y'; 
+            unidad = 'horas'; 
 
-            // Agrupar por tema
             const temaMap = {};
             sessions.forEach(s => {
                 if(s.tema) {
@@ -100,17 +103,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
             
-            // Ordenar temas (Tema 1, Tema 2...)
             const sortedTemas = Object.keys(temaMap).sort((a, b) => {
+                 const esTemaA = a.toLowerCase().startsWith('tema');
+                 const esTemaB = b.toLowerCase().startsWith('tema');
+                 if (esTemaA && !esTemaB) return -1;
+                 if (!esTemaA && esTemaB) return 1;
+                 
                  const numA = parseInt(a.replace(/\D/g, '')) || 999;
                  const numB = parseInt(b.replace(/\D/g, '')) || 999;
                  return numA - numB;
             });
 
-            const data = sortedTemas.map(t => convertirUnidad(temaMap[t]));
+            const data = sortedTemas.map(t => (temaMap[t] / 60)); 
             const colores = sortedTemas.map((_, i) => generarColor(i));
             
-            // Recalcular labels para el gráfico de temas
             labels = sortedTemas;
 
             datasets.push({
@@ -121,10 +127,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 borderWidth: 1
             });
 
-            // Máximo para eje X
             const maxVal = Math.max(...data);
             
-            // Config especial para temas
             miGrafico = new Chart(ctx, {
                 type: 'bar', 
                 data: { labels: labels, datasets: datasets },
@@ -132,7 +136,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     indexAxis: 'y', 
                     responsive: true, maintainAspectRatio: false,
                     scales: {
-                        x: { beginAtZero: true, title: { display: true, text: 'Horas' }, max: maxVal * 1.2 },
+                        x: { 
+                            beginAtZero: true, 
+                            title: { display: true, text: 'Horas' }, 
+                            max: maxVal * 1.2 
+                        },
                         y: { ticks: { autoSkip: false } }
                     },
                     plugins: {
@@ -148,8 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         } 
         
-        // --- Gráficos de Tiempo ---
-        
         if (filtroActividad === 'conjunto') {
             isStacked = true;
             const pivotedData = pivotData(sessions, labels, filtroTiempo);
@@ -159,7 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isStacked = false;
             let color = TIPO_COLORES[filtroActividad] || TIPO_COLORES['estudio'];
             
-            // Agrupar datos simples
             const dataMap = new Array(labels.length).fill(0);
             sessions.forEach(s => {
                 let label;
@@ -196,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 plugins: {
                     legend: { display: (filtroActividad === 'conjunto') },
-                    datalabels: { display: false } // No mostrar etiquetas en barras verticales
+                    datalabels: { display: false } 
                 }
             }
         });
@@ -222,24 +227,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if(filtroTiempo === 'day' && filtroActividad !== 'temas') return; 
 
-        // Definir rango de fechas
-        const now = new Date();
         let startDate = new Date();
         let endDate = new Date();
         let labels = [];
 
         if (filtroActividad === 'temas') {
-            // Para temas cargamos TODO (o el último año)
-            startDate = new Date(0); // Desde el principio
+            startDate = new Date('2000-01-01'); 
         } else {
             if (filtroTiempo === 'today') {
                 startDate.setHours(0,0,0,0);
                 endDate.setHours(23,59,59,999);
                 for(let i=0; i<24; i++) labels.push(`${i}:00`);
             } else if (filtroTiempo === 'week') {
-                const day = startDate.getDay() || 7; 
-                if(day !== 1) startDate.setHours(-24 * (day - 1)); 
-                else startDate.setHours(0,0,0,0);
+                const day = startDate.getDay(); 
+                const diff = startDate.getDate() - day + (day == 0 ? -6:1); 
+                startDate.setDate(diff); startDate.setHours(0,0,0,0);
                 endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6); endDate.setHours(23,59,59,999);
                 labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
             } else if (filtroTiempo === 'month') {
@@ -254,32 +256,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // Consulta base
+            // --- ¡CORRECCIÓN AQUÍ! ---
+            // Antes usaba endOfDay (que no existía), ahora usa endDate
             let q = query(
                 collection(db, "sesiones_estudio"),
                 where("user_id", "==", auth.currentUser.uid),
                 where("fecha_sesion", ">=", Timestamp.fromDate(startDate)),
-                where("fecha_sesion", "<=", Timestamp.fromDate(endDate))
+                where("fecha_sesion", "<=", Timestamp.fromDate(endDate)) // <-- Corregido
             );
 
             const querySnapshot = await getDocs(q);
             let sessions = [];
             let totalMinutos = 0;
 
+            // --- LÓGICA DE FILTRADO MULTISELECCIÓN ---
+            const checkedBoxes = Array.from(document.querySelectorAll('.topic-sub-filter input:checked')).map(cb => cb.value);
+
             querySnapshot.forEach(doc => {
                 const data = doc.data();
-                // Filtrado manual en cliente para simplificar índices
                 let include = false;
                 
                 if (filtroActividad === 'temas') {
-                    const subFiltro = document.querySelector('.topic-sub-filter input:checked').value;
                     if (data.tema) {
-                        if (subFiltro === 'ambas' && (data.tipo === 'estudio' || data.tipo === 'clase')) include = true;
-                        else if (subFiltro === 'estudio' && data.tipo === 'estudio') include = true;
-                        else if (subFiltro === 'clase' && data.tipo === 'clase') include = true;
+                        const esTest = esTestOExamen(data.tema);
+                        
+                        if (checkedBoxes.includes('estudio')) {
+                            if (data.tipo === 'estudio' && !esTest) include = true;
+                        }
+                        if (!include && checkedBoxes.includes('clase')) {
+                            if (data.tipo === 'clase') include = true;
+                        }
+                        if (!include && checkedBoxes.includes('test')) {
+                            if (data.tipo === 'estudio' && esTest) include = true;
+                        }
                     }
-                } else if (filtroActividad === 'conjunto') {
-                    include = true; // Todo cuenta
+                } 
+                else if (filtroActividad === 'conjunto') {
+                    include = true; 
+                } 
+                else if (filtroActividad === 'estudio') {
+                    if (data.tipo === 'estudio' && !esTestOExamen(data.tema)) include = true;
                 } else {
                     if (data.tipo === filtroActividad) include = true;
                 }
@@ -292,7 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const tiempoFormateado = formatearMinutos(totalMinutos);
             let titulo = "Total";
-            if(filtroTiempo === 'today') titulo = "Total Hoy";
+            if (filtroActividad === 'temas') titulo = "Total Acumulado";
+            else if(filtroTiempo === 'today') titulo = "Total Hoy";
             else if(filtroTiempo === 'week') titulo = "Total Esta Semana";
             else if(filtroTiempo === 'month') titulo = "Total Este Mes";
             else if(filtroTiempo === 'year') titulo = "Total Este Año";
@@ -318,6 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroActividad = document.querySelector('.activity-filter input:checked').value;
 
         try {
+            // Aquí sí se usa startOfDay/endOfDay
             let q = query(
                 collection(db, "sesiones_estudio"),
                 where("user_id", "==", auth.currentUser.uid),
@@ -331,8 +349,15 @@ document.addEventListener('DOMContentLoaded', () => {
             querySnapshot.forEach(doc => {
                 const data = doc.data();
                 let include = false;
-                if (filtroActividad === 'conjunto') include = true;
-                else if (data.tipo === filtroActividad) include = true;
+                
+                if (filtroActividad === 'conjunto') {
+                    include = true;
+                } else if (filtroActividad === 'estudio') {
+                    const temaStr = data.tema || "";
+                    if (data.tipo === 'estudio' && !esTestOExamen(temaStr)) include = true;
+                } else {
+                    if (data.tipo === filtroActividad) include = true;
+                }
 
                 if (include) {
                     sessions.push(data);
@@ -352,7 +377,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Listeners
     filtroBotones.forEach(btn => {
         btn.addEventListener('click', () => {
             filtroBotones.forEach(b => b.classList.remove('active'));
@@ -362,7 +386,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     activityFilterRadios.forEach(radio => radio.addEventListener('change', cargarEstadisticas));
-    topicFilterRadios.forEach(radio => radio.addEventListener('change', cargarEstadisticas));
+    topicFilterCheckboxes.forEach(chk => chk.addEventListener('change', cargarEstadisticas));
 
     btnVerStatsDia.addEventListener('click', () => {
         filtroBotones.forEach(b => b.classList.remove('active'));

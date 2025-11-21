@@ -459,7 +459,14 @@ body {
 .topic-sub-filter.hidden { display: none; }
 .topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); }
 .topic-sub-filter input { margin-right: 0.25rem; }
-
+/* Estilo para checkboxes seleccionados */
+.topic-sub-filter label:has(input:checked) {
+    background-color: var(--color-primario);
+    color: white;
+    border-radius: 12px;
+    padding: 0.2rem 0.6rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 .stats-app h1 { margin-top: 0; color: var(--color-primario); }
 .filtros { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .filtros.hidden { display: none; } 

@@ -11,15 +11,15 @@
 
     <button id="menu-toggle">☰</button>
     <nav id="main-nav">
-        <ul>
-            <li><a href="index.html">Pomodoro</a></li>
-            <li><a href="stats.html">Estadísticas</a></li>
-            <li><a href="semana.html">Planificador Semanal</a></li>
-            <li><a href="calendario.html">Calendario</a></li>
-            <li><a href="ajustes.html">Ajustes</a></li>
-            <li><a href="logout.php" class="logout-link">Cerrar Sesión</a></li>
-        </ul>
-    </nav>
+            <ul>
+                <li><a href="index.html">Pomodoro</a></li>
+                <li><a href="stats.html">Estadísticas</a></li>
+                <li><a href="semana.html">Planificador Semanal</a></li>
+                <li><a href="calendario.html">Calendario</a></li>
+                <li><a href="ajustes.html">Ajustes</a></li>
+                <li><a href="logout.php" class="logout-link">Cerrar Sesión</a></li>
+            </ul>
+	</nav>
 
     <main class="content-wrapper stats-layout">
         <div class="stats-app">
@@ -44,17 +44,21 @@
                 </label>
             </div>
             
+            <!-- ===== ¡NUEVO! SUB-FILTRO MULTISELECCIÓN ===== -->
             <div class="topic-sub-filter hidden">
+                <!-- "Ambas" eliminado -->
                 <label>
-                    <input type="radio" name="topic-type" value="ambas" checked> Ambas
+                    <!-- type="checkbox" permite seleccionar varios -->
+                    <input type="checkbox" name="topic-type" value="estudio" checked> Estudio
                 </label>
                 <label>
-                    <input type="radio" name="topic-type" value="estudio"> Solo Estudio
+                    <input type="checkbox" name="topic-type" value="clase" checked> Clase
                 </label>
                 <label>
-                    <input type="radio" name="topic-type" value="clase"> Solo Clase
+                    <input type="checkbox" name="topic-type" value="test" checked> Tests
                 </label>
             </div>
+            <!-- ============================================ -->
 
             <div class="filtros">
                 <button class="filtro-btn active" data-filtro="today">Hoy</button>
@@ -80,13 +84,15 @@
         </div>
     </main>
 
+    <!-- CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     
+    <!-- Scripts locales -->
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>
     <script type="module" src="js/stats.js"></script> 
-    
+
     <script>
         (function() {
             history.pushState(null, null, location.href);
@@ -95,5 +101,5 @@
             });
         })();
     </script>
-</body>
+    </body>
 </html>
