@@ -19,7 +19,7 @@
                 <li><a href="ajustes.html">Ajustes</a></li>
                 <li><a href="logout.php" class="logout-link">Cerrar Sesión</a></li>
             </ul>
-	</nav>
+    </nav>
 
     <main class="content-wrapper stats-layout">
         <div class="stats-app">
@@ -36,6 +36,9 @@
                 <label>
                     <input type="radio" name="activity-type" value="psicotecnicos"> Psicotécnicos
                 </label>
+                <label>
+                    <input type="radio" name="activity-type" value="test"> Test
+                </label>
                 <label class="conjunto-label">
                     <input type="radio" name="activity-type" value="conjunto"> Conjunto
                 </label>
@@ -44,11 +47,8 @@
                 </label>
             </div>
             
-            <!-- ===== ¡NUEVO! SUB-FILTRO MULTISELECCIÓN ===== -->
             <div class="topic-sub-filter hidden">
-                <!-- "Ambas" eliminado -->
                 <label>
-                    <!-- type="checkbox" permite seleccionar varios -->
                     <input type="checkbox" name="topic-type" value="estudio" checked> Estudio
                 </label>
                 <label>
@@ -58,8 +58,6 @@
                     <input type="checkbox" name="topic-type" value="test" checked> Tests
                 </label>
             </div>
-            <!-- ============================================ -->
-
             <div class="filtros">
                 <button class="filtro-btn active" data-filtro="today">Hoy</button>
                 <button class="filtro-btn" data-filtro="week">Semana</button>
@@ -84,11 +82,9 @@
         </div>
     </main>
 
-    <!-- CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     
-    <!-- Scripts locales -->
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>
     <script type="module" src="js/stats.js"></script> 

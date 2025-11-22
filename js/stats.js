@@ -20,10 +20,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let miGrafico; 
 
+    // 1. AÑADIDO COLOR PARA TEST
     const TIPO_COLORES = {
-        'estudio': 'rgba(40, 167, 69, 0.7)',  
-        'clase': 'rgba(111, 66, 193, 0.7)',   
-        'psicotecnicos': 'rgba(253, 126, 20, 0.7)' 
+        'estudio': 'rgba(40, 167, 69, 0.7)',       // Verde
+        'clase': 'rgba(111, 66, 193, 0.7)',        // Morado
+        'psicotecnicos': 'rgba(253, 126, 20, 0.7)', // Naranja
+        'test': 'rgba(220, 53, 69, 0.7)'           // Rojo (Nuevo)
     };
 
     function formatearMinutos(totalMinutos) {
@@ -45,11 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return t.startsWith('test') || t.startsWith('examen');
     }
 
+    // 2. MODIFICADO PARA INCLUIR TEST EN GRÁFICAS APILADAS
     function pivotData(sessions, labels, timeUnit) {
         const datasets = {
             'estudio': { label: 'Estudio', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['estudio'], stack: 'A' },
             'clase': { label: 'Clase', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['clase'], stack: 'A' },
-            'psicotecnicos': { label: 'Psicotécnicos', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['psicotecnicos'], stack: 'A' }
+            'psicotecnicos': { label: 'Psicotécnicos', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['psicotecnicos'], stack: 'A' },
+            'test': { label: 'Test', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['test'], stack: 'A' }
         };
 
         sessions.forEach(s => {
@@ -69,8 +73,11 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (timeUnit === 'day') label = 'Total';
 
             const index = labels.indexOf(label);
-            if (index > -1 && datasets[s.tipo]) {
-                datasets[s.tipo].data[index] += s.duracion_minutos;
+            // Aseguramos que el tipo exista en datasets, si no, lo ignoramos o lo metemos a estudio por defecto
+            const tipoSesion = datasets[s.tipo] ? s.tipo : 'estudio';
+
+            if (index > -1 && datasets[tipoSesion]) {
+                datasets[tipoSesion].data[index] += s.duracion_minutos;
             }
         });
         return Object.values(datasets).filter(ds => ds.data.some(d => d > 0));
@@ -212,6 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!auth.currentUser) return;
 
         const filtroTiempo = document.querySelector('.filtro-btn.active').dataset.filtro;
+        // Ahora filtroActividad puede ser: 'estudio', 'clase', 'psicotecnicos', 'test', 'conjunto', 'temas'
         const filtroActividad = document.querySelector('.activity-filter input:checked').value;
         
         // UI Toggle
@@ -256,48 +264,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         try {
-            // --- ¡CORRECCIÓN AQUÍ! ---
-            // Antes usaba endOfDay (que no existía), ahora usa endDate
             let q = query(
                 collection(db, "sesiones_estudio"),
                 where("user_id", "==", auth.currentUser.uid),
                 where("fecha_sesion", ">=", Timestamp.fromDate(startDate)),
-                where("fecha_sesion", "<=", Timestamp.fromDate(endDate)) // <-- Corregido
+                where("fecha_sesion", "<=", Timestamp.fromDate(endDate)) 
             );
 
             const querySnapshot = await getDocs(q);
             let sessions = [];
             let totalMinutos = 0;
 
-            // --- LÓGICA DE FILTRADO MULTISELECCIÓN ---
             const checkedBoxes = Array.from(document.querySelectorAll('.topic-sub-filter input:checked')).map(cb => cb.value);
 
             querySnapshot.forEach(doc => {
                 const data = doc.data();
+                
+                // 3. NORMALIZACIÓN DE CATEGORÍAS
+                // Esto asegura que si guardaste "Test" como "Estudio" en el pasado, se cuente como "Test" ahora.
+                // Y si ya se guarda con data.tipo = 'test', también funciona.
+                let tipoReal = data.tipo;
+                if (esTestOExamen(data.tema)) {
+                    tipoReal = 'test';
+                }
+                
+                // Sobrescribimos el tipo en el objeto temporal para que las gráficas usen el correcto
+                data.tipo = tipoReal;
+
                 let include = false;
                 
                 if (filtroActividad === 'temas') {
+                    // Lógica para filtro de temas (multiselección)
                     if (data.tema) {
-                        const esTest = esTestOExamen(data.tema);
-                        
-                        if (checkedBoxes.includes('estudio')) {
-                            if (data.tipo === 'estudio' && !esTest) include = true;
-                        }
-                        if (!include && checkedBoxes.includes('clase')) {
-                            if (data.tipo === 'clase') include = true;
-                        }
-                        if (!include && checkedBoxes.includes('test')) {
-                            if (data.tipo === 'estudio' && esTest) include = true;
+                        if (checkedBoxes.includes(tipoReal)) {
+                            include = true;
                         }
                     }
                 } 
                 else if (filtroActividad === 'conjunto') {
                     include = true; 
                 } 
-                else if (filtroActividad === 'estudio') {
-                    if (data.tipo === 'estudio' && !esTestOExamen(data.tema)) include = true;
-                } else {
-                    if (data.tipo === filtroActividad) include = true;
+                else {
+                    // Lógica simple: si el botón seleccionado coincide con el tipo real
+                    if (tipoReal === filtroActividad) {
+                        include = true;
+                    }
                 }
 
                 if (include) {
@@ -335,7 +346,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const filtroActividad = document.querySelector('.activity-filter input:checked').value;
 
         try {
-            // Aquí sí se usa startOfDay/endOfDay
             let q = query(
                 collection(db, "sesiones_estudio"),
                 where("user_id", "==", auth.currentUser.uid),
@@ -348,15 +358,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
             querySnapshot.forEach(doc => {
                 const data = doc.data();
+
+                // NORMALIZACIÓN DE TIPO (Igual que arriba)
+                let tipoReal = data.tipo;
+                if (esTestOExamen(data.tema)) {
+                    tipoReal = 'test';
+                }
+                data.tipo = tipoReal;
+
                 let include = false;
                 
                 if (filtroActividad === 'conjunto') {
                     include = true;
-                } else if (filtroActividad === 'estudio') {
-                    const temaStr = data.tema || "";
-                    if (data.tipo === 'estudio' && !esTestOExamen(temaStr)) include = true;
                 } else {
-                    if (data.tipo === filtroActividad) include = true;
+                    if (tipoReal === filtroActividad) include = true;
                 }
 
                 if (include) {
