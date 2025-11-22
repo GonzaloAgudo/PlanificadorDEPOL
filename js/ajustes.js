@@ -288,13 +288,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = doc.data();
                 const date = s.fecha_sesion.toDate();
                 
+                // --- NUEVA LÓGICA VISUAL PARA EL HISTORIAL ---
+                let tipoVisual = s.tipo; // Por defecto el que viene de la BD
+                const temaTexto = (s.tema || '').toLowerCase().trim();
+                
+                // Si el tema empieza por test/examen, forzamos visualmente 'test'
+                if (temaTexto.startsWith('test') || temaTexto.startsWith('examen')) {
+                    tipoVisual = 'test';
+                }
+                // ---------------------------------------------
+
                 const li = document.createElement('li');
                 li.className = 'history-item';
+                
+                // Nota: Asegúrate de tener CSS para .history-badge.test (te lo pongo abajo)
                 li.innerHTML = `
                     <div class="history-info">
                         <span class="history-date">${date.toLocaleString()}</span>
                         <div class="history-title">
-                            <span class="history-badge ${s.tipo}">${s.tipo}</span>
+                            <span class="history-badge ${tipoVisual}">${tipoVisual.toUpperCase()}</span>
                             ${s.tema || 'Sin tema'}
                         </div>
                     </div>

@@ -850,6 +850,7 @@ body {
 .history-badge.estudio { background: var(--color-estudio); }
 .history-badge.clase { background: var(--color-clase); }
 .history-badge.psicotecnicos { background: var(--color-psico); }
+.history-badge.test { background: var(--color-peligro); }
 
 .btn-secondary-outline {
     background: white;
