@@ -20,11 +20,14 @@
     --color-primario: #007bff;
     --color-primario-oscuro: #0056b3;
     --color-secundario: #6c757d;
+    --color-secundario-oscuro: #545b62;
     --color-estudio: #28a745; /* Verde */
+    --color-estudio-oscuro: #218838;
     --color-clase: #6f42c1; /* Violeta */ 
     --color-psico: #fd7e14; /* Naranja */
     --color-descanso: #ffc107;
     --color-peligro: #dc3545; /* Rojo */
+    --color-peligro-oscuro: #c82333;
     --color-fondo: #f4f7f6;
     --color-tarjeta: #ffffff;
     --color-menu: #2c3e50;
@@ -39,6 +42,14 @@ body {
     margin: 0; 
     background-color: var(--color-fondo); 
     color: #333; 
+}
+
+/* Animación global para todos los botones */
+button {
+    transition: background-color 0.2s ease, transform 0.1s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+button:active {
+    transform: scale(0.98); /* Efecto de clic */
 }
 
 /* --- 3. Páginas de Autenticación (Login/Registro) --- */
@@ -88,6 +99,9 @@ body {
     border-radius: 8px; 
     cursor: pointer; 
 }
+.login-container button:hover {
+    background: var(--color-estudio-oscuro);
+}
 .login-container p { 
     text-align: center; 
     margin-top: 1rem; 
@@ -111,7 +125,10 @@ body {
     border-radius: 8px; 
     cursor: pointer; 
     box-shadow: var(--sombra); 
-    transition: left 0.3s ease; 
+    transition: left 0.3s ease, transform 0.2s; 
+}
+#menu-toggle:hover {
+    transform: scale(1.05);
 }
 #main-nav { 
     position: fixed; 
@@ -149,6 +166,7 @@ body {
     font-size: 1.1rem; 
     font-weight: 600; 
     border-bottom: 1px solid #34495e; 
+    transition: background-color 0.2s;
 }
 #main-nav li a:hover { 
     background-color: #34495e; 
@@ -247,7 +265,9 @@ body {
     background-color: transparent; 
     cursor: pointer; 
     border-radius: 10px; 
-    transition: background-color 0.3s; 
+}
+.activity-btn:not(.active):hover {
+    background-color: #dde2e6; /* Hover para botones inactivos */
 }
 .activity-btn.active { 
     background-color: var(--color-primario); 
@@ -291,7 +311,9 @@ body {
     background-color: transparent; 
     cursor: pointer; 
     border-radius: 10px; 
-    transition: background-color 0.3s; 
+}
+.tab-btn:not(.active):hover {
+    background-color: rgba(0,0,0,0.05);
 }
 .tab-btn.active[data-mode=estudio] { 
     background-color: var(--color-estudio); 
@@ -331,17 +353,30 @@ body {
     border: none; 
     border-radius: 8px; 
     cursor: pointer; 
-    transition: transform 0.2s; 
 }
-.controles button:active { 
-    transform: scale(0.95); 
-}
-#btn-iniciar { background: var(--color-estudio); color: white; }
-#btn-pausa { background: var(--color-descanso); }
-#btn-reset { background: var(--color-peligro); color: white; } 
 
-/* Cronómetro (Clase/Psico) */
-#pomodoro-ui .btn-manual-add {
+/* Botones de Acción Principales (Iniciar/Pausar) */
+#btn-iniciar, #btn-stopwatch-start { 
+    background: var(--color-estudio); 
+    color: white; 
+}
+/* Hover solo si NO está en modo pausa (clase amarilla) */
+#btn-iniciar:not(.btn-yellow-state):hover, 
+#btn-stopwatch-start:not(.btn-yellow-state):hover {
+    background: var(--color-estudio-oscuro);
+}
+
+/* Botones de Guardar/Reset */
+#btn-reset, #btn-stopwatch-save { 
+    background: var(--color-peligro); 
+    color: white; 
+}
+#btn-reset:hover, #btn-stopwatch-save:hover { 
+    background: var(--color-peligro-oscuro);
+}
+
+/* Botones manuales (Gris) */
+#pomodoro-ui .btn-manual-add, #stopwatch-ui .btn-manual-add {
     font-size: 1rem;
     padding: 0.6rem 1rem;
     border: none;
@@ -353,6 +388,10 @@ body {
     margin-bottom: 1.5rem; 
     box-sizing: border-box; 
 }
+#pomodoro-ui .btn-manual-add:hover, #stopwatch-ui .btn-manual-add:hover {
+    background: var(--color-secundario-oscuro);
+}
+
 #stopwatch-ui .timer { 
     font-size: 4rem; 
     margin-top: 4rem; 
@@ -362,18 +401,7 @@ body {
     margin-top: 2rem; 
     margin-bottom: 1rem; 
 }
-#btn-stopwatch-start { background: var(--color-estudio); color: white; }
-#btn-stopwatch-pause { background: var(--color-descanso); }
-#btn-stopwatch-save { background: var(--color-peligro); color: white; } 
 #stopwatch-ui .btn-manual-add { 
-    font-size: 1rem;
-    padding: 0.6rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background: var(--color-secundario);
-    color: white;
-    width: 100%;
     margin-bottom: 4rem; 
 }
 
@@ -422,16 +450,32 @@ body {
     text-decoration: none; 
     border-radius: 8px; 
     font-weight: 600; 
+    transition: background-color 0.2s;
 }
 .stats-link:hover { 
     background-color: var(--color-primario-oscuro); 
 }
+
+/* ESTADO DE PAUSA (Amarillo) */
+button.btn-yellow-state {
+    background-color: #ffc107 !important; /* Amarillo estándar */
+    color: #212529 !important; /* Texto oscuro */
+    border-color: #ffc107 !important;
+}
+
+button.btn-yellow-state:hover {
+    background-color: #e0a800 !important; /* Amarillo oscuro al pasar ratón */
+    border-color: #d39e00 !important;
+}
+/* -------------------------------------------------------------- */
 
 /* --- 7. COMPONENTE: Tareas (index.php, semana.php) --- */
 .task-list-container h2 { text-align: center; color: var(--color-primario); margin-top: 0; margin-bottom: 1.5rem; }
 .task-input-group { display: flex; margin-bottom: 1.5rem; gap: 0.5rem; }
 .task-input-group input[type="text"] { flex-grow: 1; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
 .task-input-group button { background-color: var(--color-estudio); color: white; border: none; border-radius: 8px; padding: 0.75rem 1rem; cursor: pointer; font-size: 1.2rem; line-height: 1; }
+.task-input-group button:hover { background-color: var(--color-estudio-oscuro); transform: scale(1.05); }
+
 #task-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; margin-bottom: 1rem; }
 .task-list { list-style: none; padding: 0; margin: 0; max-height: 450px; overflow-y: auto; }
 .task-item { display: flex; align-items: center; padding: 0.75rem 0.5rem; border-bottom: 1px solid #eee; border-left: 4px solid transparent; transition: background-color 0.2s; cursor: grab; }
@@ -444,7 +488,7 @@ body {
 .task-text { flex-grow: 1; font-size: 1.1rem; line-height: 1.5; word-break: break-word; }
 .task-item.completed .task-text { text-decoration: line-through; color: var(--color-secundario); }
 .edit-task-btn, .delete-task-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.6; flex-shrink: 0; transition: opacity 0.2s; padding: 0 0.25rem; }
-.edit-task-btn:hover, .delete-task-btn:hover { opacity: 1; }
+.edit-task-btn:hover, .delete-task-btn:hover { opacity: 1; transform: scale(1.1); }
 .edit-task-btn { color: var(--color-secundario); margin-left: 1rem; }
 .delete-task-btn { color: var(--color-peligro); margin-left: 0.5rem; }
 
@@ -452,13 +496,15 @@ body {
 .activity-filter { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.5rem; background-color: #e9ecef; border-radius: 10px; flex-wrap: wrap; }
 .activity-filter label { font-weight: 600; cursor: pointer; padding: 0.5rem 0.75rem; border-radius: 8px; transition: background-color 0.2s; }
 .activity-filter input { margin-right: 0.25rem; }
+.activity-filter label:hover { background-color: rgba(0,0,0,0.05); }
 .activity-filter label:has(input:checked) { background-color: var(--color-primario); color: white; }
 .activity-filter label.conjunto-label:has(input:checked) { background-color: var(--color-secundario); color: white; }
 .activity-filter label.temas-label:has(input:checked) { background-color: var(--color-psico); color: white; }
 .topic-sub-filter { display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
 .topic-sub-filter.hidden { display: none; }
-.topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); }
+.topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: transform 0.1s; }
 .topic-sub-filter input { margin-right: 0.25rem; }
+.topic-sub-filter label:hover { transform: scale(1.05); }
 /* Estilo para checkboxes seleccionados */
 .topic-sub-filter label:has(input:checked) {
     background-color: var(--color-primario);
@@ -471,6 +517,7 @@ body {
 .filtros { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .filtros.hidden { display: none; } 
 .filtro-btn { flex-grow: 1; padding: 0.5rem; font-size: 0.9rem; border: 1px solid var(--color-primario); background-color: var(--color-tarjeta); color: var(--color-primario); border-radius: 6px; cursor: pointer; flex-basis: 48%; }
+.filtro-btn:hover { background-color: #e7f1ff; }
 .filtro-btn.active { background-color: var(--color-primario); color: white; }
 .resumen-stats { font-size: 1.2rem; margin: 1.5rem 0; padding: 1rem; background-color: var(--color-fondo); border-radius: 8px; }
 .resumen-stats strong { color: var(--color-primario-oscuro); }
@@ -479,6 +526,7 @@ body {
 .filtro-dia.hidden { display: none; } 
 .filtro-dia input[type="date"] { padding: 0.25rem; font-size: 1rem; }
 .filtro-dia button { background: var(--color-primario); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
+.filtro-dia button:hover { background: var(--color-primario-oscuro); }
 #resultado-stats-dia { margin-top: 1rem; font-weight: 600; }
 
 /* --- 9. PÁGINA: Semana (semana.php) --- */
@@ -654,9 +702,6 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-/* Para separar el texto de la flechita si quisieras añadir una a la derecha */
-/* .settings-nav-btn { justify-content: space-between; } */
-
 .settings-nav-btn:hover {
     background-color: #dde2e6;
     border-color: #6c757d;
@@ -741,6 +786,9 @@ body {
     border-radius: 8px;
     cursor: pointer;
 }
+#save-rule-btn:hover, #save-session-btn:hover {
+    background-color: var(--color-estudio-oscuro);
+}
 #cancel-edit-btn, #cancel-session-btn {
     background-color: var(--color-secundario);
     color: white;
@@ -750,6 +798,9 @@ body {
     font-weight: 600;
     border-radius: 8px;
     cursor: pointer;
+}
+#cancel-edit-btn:hover, #cancel-session-btn:hover {
+    background-color: var(--color-secundario-oscuro);
 }
 #rule-error-message {
     color: var(--color-peligro);
@@ -794,6 +845,7 @@ body {
     font-size: 1.2rem;
     cursor: pointer;
     opacity: 0.6;
+    transition: opacity 0.2s;
 }
 .rule-actions .edit-btn:hover { opacity: 1; color: var(--color-primario); }
 .rule-actions .delete-btn:hover { opacity: 1; color: var(--color-peligro); }

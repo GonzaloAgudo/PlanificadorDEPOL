@@ -1,19 +1,22 @@
-// Importamos Firebase y las configuraciones
+// ==============================================================
+//  IMPORTACIONES Y CONFIGURACIÓN
+// ==============================================================
 import { db, auth } from './firebase-config.js';
 import { 
     collection, addDoc, query, where, getDocs, 
     orderBy, limit, doc, updateDoc, deleteDoc, 
-    writeBatch, Timestamp 
+    writeBatch, Timestamp, setDoc, onSnapshot 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-// Importamos las reglas de color
 import { fetchColorRules, applyColorRule } from './colorRules.js';
 
-// --- Referencias al DOM ---
+// ==============================================================
+//  REFERENCIAS AL DOM
+// ==============================================================
 const timerDisplay = document.getElementById('timer-display');
 const inputEstudio = document.getElementById('input-estudio');
 const inputDescanso = document.getElementById('input-descanso');
 const btnIniciar = document.getElementById('btn-iniciar');
-const btnPausa = document.getElementById('btn-pausa');
+// const btnPausa eliminada (ya no existe en HTML)
 const btnReset = document.getElementById('btn-reset');
 const tabBotones = document.querySelectorAll('.tab-btn');
 const inputDescansoLargo = document.getElementById('input-descanso-largo');
@@ -22,77 +25,80 @@ const pomodoroCountDisplay = document.getElementById('pomodoro-count-display');
 const newTaskInput = document.getElementById('new-task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
-const activitySwitcher = document.querySelector('.activity-switcher');
 const activityBotones = document.querySelectorAll('.activity-btn');
 const pomodoroUI = document.getElementById('pomodoro-ui');
 const stopwatchUI = document.getElementById('stopwatch-ui');
 const stopwatchDisplay = document.getElementById('stopwatch-display');
-const btnStopwatchStart = document.getElementById('btn-stopwatch-start');
-const btnStopwatchPause = document.getElementById('btn-stopwatch-pause');
+const btnStopwatchStart = document.getElementById('btn-stopwatch-start'); 
+// const btnStopwatchPause eliminada (ya no existe en HTML)
 const btnStopwatchSave = document.getElementById('btn-stopwatch-save');
 const btnStopwatchManual = document.getElementById('btn-stopwatch-manual');
-// --- ¡NUEVA REFERENCIA AÑADIDA! ---
 const btnPomodoroManual = document.getElementById('btn-pomodoro-manual'); 
-
 const topicInputContainer = document.querySelector('.topic-input-container');
 const topicInput = document.getElementById('topic-input');
 
-// --- Estado ---
-let tiempoTotalSegundos = 30 * 60;
-let tiempoRestante = tiempoTotalSegundos;
-let esEstudio = true;
-let enPausa = true;
-let intervaloTimer = null;
-let duracionEstudioActual = 30;
+// ==============================================================
+//  VARIABLES GLOBALES Y ESTADO
+// ==============================================================
+let esEstudio = true; 
 let pomodoroCount = 0; 
 let pomodorosHoy = 0; 
-let pomodoroEndTime = 0;
+let visualInterval = null;   // Intervalo para el "tick" visual del reloj
+let wakeLock = null;         // Para mantener pantalla encendida
+let unsubscribeTimer = null; // Para detener la escucha de DB al salir
 
-let stopwatchInterval = null;
-let stopwatchStartTime = 0;
-let stopwatchElapsedTime = 0; 
-let stopwatchPaused = true;
-let currentActivity = 'estudio'; 
+// ESTADO REMOTO (Sincronizado con Firestore)
+let remoteState = {
+    status: 'stopped', // 'running', 'paused', 'stopped'
+    endTime: 0,        // Timestamp de fin
+    timeLeft: 0,       // Tiempo restante al pausar
+    totalDuration: 0,  // Duración total original
+    mode: 'estudio',   // 'estudio' o 'descanso'
+    activity: 'estudio',
+    topic: ''
+};
 
 const audioAlarma = new Audio('assets/alarma.mp3'); 
 
-// --- Helper para obtener fecha local YYYY-MM-DD ---
-function getLocalTodayDate() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); 
-    const offset = today.getTimezoneOffset();
-    const localToday = new Date(today.getTime() - (offset * 60000));
-    return localToday.toISOString().split('T')[0];
+// ==============================================================
+//  UTILIDADES (WAKELOCK, NOTIFICACIONES, UI)
+// ==============================================================
+
+// Solicitar permiso de notificaciones al cargar
+if ("Notification" in window) Notification.requestPermission();
+
+// Wake Lock API (Pantalla Encendida)
+async function requestWakeLock() {
+    if ('wakeLock' in navigator) {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) { console.error(err); }
+    }
+}
+function releaseWakeLock() {
+    if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
 }
 
-// --- Lógica de Interfaz ---
+// Helpers de UI
 function switchActivity(newActivity) {
-    currentActivity = newActivity;
-    pausarTimer();
-    pauseStopwatch();
-    resetStopwatch(false); 
-    activityBotones.forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.activity === newActivity);
-    });
+    activityBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.activity === newActivity));
     if (newActivity === 'estudio') {
         pomodoroUI.style.display = 'block';
         stopwatchUI.style.display = 'none';
         topicInputContainer.style.display = 'block'; 
-        resetTimer(); 
-    } else if (newActivity === 'clase') {
-        pomodoroUI.style.display = 'none';
-        stopwatchUI.style.display = 'block';
-        topicInputContainer.style.display = 'block'; 
     } else { 
         pomodoroUI.style.display = 'none';
         stopwatchUI.style.display = 'block';
-        topicInputContainer.style.display = 'none'; 
+        topicInputContainer.style.display = (newActivity === 'psicotecnicos') ? 'none' : 'block'; 
     }
 }
 
 function getValidatedTopic() {
+    // Si ya está corriendo remotamente, confiamos en el tema remoto
+    if (remoteState.status === 'running') return { valid: true, topic: remoteState.topic };
+
     const tema = topicInput.value.trim();
-    if (currentActivity === 'psicotecnicos') return { valid: true, topic: null };
+    const act = document.querySelector('.activity-btn.active').dataset.activity;
+    
+    if (act === 'psicotecnicos') return { valid: true, topic: null };
     if (tema === '') {
         const userConfirmed = confirm("No has especificado un tema.\n¿Quieres continuar y guardarlo sin tema?");
         return userConfirmed ? { valid: true, topic: null } : { valid: false, topic: null };
@@ -100,240 +106,381 @@ function getValidatedTopic() {
     return { valid: true, topic: tema };
 }
 
-// --- Lógica del Pomodoro ---
-function actualizarDisplay() {
-    const displayTime = Math.max(0, tiempoRestante);
-    const minutos = Math.floor(displayTime / 60);
-    const segundos = displayTime % 60;
-    timerDisplay.textContent = `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`;
+function updateDisplay(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    timerDisplay.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
     document.title = `${timerDisplay.textContent} - ${esEstudio ? 'Estudio' : 'Descanso'}`;
 }
 
-function cambiarModo(modo) {
-    pausarTimer();
-    esEstudio = (modo === 'estudio');
-    tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === modo));
-    if (esEstudio) {
-        tiempoTotalSegundos = parseInt(inputEstudio.value) * 60;
-    } else {
-        const cicloTarget = parseInt(inputCicloPomodoro.value);
-        if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
-            tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
+// ==============================================================
+//  CORE: SINCRONIZACIÓN CON FIRESTORE
+// ==============================================================
+
+function iniciarEscuchaFirebase() {
+    if (!auth.currentUser) return;
+    const docRef = doc(db, "timers_activos", auth.currentUser.uid);
+    
+    unsubscribeTimer = onSnapshot(docRef, (docSnap) => {
+        if (docSnap.exists()) {
+            actualizarEstadoDesdeRemoto(docSnap.data());
         } else {
-            tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
+            actualizarEstadoDesdeRemoto({ status: 'stopped', mode: 'estudio', activity: 'estudio' });
         }
-    }
-    tiempoRestante = tiempoTotalSegundos;
-    actualizarDisplay();
-    btnIniciar.textContent = "Iniciar";
+    });
 }
 
-function iniciarTimer() {
-    if (enPausa) {
-        if (esEstudio && tiempoRestante === tiempoTotalSegundos) {
+function actualizarEstadoDesdeRemoto(data) {
+    remoteState = { ...remoteState, ...data };
+    
+    // 1. Sincronizar UI (Actividad, Modo, Tema)
+    if (data.activity) switchActivity(data.activity);
+    if (data.mode) {
+        esEstudio = (data.mode === 'estudio');
+        tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === data.mode));
+    }
+    if (data.topic && topicInput.value === '') topicInput.value = data.topic;
+
+    // 2. Gestión del Timer
+    clearInterval(visualInterval);
+    
+    if (data.status === 'running') {
+        requestWakeLock();
+        btnIniciar.textContent = "Pausar"; 
+        // --- CAMBIO VISUAL: Botón amarillo ---
+        btnIniciar.classList.add('btn-yellow-state'); 
+        btnIniciar.onclick = pausarTimerRemoto; 
+
+        const now = Date.now();
+        const secondsLeft = Math.ceil((data.endTime - now) / 1000);
+
+        if (secondsLeft <= 0) {
+            timerDisplay.textContent = "00:00";
+            terminarSesionRemota(); 
+        } else {
+            updateDisplay(secondsLeft);
+            visualInterval = setInterval(() => {
+                const currentNow = Date.now();
+                const currentSecondsLeft = Math.ceil((data.endTime - currentNow) / 1000);
+                if (currentSecondsLeft <= 0) {
+                    clearInterval(visualInterval);
+                    timerDisplay.textContent = "00:00";
+                    terminarSesionRemota(); 
+                } else {
+                    updateDisplay(currentSecondsLeft);
+                }
+            }, 1000);
+        }
+
+    } else if (data.status === 'paused') {
+        releaseWakeLock();
+        btnIniciar.textContent = "Continuar";
+        // --- CAMBIO VISUAL: Quitar amarillo ---
+        btnIniciar.classList.remove('btn-yellow-state');
+        btnIniciar.onclick = iniciarTimerLocal; 
+        updateDisplay(data.timeLeft);
+
+    } else { // stopped
+        releaseWakeLock();
+        btnIniciar.textContent = "Iniciar";
+        // --- CAMBIO VISUAL: Quitar amarillo ---
+        btnIniciar.classList.remove('btn-yellow-state');
+        btnIniciar.onclick = iniciarTimerLocal;
+        
+        let defaultTime = 0;
+        if (esEstudio) defaultTime = parseInt(inputEstudio.value) * 60;
+        else defaultTime = parseInt(inputDescanso.value) * 60;
+        
+        if (isNaN(defaultTime) || defaultTime <= 0) defaultTime = 25 * 60;
+        updateDisplay(defaultTime);
+    }
+}
+
+// ==============================================================
+//  ACCIONES DEL USUARIO (Logica del Timer)
+// ==============================================================
+
+async function iniciarTimerLocal() {
+    if (!auth.currentUser) return alert("Debes iniciar sesión");
+    
+    let durationSec = 0;
+    if (remoteState.status === 'paused') {
+        durationSec = remoteState.timeLeft;
+    } else {
+        if (esEstudio) {
             const validation = getValidatedTopic();
             if (!validation.valid) return;
-        }
-        audioAlarma.load(); 
-        enPausa = false;
-        btnIniciar.textContent = "Iniciar";
-        
-        if (tiempoRestante === tiempoTotalSegundos) {
-             if(esEstudio) {
-                duracionEstudioActual = parseInt(inputEstudio.value);
-                tiempoTotalSegundos = duracionEstudioActual * 60;
-            } else {
-                const cicloTarget = parseInt(inputCicloPomodoro.value);
-                if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
-                     tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
-                } else {
-                     tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
-                }
-            }
-            tiempoRestante = tiempoTotalSegundos;
-        }
-        pomodoroEndTime = Date.now() + (tiempoRestante * 1000);
-        intervaloTimer = setInterval(() => {
-            const msRestantes = pomodoroEndTime - Date.now();
-            tiempoRestante = Math.round(msRestantes / 1000);
-            actualizarDisplay();
-            if (tiempoRestante < 0) terminarSesion();
-        }, 1000); 
-    }
-}
-
-function pausarTimer() {
-    if (!enPausa) { 
-        enPausa = true;
-        clearInterval(intervaloTimer);
-        const msRestantes = pomodoroEndTime - Date.now();
-        tiempoRestante = Math.round(msRestantes / 1000);
-        if (tiempoRestante < 0) tiempoRestante = 0;
-        actualizarDisplay(); 
-        btnIniciar.textContent = "Continuar";
-    }
-}
-
-function resetTimer() {
-    pausarTimer();
-    // pomodoroCount = 0; 
-    cambiarModo('estudio');
-}
-
-function guardarYResetear() { 
-    pausarTimer();
-    if (esEstudio) {
-        const tiempoTotalConfigurado = parseInt(inputEstudio.value) * 60;
-        const tiempoEstudiadoSegundos = tiempoTotalConfigurado - tiempoRestante;
-        const minutosEstudiados = Math.round(tiempoEstudiadoSegundos / 60);
-        if (minutosEstudiados > 0) {
-            const validation = getValidatedTopic();
-            if (!validation.valid) { pausarTimer(); return; }
-            
-            guardarSesionEnBD(minutosEstudiados, 'estudio', validation.topic); 
-            pomodorosHoy++;
-            pomodoroCount++; 
-            pomodoroCountDisplay.textContent = pomodorosHoy;
-        }
-    }
-    resetTimer();
-}
-
-function terminarSesion() {
-    pausarTimer();
-    audioAlarma.play().catch(e => console.warn("Audio error:", e));
-    if (esEstudio) {
-        pomodoroCount++; 
-        pomodorosHoy++; 
-        pomodoroCountDisplay.textContent = pomodorosHoy; 
-        const validation = getValidatedTopic(); 
-        const tema = validation.valid ? validation.topic : null; 
-        guardarSesionEnBD(duracionEstudioActual, 'estudio', tema); 
-        const cicloTarget = parseInt(inputCicloPomodoro.value);
-        if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
-            tiempoTotalSegundos = parseInt(inputDescansoLargo.value) * 60;
+            remoteState.topic = validation.topic; 
+            durationSec = parseInt(inputEstudio.value) * 60;
         } else {
-            tiempoTotalSegundos = parseInt(inputDescanso.value) * 60;
+            const cicloTarget = parseInt(inputCicloPomodoro.value) || 4;
+            if (cicloTarget > 0 && pomodoroCount > 0 && pomodoroCount % cicloTarget === 0) {
+                durationSec = parseInt(inputDescansoLargo.value) * 60;
+            } else {
+                durationSec = parseInt(inputDescanso.value) * 60;
+            }
         }
-        cambiarModo('descanso'); 
-        tiempoRestante = tiempoTotalSegundos; 
-        pomodoroEndTime = Date.now() + (tiempoRestante * 1000); 
-        actualizarDisplay();
-    } else {
-        cambiarModo('estudio');
+    }
+
+    const endTime = Date.now() + (durationSec * 1000);
+    const currentAct = document.querySelector('.activity-btn.active').dataset.activity;
+    const currentTopic = topicInput.value;
+
+    try {
+        await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
+            status: 'running',
+            endTime: endTime,
+            totalDuration: durationSec, 
+            mode: esEstudio ? 'estudio' : 'descanso',
+            activity: currentAct,
+            topic: currentTopic,
+            lastUpdated: Date.now()
+        });
+        audioAlarma.load();
+    } catch (e) { console.error("Error al iniciar:", e); }
+}
+
+async function pausarTimerRemoto() {
+    if (!auth.currentUser || remoteState.status !== 'running') return;
+    
+    const now = Date.now();
+    const timeLeft = Math.ceil((remoteState.endTime - now) / 1000);
+
+    await updateDoc(doc(db, "timers_activos", auth.currentUser.uid), {
+        status: 'paused',
+        timeLeft: Math.max(0, timeLeft)
+    });
+}
+
+async function guardarYResetearRemoto() {
+    if (!auth.currentUser) return;
+    
+    if (remoteState.status === 'running' || remoteState.status === 'paused') {
+        
+        let secondsLeft = 0;
+        if (remoteState.status === 'running') {
+            const now = Date.now();
+            secondsLeft = Math.ceil((remoteState.endTime - now) / 1000);
+        } else {
+            secondsLeft = remoteState.timeLeft;
+        }
+
+        const secondsElapsed = Math.max(0, remoteState.totalDuration - secondsLeft);
+        const minutosEstudiados = Math.round(secondsElapsed / 60);
+
+        if (remoteState.mode === 'estudio' && minutosEstudiados > 0) {
+            const confirmSave = confirm(`Has parado a la mitad. ¿Guardar los ${minutosEstudiados} minutos que llevabas?`);
+            if (confirmSave) {
+                await guardarSesionEnBD(minutosEstudiados, remoteState.activity, remoteState.topic);
+            }
+        }
+    }
+
+    try {
+        await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
+            status: 'stopped',
+            mode: 'estudio', 
+            activity: 'estudio',
+            timeLeft: 0,
+            lastUpdated: Date.now()
+        });
+        
+        // Reset Visual Inmediato
+        esEstudio = true;
+        // Aseguramos que se quita el amarillo
+        btnIniciar.classList.remove('btn-yellow-state');
+        btnIniciar.textContent = "Iniciar";
+
+        const defaultMinutes = parseInt(inputEstudio.value) || 25;
+        updateDisplay(defaultMinutes * 60);
+        document.title = "Pomodoro Listo";
+        tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === 'estudio'));
+
+    } catch (e) {
+        console.error("Error al resetear timer:", e);
     }
 }
 
-// --- Lógica del Cronómetro ---
+async function terminarSesionRemota() {
+    if (!auth.currentUser) return;
+    if (remoteState.status !== 'running') return;
+
+    audioAlarma.play().catch(e => console.log(e));
+    if (Notification.permission === "granted") {
+        new Notification("Tiempo Terminado", { body: esEstudio ? "¡Descanso!" : "A estudiar" });
+    }
+
+    if (remoteState.mode === 'estudio') {
+        const minutos = Math.round(remoteState.totalDuration / 60);
+        if (minutos > 0) {
+            await guardarSesionEnBD(minutos, remoteState.activity, remoteState.topic);
+        }
+    }
+    
+    let nextMode = 'estudio';
+    if (remoteState.mode === 'estudio') {
+        nextMode = 'descanso';
+        pomodoroCount++;
+    }
+
+    try {
+        await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
+            status: 'stopped',
+            mode: nextMode,
+            activity: remoteState.activity,
+            timeLeft: 0,
+            lastUpdated: Date.now()
+        });
+        // Quitar amarillo al terminar
+        btnIniciar.classList.remove('btn-yellow-state');
+        btnIniciar.textContent = "Iniciar";
+    } catch (e) { console.error("Error al terminar sesión:", e); }
+}
+
+// ==============================================================
+//  GUARDADO DE DATOS (BD)
+// ==============================================================
+
+async function guardarSesionEnBD(duracion, tipo, tema = null) { 
+    if (!auth.currentUser) {
+        console.error("No hay usuario logueado.");
+        return;
+    }
+    if (!duracion || duracion <= 0) return;
+
+    try {
+        console.log(`Guardando: ${duracion}m ${tipo} - ${tema}`);
+        await addDoc(collection(db, "sesiones_estudio"), {
+            user_id: auth.currentUser.uid,
+            fecha_sesion: Timestamp.now(), 
+            duracion_minutos: Number(duracion),
+            tipo: tipo,
+            tema: tema || "Sin tema"
+        });
+        
+        if (tipo === 'estudio') {
+            pomodorosHoy++;
+            if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
+        }
+    } catch (error) {
+        console.error("Error guardando sesión:", error);
+        alert('Error al guardar la sesión. Revisa tu conexión.');
+    }
+}
+
+function addManualTime() {
+    if (remoteState.status === 'running') pausarTimerRemoto();
+    if (typeof pauseStopwatch === 'function') pauseStopwatch();
+
+    const activeBtn = document.querySelector('.activity-btn.active');
+    const currentActivity = activeBtn ? activeBtn.dataset.activity : 'estudio';
+    
+    const tema = topicInput.value.trim();
+    if (currentActivity !== 'psicotecnicos' && tema === '') {
+        if (!confirm("No has puesto tema. ¿Guardar sin tema?")) return;
+    }
+
+    const input = prompt(`Añadir tiempo manual a '${currentActivity.toUpperCase()}'.\nIntroduce minutos:`);
+    if (!input) return;
+    const duration = parseInt(input, 10);
+    if (isNaN(duration) || duration <= 0) return alert('Número inválido');
+
+    guardarSesionEnBD(duration, currentActivity, tema || null);
+    alert(`Guardados ${duration} min.`);
+}
+
+// ==============================================================
+//  CRONÓMETRO (LOCAL - CLASE/PSICOTECNICOS)
+// ==============================================================
+let stopwatchInterval = null;
+let stopwatchStartTime = 0;
+let stopwatchElapsedTime = 0; 
+let stopwatchPaused = true;
+
 function formatStopwatchTime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
+
 function updateStopwatchDisplay() {
     const now = Date.now();
     const elapsedTime = now - stopwatchStartTime + stopwatchElapsedTime;
-    const timeString = formatStopwatchTime(elapsedTime);
-    stopwatchDisplay.textContent = timeString;
-    document.title = `${timeString} - ${currentActivity.charAt(0).toUpperCase() + currentActivity.slice(1)}`;
+    stopwatchDisplay.textContent = formatStopwatchTime(elapsedTime);
+    document.title = `${stopwatchDisplay.textContent} - Cronómetro`;
 }
+
+// Función principal que alterna entre Start y Pause
+function toggleStopwatch() {
+    if (stopwatchPaused) {
+        startStopwatch();
+    } else {
+        pauseStopwatch();
+    }
+}
+
 function startStopwatch() {
     if (stopwatchPaused) {
-        if (stopwatchElapsedTime === 0) {
-            const validation = getValidatedTopic();
-            if (!validation.valid) { return; }
-        }
+        const validation = getValidatedTopic();
+        if (!validation.valid) return;
+        
+        requestWakeLock();
         audioAlarma.load(); 
         stopwatchPaused = false;
         stopwatchStartTime = Date.now();
         stopwatchInterval = setInterval(updateStopwatchDisplay, 1000);
-        btnStopwatchStart.textContent = "Iniciar"; 
+        
+        // Actualizar botón a PAUSAR (AMARILLO)
+        btnStopwatchStart.textContent = "Pausar"; 
+        btnStopwatchStart.classList.add('btn-yellow-state');
     }
 }
+
 function pauseStopwatch() {
     if (!stopwatchPaused) {
+        releaseWakeLock();
         stopwatchPaused = true;
         clearInterval(stopwatchInterval);
         stopwatchElapsedTime += Date.now() - stopwatchStartTime;
-        btnStopwatchStart.textContent = "Continuar";
+        
+        // Actualizar botón a CONTINUAR (NORMAL)
+        btnStopwatchStart.textContent = "Continuar"; 
+        btnStopwatchStart.classList.remove('btn-yellow-state');
     }
 }
+
 function resetStopwatch(save = false) {
-    pauseStopwatch();
+    pauseStopwatch(); // Aseguramos pausa
+    
     let totalMinutes = 0;
-    if (stopwatchElapsedTime > 0) {
-        totalMinutes = Math.round((stopwatchElapsedTime / 1000) / 60);
-    }
+    if (stopwatchElapsedTime > 0) totalMinutes = Math.round((stopwatchElapsedTime / 1000) / 60);
+    
     if (save && totalMinutes > 0) {
-        const validation = getValidatedTopic();
-        if (!validation.valid) { pauseStopwatch(); return; }
-        guardarSesionEnBD(totalMinutes, currentActivity, validation.topic);
+        const act = document.querySelector('.activity-btn.active').dataset.activity;
+        const tema = topicInput.value.trim(); 
+        guardarSesionEnBD(totalMinutes, act, tema || "Sin tema");
     }
+    
     stopwatchElapsedTime = 0;
     stopwatchStartTime = 0;
     stopwatchDisplay.textContent = "00:00:00";
+    // Resetear botón a INICIAR (NORMAL)
     btnStopwatchStart.textContent = "Iniciar";
-    document.title = "Pomodoro Timer"; 
-}
-function addManualTime() {
-    // Si el temporizador está corriendo, pausarlo
-    pausarTimer();
-    pauseStopwatch();
-
-    const validation = getValidatedTopic();
-    if (!validation.valid) return;
-    const input = prompt("Introduce el tiempo total en MINUTOS:");
-    if (input === null || input.trim() === '') return;
-    const duration = parseInt(input, 10);
-    if (isNaN(duration) || duration <= 0) {
-        alert('Por favor, introduce un número válido de minutos.');
-        return;
-    }
-    guardarSesionEnBD(duration, currentActivity, validation.topic);
-    alert(`${duration} minutos de '${currentActivity}' guardados con éxito.`);
-    
-    // Actualizar contador si es estudio
-    if (currentActivity === 'estudio') {
-        pomodorosHoy++;
-        pomodoroCountDisplay.textContent = pomodorosHoy;
-        pomodoroCount = pomodorosHoy % (parseInt(inputCicloPomodoro.value) || 4);
-    }
-    
-    // Resetear la interfaz
-    resetStopwatch(false); 
-    resetTimer(); 
+    btnStopwatchStart.classList.remove('btn-yellow-state');
 }
 
-// --- FIREBASE: FUNCIONES DE BASE DE DATOS ---
-
-async function guardarSesionEnBD(duracion, tipo, tema = null) { 
-    if (!auth.currentUser) return alert('Error: No autenticado');
-    try {
-        await addDoc(collection(db, "sesiones_estudio"), {
-            user_id: auth.currentUser.uid,
-            fecha_sesion: Timestamp.now(), 
-            duracion_minutos: duracion,
-            tipo: tipo,
-            tema: tema
-        });
-        console.log("Sesión guardada OK");
-    } catch (error) {
-        console.error("Error al guardar sesión: ", error);
-        alert('Error de red al guardar la sesión.');
-    }
-}
-
+// ==============================================================
+//  LISTA DE TAREAS (CRUD)
+// ==============================================================
 function renderTask(taskDoc) { 
     const task = taskDoc.data();
     const listItem = document.createElement('li');
     listItem.className = 'task-item';
     listItem.setAttribute('data-id', taskDoc.id); 
     applyColorRule(listItem, task.texto);
-    if (task.completada) {
-        listItem.classList.add('completed');
-    }
+    if (task.completada) listItem.classList.add('completed');
     listItem.innerHTML = `
         <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
         <span class="task-text">${task.texto}</span>
@@ -344,155 +491,119 @@ function renderTask(taskDoc) {
 }
 
 async function loadAndRenderTasks() {
-    taskList.innerHTML = 'Cargando tareas...'; 
+    taskList.innerHTML = 'Cargando...'; 
     if (!auth.currentUser) return;
-
     try {
         await fetchColorRules();
-        const todayStr = getLocalTodayDate();
-
-        // 1. Tareas de Hoy
-        const tasksQ = query(
-            collection(db, "tareas_semanales"),
-            where("user_id", "==", auth.currentUser.uid),
-            where("fecha_tarea", "==", todayStr),
-            orderBy("orden", "asc")
-        );
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // 1. Cargar Tareas
+        const tasksQ = query(collection(db, "tareas_semanales"), where("user_id", "==", auth.currentUser.uid), where("fecha_tarea", "==", todayStr), orderBy("orden", "asc"));
         const tasksSnap = await getDocs(tasksQ);
         taskList.innerHTML = ''; 
         tasksSnap.forEach(doc => renderTask(doc));
 
-        // 2. Contador de Pomodoros
-        const startOfDay = new Date();
-        startOfDay.setHours(0,0,0,0);
-        const endOfDay = new Date();
-        endOfDay.setHours(23,59,59,999);
-
-        const sessionsQ = query(
-            collection(db, "sesiones_estudio"),
-            where("user_id", "==", auth.currentUser.uid),
-            where("tipo", "==", "estudio"),
-            where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)),
-            where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay))
-        );
+        // 2. Cargar Estadísticas Rápidas
+        const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+        const endOfDay = new Date(); endOfDay.setHours(23,59,59,999);
+        const sessionsQ = query(collection(db, "sesiones_estudio"), where("user_id", "==", auth.currentUser.uid), where("tipo", "==", "estudio"), where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)), where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay)));
         const sessionsSnap = await getDocs(sessionsQ);
         
         pomodorosHoy = sessionsSnap.size;
-        pomodoroCountDisplay.textContent = pomodorosHoy;
-        
-        const cicloTarget = parseInt(inputCicloPomodoro.value) || 4;
-        pomodoroCount = pomodorosHoy % cicloTarget;
+        if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
+        pomodoroCount = pomodorosHoy % (parseInt(inputCicloPomodoro.value) || 4);
 
-    } catch (error) {
-        console.error("Error cargando datos:", error);
-        taskList.innerHTML = 'Error cargando tareas.';
-    }
+    } catch (e) { console.error("Error cargando datos:", e); }
 }
 
 async function addTask() {
-    const taskText = newTaskInput.value.trim();
-    if (taskText === '' || !auth.currentUser) return;
-    
-    try {
-        const todayStr = getLocalTodayDate();
-        const qOrder = query(
-            collection(db, "tareas_semanales"),
-            where("user_id", "==", auth.currentUser.uid),
-            where("fecha_tarea", "==", todayStr),
-            orderBy("orden", "desc"),
-            limit(1)
-        );
-        const snapOrder = await getDocs(qOrder);
-        const newOrder = snapOrder.empty ? 1 : snapOrder.docs[0].data().orden + 1;
-
-        const newTask = {
-            user_id: auth.currentUser.uid,
-            texto: taskText,
-            fecha_tarea: todayStr,
-            completada: false,
-            orden: newOrder
-        };
-        
-        const docRef = await addDoc(collection(db, "tareas_semanales"), newTask);
-        renderTask({ id: docRef.id, data: () => newTask }); 
-        newTaskInput.value = '';
-        
-    } catch (error) {
-        console.error("Error añadiendo tarea:", error);
-        alert('Error al añadir tarea.');
-    }
+    const txt = newTaskInput.value.trim();
+    if(!txt || !auth.currentUser) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    await addDoc(collection(db, "tareas_semanales"), { user_id: auth.currentUser.uid, texto: txt, fecha_tarea: todayStr, completada: false, orden: 999 });
+    newTaskInput.value = '';
+    loadAndRenderTasks(); // Recargar para ordenar
 }
 
-async function editTask(id, currentText, taskElement) {
-    const newText = prompt('Editar tarea:', currentText);
-    if (newText && newText !== currentText) {
-        try {
-            await updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
-            taskElement.querySelector('.task-text').textContent = newText;
-            applyColorRule(taskElement, newText);
-        } catch(e) { console.error(e); }
-    }
-}
-async function toggleTaskCompleted(id, isCompleted) {
-    try { await updateDoc(doc(db, "tareas_semanales", id), { completada: isCompleted }); } catch(e) { console.error(e); }
-}
-async function deleteTask(id) {
-    try { await deleteDoc(doc(db, "tareas_semanales", id)); } catch(e) { console.error(e); }
-}
 async function saveTaskOrder(taskIds) {
     if (!auth.currentUser) return;
-    try {
-        const batch = writeBatch(db);
-        taskIds.forEach((id, index) => {
-            batch.update(doc(db, "tareas_semanales", id), { orden: index + 1 });
-        });
-        await batch.commit();
-    } catch(e) { console.error(e); }
+    const batch = writeBatch(db);
+    taskIds.forEach((id, index) => {
+        batch.update(doc(db, "tareas_semanales", id), { orden: index + 1 });
+    });
+    await batch.commit();
 }
 
-// --- Event Listeners ---
-btnIniciar.addEventListener('click', iniciarTimer);
-btnPausa.addEventListener('click', pausarTimer);
-btnReset.addEventListener('click', guardarYResetear); 
-tabBotones.forEach(btn => { btn.addEventListener('click', () => cambiarModo(btn.dataset.mode)); });
-addTaskBtn.addEventListener('click', addTask);
-newTaskInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') addTask(); });
+// ==============================================================
+//  LISTENERS DE EVENTOS
+// ==============================================================
 
-btnStopwatchStart.addEventListener('click', startStopwatch);
-btnStopwatchPause.addEventListener('click', pauseStopwatch);
-btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
-btnStopwatchManual.addEventListener('click', addManualTime); 
+btnReset.addEventListener('click', guardarYResetearRemoto); 
+if(btnPomodoroManual) btnPomodoroManual.addEventListener('click', addManualTime);
 
-// --- ¡LISTENER AÑADIDO! ---
-if(btnPomodoroManual) {
-    btnPomodoroManual.addEventListener('click', addManualTime);
-}
-
-activityBotones.forEach(btn => {
-    btn.addEventListener('click', () => switchActivity(btn.dataset.activity));
+tabBotones.forEach(btn => { 
+    btn.addEventListener('click', () => {
+        if(remoteState.status === 'stopped') {
+            actualizarEstadoDesdeRemoto({ status: 'stopped', mode: btn.dataset.mode });
+        }
+    }); 
 });
+
+activityBotones.forEach(btn => btn.addEventListener('click', () => {
+    // Permitir cambio de actividad visual aunque esté corriendo el cronómetro
+    // Pero si el pomodoro está corriendo, eso lo gestiona la BD
+    if(remoteState.status === 'stopped') switchActivity(btn.dataset.activity);
+}));
+
+// CRONÓMETRO: Listener único para toggle
+btnStopwatchStart.addEventListener('click', toggleStopwatch);
+btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
+if(btnStopwatchManual) btnStopwatchManual.addEventListener('click', addManualTime);
+
+addTaskBtn.addEventListener('click', addTask);
+newTaskInput.addEventListener('keypress', (e) => { if(e.key==='Enter') addTask(); });
 
 taskList.addEventListener('click', (e) => {
-    const listItem = e.target.closest('li.task-item');
-    if (!listItem) return; 
-    const taskId = listItem.dataset.id; 
-    if (e.target.classList.contains('task-checkbox')) { const isCompleted = e.target.checked; listItem.classList.toggle('completed', isCompleted); toggleTaskCompleted(taskId, isCompleted); } 
-    else if (e.target.classList.contains('edit-task-btn')) { const currentText = listItem.querySelector('.task-text').textContent; editTask(taskId, currentText, listItem); } 
-    else if (e.target.classList.contains('delete-task-btn')) { listItem.remove(); deleteTask(taskId); }
-});
-
-auth.onAuthStateChanged(user => {
-    if (user) {
-        actualizarDisplay();
-        loadAndRenderTasks(); 
+    const item = e.target.closest('li.task-item');
+    if (!item) return; 
+    const id = item.dataset.id;
+    
+    if (e.target.classList.contains('task-checkbox')) { 
+        updateDoc(doc(db, "tareas_semanales", id), { completada: e.target.checked }); 
+        item.classList.toggle('completed'); 
+    } 
+    else if (e.target.classList.contains('delete-task-btn')) { 
+        deleteDoc(doc(db, "tareas_semanales", id)); 
+        item.remove(); 
+    }
+    else if (e.target.classList.contains('edit-task-btn')) {
+        const currentText = item.querySelector('.task-text').textContent;
+        const newText = prompt('Editar:', currentText);
+        if (newText && newText !== currentText) {
+            updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
+            item.querySelector('.task-text').textContent = newText;
+        }
     }
 });
 
-new Sortable(taskList, {
-    animation: 150, handle: '.task-item', filter: '.task-checkbox, .edit-task-btn, .delete-task-btn', 
-    onEnd: function (evt) {
-        const taskItems = taskList.querySelectorAll('li.task-item');
-        const taskIds = Array.from(taskItems).map(item => item.dataset.id);
-        saveTaskOrder(taskIds);
+if (typeof Sortable !== 'undefined') {
+    new Sortable(taskList, {
+        animation: 150, handle: '.task-item', filter: 'button, input',
+        onEnd: function (evt) {
+            const taskIds = Array.from(taskList.querySelectorAll('li.task-item')).map(i => i.dataset.id);
+            saveTaskOrder(taskIds);
+        }
+    });
+}
+
+// ==============================================================
+//  INICIALIZACIÓN
+// ==============================================================
+auth.onAuthStateChanged(user => {
+    if (user) {
+        loadAndRenderTasks();
+        iniciarEscuchaFirebase();
+    } else {
+        if (unsubscribeTimer) unsubscribeTimer();
     }
 });
