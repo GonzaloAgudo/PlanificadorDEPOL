@@ -222,10 +222,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Ahora filtroActividad puede ser: 'estudio', 'clase', 'psicotecnicos', 'test', 'conjunto', 'temas'
         const filtroActividad = document.querySelector('.activity-filter input:checked').value;
         
+        // --- CAMBIO 1: YA NO OCULTAMOS LOS FILTROS DE TIEMPO SI ES 'TEMAS' ---
         // UI Toggle
         if (filtroActividad === 'temas') {
-            filtrosTiempo.classList.add('hidden');
-            filtroDiaBox.classList.add('hidden');
+            filtrosTiempo.classList.remove('hidden'); // Antes era add('hidden')
+            filtroDiaBox.classList.add('hidden'); // Esto sí lo dejamos oculto porque el gráfico de temas no tiene sentido para "ver stats día específico" de la misma forma
             topicSubFilter.classList.remove('hidden');
         } else {
             filtrosTiempo.classList.remove('hidden');
@@ -239,26 +240,43 @@ document.addEventListener('DOMContentLoaded', () => {
         let endDate = new Date();
         let labels = [];
 
+        // --- CAMBIO 2: ELIMINAR EL IF QUE FORZABA LA FECHA PARA 'TEMAS' ---
+        /* BLOQUE ELIMINADO:
         if (filtroActividad === 'temas') {
             startDate = new Date('2000-01-01'); 
-        } else {
-            if (filtroTiempo === 'today') {
-                startDate.setHours(0,0,0,0);
-                endDate.setHours(23,59,59,999);
+        } else { ... }
+        */
+
+        // AHORA LA LÓGICA DE TIEMPO APLICA A TODO, INCLUIDO 'TEMAS'
+        if (filtroTiempo === 'today') {
+            startDate.setHours(0,0,0,0);
+            endDate.setHours(23,59,59,999);
+            // Si es Temas, no necesitamos labels de horas (00:00, 01:00...), las labels serán los nombres de los temas después.
+            // Si NO es Temas, generamos las horas:
+            if (filtroActividad !== 'temas') {
                 for(let i=0; i<24; i++) labels.push(`${i}:00`);
-            } else if (filtroTiempo === 'week') {
-                const day = startDate.getDay(); 
-                const diff = startDate.getDate() - day + (day == 0 ? -6:1); 
-                startDate.setDate(diff); startDate.setHours(0,0,0,0);
-                endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6); endDate.setHours(23,59,59,999);
+            }
+        } else if (filtroTiempo === 'week') {
+            const day = startDate.getDay(); 
+            const diff = startDate.getDate() - day + (day == 0 ? -6:1); 
+            startDate.setDate(diff); startDate.setHours(0,0,0,0);
+            endDate = new Date(startDate); endDate.setDate(startDate.getDate() + 6); endDate.setHours(23,59,59,999);
+            
+            if (filtroActividad !== 'temas') {
                 labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
-            } else if (filtroTiempo === 'month') {
-                startDate.setDate(1); startDate.setHours(0,0,0,0);
-                endDate.setMonth(endDate.getMonth() + 1); endDate.setDate(0); endDate.setHours(23,59,59,999);
+            }
+        } else if (filtroTiempo === 'month') {
+            startDate.setDate(1); startDate.setHours(0,0,0,0);
+            endDate.setMonth(endDate.getMonth() + 1); endDate.setDate(0); endDate.setHours(23,59,59,999);
+            
+            if (filtroActividad !== 'temas') {
                 for(let i=1; i<=endDate.getDate(); i++) labels.push(`${String(i).padStart(2,'0')}-${String(startDate.getMonth()+1).padStart(2,'0')}`);
-            } else if (filtroTiempo === 'year') {
-                startDate.setMonth(0, 1); startDate.setHours(0,0,0,0);
-                endDate.setMonth(11, 31); endDate.setHours(23,59,59,999);
+            }
+        } else if (filtroTiempo === 'year') {
+            startDate.setMonth(0, 1); startDate.setHours(0,0,0,0);
+            endDate.setMonth(11, 31); endDate.setHours(23,59,59,999);
+            
+            if (filtroActividad !== 'temas') {
                 labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
             }
         }
@@ -280,21 +298,16 @@ document.addEventListener('DOMContentLoaded', () => {
             querySnapshot.forEach(doc => {
                 const data = doc.data();
                 
-                // 3. NORMALIZACIÓN DE CATEGORÍAS
-                // Esto asegura que si guardaste "Test" como "Estudio" en el pasado, se cuente como "Test" ahora.
-                // Y si ya se guarda con data.tipo = 'test', también funciona.
+                // NORMALIZACIÓN DE CATEGORÍAS
                 let tipoReal = data.tipo;
                 if (esTestOExamen(data.tema)) {
                     tipoReal = 'test';
                 }
-                
-                // Sobrescribimos el tipo en el objeto temporal para que las gráficas usen el correcto
                 data.tipo = tipoReal;
 
                 let include = false;
                 
                 if (filtroActividad === 'temas') {
-                    // Lógica para filtro de temas (multiselección)
                     if (data.tema) {
                         if (checkedBoxes.includes(tipoReal)) {
                             include = true;
@@ -305,7 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     include = true; 
                 } 
                 else {
-                    // Lógica simple: si el botón seleccionado coincide con el tipo real
                     if (tipoReal === filtroActividad) {
                         include = true;
                     }
@@ -318,13 +330,17 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             const tiempoFormateado = formatearMinutos(totalMinutos);
+            
+            // --- CAMBIO 3: AJUSTAR EL TÍTULO DINÁMICAMENTE ---
             let titulo = "Total";
-            if (filtroActividad === 'temas') titulo = "Total Acumulado";
-            else if(filtroTiempo === 'today') titulo = "Total Hoy";
+            if(filtroTiempo === 'today') titulo = "Total Hoy";
             else if(filtroTiempo === 'week') titulo = "Total Esta Semana";
             else if(filtroTiempo === 'month') titulo = "Total Este Mes";
             else if(filtroTiempo === 'year') titulo = "Total Este Año";
             
+            // Si es temas, añadimos contexto, pero respetando el tiempo
+            if (filtroActividad === 'temas') titulo += " (Por Temas)";
+
             resumenTexto.innerHTML = `${titulo}: <strong>${tiempoFormateado}</strong>`;
 
             dibujarGrafico(labels, sessions, filtroActividad, filtroTiempo);
