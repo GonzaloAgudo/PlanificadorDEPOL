@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${y}-${m}-${d}`;
     }
     
-    // --- Función Principal de Carga (¡MODIFICADA!) ---
+    // --- Función Principal de Carga ---
     async function loadWeek(startDate) {
         if (!auth.currentUser) return; // Esperar a que el usuario esté listo
         
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Lógica de Tareas (¡MODIFICADA!) ---
+    // --- Lógica de Tareas ---
 
     async function saveTaskOrder(taskIds) {
         if (!auth.currentUser) return;
@@ -152,12 +152,15 @@ document.addEventListener('DOMContentLoaded', () => {
         taskList.appendChild(listItem);
     }
 
+    // --- AQUÍ ESTÁ EL CAMBIO (Retraso para móviles) ---
     function initSortable() {
         document.querySelectorAll('.task-list').forEach(list => {
             new Sortable(list, {
                 group: 'semana-tasks', 
                 animation: 150,
                 handle: '.task-item',
+                delay: 200, // <--- Retraso de 200ms (Mantiene pulsado para arrastrar)
+                delayOnTouchOnly: true, // <--- Solo en móviles, en PC es instantáneo
                 filter: '.task-checkbox, .edit-task-btn, .delete-task-btn',
                 onEnd: function (evt) {
                     const sourceList = evt.from;
@@ -225,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try { await deleteDoc(doc(db, "tareas_semanales", id)); } catch(e) { console.error(e); }
     }
 
-    // --- Event Listeners (Modificados) ---
+    // --- Event Listeners ---
     weekGrid.addEventListener('click', (e) => {
         const listItem = e.target.closest('li.task-item');
 

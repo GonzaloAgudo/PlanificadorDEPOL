@@ -146,36 +146,43 @@ function actualizarEstadoDesdeRemoto(data) {
     
     if (data.status === 'running') {
         requestWakeLock();
+        
+        // Actualizar estado del botón
         btnIniciar.textContent = "Pausar"; 
-        // --- CAMBIO VISUAL: Botón amarillo ---
         btnIniciar.classList.add('btn-yellow-state'); 
         btnIniciar.onclick = pausarTimerRemoto; 
 
-        const now = Date.now();
-        const secondsLeft = Math.ceil((data.endTime - now) / 1000);
+        // --- LÓGICA CRÍTICA CORREGIDA PARA MÓVIL ---
+        const checkTime = () => {
+            const currentNow = Date.now();
+            // Calculamos diferencia real contra el servidor
+            const currentSecondsLeft = Math.ceil((data.endTime - currentNow) / 1000);
 
-        if (secondsLeft <= 0) {
-            timerDisplay.textContent = "00:00";
-            terminarSesionRemota(); 
-        } else {
-            updateDisplay(secondsLeft);
-            visualInterval = setInterval(() => {
-                const currentNow = Date.now();
-                const currentSecondsLeft = Math.ceil((data.endTime - currentNow) / 1000);
-                if (currentSecondsLeft <= 0) {
-                    clearInterval(visualInterval);
-                    timerDisplay.textContent = "00:00";
-                    terminarSesionRemota(); 
-                } else {
-                    updateDisplay(currentSecondsLeft);
-                }
-            }, 1000);
-        }
+            if (currentSecondsLeft <= 0) {
+                // ¡EL TIEMPO YA ACABÓ!
+                clearInterval(visualInterval);
+                timerDisplay.textContent = "00:00";
+                
+                // IMPORTANTE: Solo el dispositivo "dueño" o activo debería llamar a terminar
+                // Para evitar condiciones de carrera, lo llamamos directamente.
+                // La función terminarSesionRemota tiene un guardafrenos (if status !== running)
+                // así que es seguro llamarla varias veces.
+                terminarSesionRemota(); 
+            } else {
+                updateDisplay(currentSecondsLeft);
+            }
+        };
+
+        // 1. Ejecutar comprobación INMEDIATAMENTE (al recibir datos de Firebase)
+        // Esto arregla el caso de "abro el móvil y ya pasaron 5 minutos del cero"
+        checkTime();
+
+        // 2. Iniciar bucle visual para la cuenta atrás
+        visualInterval = setInterval(checkTime, 1000);
 
     } else if (data.status === 'paused') {
         releaseWakeLock();
         btnIniciar.textContent = "Continuar";
-        // --- CAMBIO VISUAL: Quitar amarillo ---
         btnIniciar.classList.remove('btn-yellow-state');
         btnIniciar.onclick = iniciarTimerLocal; 
         updateDisplay(data.timeLeft);
@@ -183,7 +190,6 @@ function actualizarEstadoDesdeRemoto(data) {
     } else { // stopped
         releaseWakeLock();
         btnIniciar.textContent = "Iniciar";
-        // --- CAMBIO VISUAL: Quitar amarillo ---
         btnIniciar.classList.remove('btn-yellow-state');
         btnIniciar.onclick = iniciarTimerLocal;
         
@@ -588,7 +594,10 @@ taskList.addEventListener('click', (e) => {
 
 if (typeof Sortable !== 'undefined') {
     new Sortable(taskList, {
-        animation: 150, handle: '.task-item', filter: 'button, input',
+        animation: 150,
+        delay: 200, // <--- Retraso de 200ms antes de activar el arrastre
+        delayOnTouchOnly: true, // <--- Solo aplica el retraso en pantallas táctiles (en PC será instantáneo)
+        filter: 'button, input',
         onEnd: function (evt) {
             const taskIds = Array.from(taskList.querySelectorAll('li.task-item')).map(i => i.dataset.id);
             saveTaskOrder(taskIds);
