@@ -761,15 +761,19 @@ button.btn-yellow-state:hover {
     height: 40px;
     border-radius: 50%;
     cursor: pointer;
-    border: 4px solid transparent;
-    transition: transform 0.2s, border-color 0.2s;
+    border: 3px solid transparent; 
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 .color-swatch:hover {
     transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 .color-swatch.selected {
-    transform: scale(1.1);
-    border-color: var(--color-primario);
+    transform: scale(1.35);
+    border-color: #555; 
+    box-shadow: 0 8px 15px rgba(0,0,0,0.25);
+    z-index: 10; 
 }
 .form-buttons {
     display: flex;
