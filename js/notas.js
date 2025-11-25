@@ -27,8 +27,7 @@ const saveNoteBtn = document.getElementById('save-note-btn');
 const deleteNoteBtn = document.getElementById('delete-note-btn');
 const statusMsg = document.getElementById('status-msg');
 
-let currentNoteId = null; // ID del documento actual en Firebase
-let typingTimer; // Para autoguardado
+let currentNoteId = null; 
 
 // --- 1. Cargar Pestañas (Categorías) ---
 function loadCategories() {
@@ -36,8 +35,8 @@ function loadCategories() {
 
     const q = query(
         collection(db, "bloc_notas"),
-        where("user_id", "==", auth.currentUser.uid),
-        orderBy("titulo", "asc") // Orden alfabético
+        where("user_id", "==", auth.currentUser.uid)
+        // orderBy("titulo", "asc") // Descomenta esto si ya creaste el índice
     );
 
     // Escucha en tiempo real
@@ -59,8 +58,12 @@ function loadCategories() {
             
             // Click para abrir nota
             li.addEventListener('click', (e) => {
-                // Si se pulsó el botón de borrar, no abrimos
+                // Si pulsas borrar, no abrimos la nota
                 if (e.target.classList.contains('delete-cat-btn')) return;
+                
+                // PEQUEÑA PROTECCIÓN: Si hay cambios sin guardar, podrías añadir un confirm aquí
+                // if (saveNoteBtn.style.backgroundColor === "rgb(253, 126, 20)") ...
+                
                 openNote(docSnap.id, note);
             });
 
@@ -84,15 +87,18 @@ async function createNewCategory() {
         const docRef = await addDoc(collection(db, "bloc_notas"), {
             user_id: auth.currentUser.uid,
             titulo: titulo.trim(),
-            contenido: "", // Empieza vacío
+            contenido: "", 
             updatedAt: new Date()
         });
-        // Abrir la nueva nota inmediatamente
+        // Al crear, abrimos inmediatamente
         currentNoteId = docRef.id;
         noteTitleInput.value = titulo;
         quill.setText('');
         quill.enable(true);
+        
+        // Resetear estado visual
         statusMsg.textContent = "Cuaderno creado.";
+        saveNoteBtn.style.backgroundColor = ""; 
     } catch (error) {
         console.error("Error creando nota:", error);
         alert("Error al crear.");
@@ -105,13 +111,11 @@ function openNote(id, data) {
     
     // Actualizar UI visual de selección
     document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
-    // Buscar el elemento li correspondiente y activarlo (un poco hacky pero funcional con onSnapshot)
-    // Al recargar snapshot se pondrá bien solo, esto es para feedback instantáneo si no hay red
     
     noteTitleInput.value = data.titulo;
-    noteTitleInput.readOnly = false; // Permitir editar título
+    noteTitleInput.readOnly = false; 
     
-    // Cargar contenido en Quill
+    // Cargar contenido en Quill sin disparar evento de cambio de usuario
     if (data.contenido) {
         quill.root.innerHTML = data.contenido;
     } else {
@@ -119,10 +123,13 @@ function openNote(id, data) {
     }
     
     quill.enable(true);
+    
+    // Resetear avisos de "sin guardar"
     statusMsg.textContent = "Nota cargada.";
+    saveNoteBtn.style.backgroundColor = ""; // Volver a color original (verde/azul)
 }
 
-// --- 4. Guardar Nota ---
+// --- 4. Guardar Nota (MANUAL) ---
 async function saveCurrentNote() {
     if (!currentNoteId || !auth.currentUser) return;
 
@@ -130,6 +137,7 @@ async function saveCurrentNote() {
     const title = noteTitleInput.value;
 
     statusMsg.textContent = "Guardando...";
+    saveNoteBtn.textContent = "Guardando...";
     
     try {
         await updateDoc(doc(db, "bloc_notas", currentNoteId), {
@@ -137,11 +145,16 @@ async function saveCurrentNote() {
             contenido: content,
             updatedAt: new Date()
         });
+        
         statusMsg.textContent = "Guardado exitoso ✓";
+        saveNoteBtn.textContent = "Guardar";
+        saveNoteBtn.style.backgroundColor = ""; // Quitar color de alerta (Naranja)
+        
         setTimeout(() => statusMsg.textContent = "", 2000);
     } catch (error) {
         console.error(error);
         statusMsg.textContent = "Error al guardar ❌";
+        saveNoteBtn.textContent = "Reintentar";
     }
 }
 
@@ -167,40 +180,38 @@ function resetEditor() {
     noteTitleInput.placeholder = "Selecciona o crea un cuaderno...";
     noteTitleInput.readOnly = true;
     quill.setText('');
-    quill.enable(false); // Desactivar editor
+    quill.enable(false); 
     statusMsg.textContent = "";
+    saveNoteBtn.style.backgroundColor = "";
 }
 
 // --- Event Listeners ---
 
-// Crear
 addCategoryBtn.addEventListener('click', createNewCategory);
-
-// Guardado Manual
 saveNoteBtn.addEventListener('click', saveCurrentNote);
-
-// Borrar Nota Actual (Botón superior)
 deleteNoteBtn.addEventListener('click', () => {
     if(currentNoteId) deleteNote(currentNoteId, noteTitleInput.value);
 });
 
-// Auto-guardado al escribir (con delay de 2 segundos)
-quill.on('text-change', () => {
+// --- MODIFICADO: DETECTAR CAMBIOS PERO NO GUARDAR ---
+// Si escribes, te avisa visualmente
+quill.on('text-change', (delta, oldDelta, source) => {
     if (!currentNoteId) return;
-    statusMsg.textContent = "Escribiendo...";
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(saveCurrentNote, 2000);
+    if (source === 'user') { 
+        statusMsg.textContent = "Cambios sin guardar ⚠️";
+        saveNoteBtn.style.backgroundColor = "#fd7e14"; // Naranja para avisar
+    }
 });
 
-// Guardar al cambiar el título
+// Si cambias el título, te avisa visualmente
 noteTitleInput.addEventListener('input', () => {
     if (!currentNoteId) return;
-    clearTimeout(typingTimer);
-    typingTimer = setTimeout(saveCurrentNote, 1000);
+    statusMsg.textContent = "Cambios sin guardar ⚠️";
+    saveNoteBtn.style.backgroundColor = "#fd7e14"; // Naranja para avisar
 });
 
 // Inicialización
-quill.enable(false); // Desactivado al inicio hasta que selecciones algo
+quill.enable(false); 
 auth.onAuthStateChanged(user => {
     if (user) {
         loadCategories();
