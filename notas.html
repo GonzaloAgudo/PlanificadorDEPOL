@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Apuntes</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+</head>
+<body style="display: none;">
+
+    <button id="menu-toggle">☰</button>
+    <nav id="main-nav">
+        <ul>
+            <li><a href="index.html">Pomodoro</a></li>
+            <li><a href="stats.html">Estadísticas</a></li>
+            <li><a href="semana.html">Planificador Semanal</a></li>
+            <li><a href="calendario.html">Calendario</a></li>
+            <li><a href="notas.html" class="active">Bloc de Notas</a></li> <li><a href="ajustes.html">Ajustes</a></li>
+            <li><a href="logout.php" class="logout-link">Cerrar Sesión</a></li>
+        </ul>
+    </nav>
+
+    <main class="content-wrapper notes-layout">
+        <div class="notes-app">
+            
+            <div class="notes-sidebar">
+                <div class="sidebar-header">
+                    <h3>Mis Cuadernos</h3>
+                    <button id="add-category-btn" title="Nueva Pestaña">＋</button>
+                </div>
+                <ul id="categories-list">
+                    </ul>
+            </div>
+
+            <div class="notes-editor-container">
+                <div class="editor-header">
+                    <input type="text" id="note-title" placeholder="Título de la nota..." readonly>
+                    <div class="editor-actions">
+                        <button id="save-note-btn" class="btn-save">Guardar</button>
+                        <button id="delete-note-btn" class="btn-delete" title="Borrar nota actual">🗑️</button>
+                    </div>
+                </div>
+                
+                <div id="editor"></div>
+                
+                <div id="status-msg" class="status-message">Selecciona o crea un cuaderno</div>
+            </div>
+
+        </div>
+    </main>
+
+    <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/nav.js"></script>
+    <script type="module" src="js/notas.js"></script>
+</body>
+</html>
