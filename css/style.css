@@ -1132,10 +1132,85 @@ button.btn-yellow-state:hover {
     pointer-events: none;
 }
 
-/* Responsive Notas */
+/* =========================================
+   RESPONSIVE NOTAS (SOLUCIÓN MÓVIL)
+   ========================================= */
+
 @media (max-width: 768px) {
-    .notes-layout { padding: 0.5rem; padding-top: 4rem; height: auto; overflow: visible; }
-    .notes-app { flex-direction: column; height: 85vh; }
-    .notes-sidebar { width: 100%; height: 150px; border-right: none; border-bottom: 1px solid #ddd; }
-    .sidebar-header h3 { font-size: 1rem; }
+    .notes-layout { 
+        padding: 0; 
+        padding-top: 4rem; /* Espacio para el menú de arriba */
+        height: 100vh; 
+        overflow: hidden; 
+    }
+
+    .notes-app { 
+        flex-direction: column; 
+        height: 100%; 
+        border-radius: 0; /* Quitar bordes redondeados en móvil */
+        box-shadow: none;
+    }
+
+    /* --- ESTADOS DE VISIBILIDAD --- */
+    
+    /* Por defecto en móvil: Barra lateral visible, Editor oculto */
+    .notes-sidebar { 
+        width: 100%; 
+        height: 100%; 
+        border-right: none; 
+        display: flex; /* Visible */
+    }
+
+    .notes-editor-container { 
+        width: 100%; 
+        height: 100%; 
+        display: none; /* Oculto */
+    }
+
+    /* Clase mágica para cuando abrimos una nota */
+    .notes-app.mobile-view-editor .notes-sidebar {
+        display: none;
+    }
+    
+    .notes-app.mobile-view-editor .notes-editor-container {
+        display: flex;
+    }
+
+    /* --- AJUSTES VISUALES MÓVIL --- */
+    
+    /* Botón de volver atrás */
+    .btn-back-mobile {
+        display: block !important; /* Hacer visible */
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+        cursor: pointer;
+        color: var(--color-primario);
+        padding: 0 0.5rem;
+    }
+
+    .sidebar-header h3 { 
+        font-size: 1.2rem; 
+    }
+    
+    /* Ajustar la cabecera del editor para que quepa todo */
+    .editor-header {
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+    
+    #note-title {
+        font-size: 1.1rem;
+    }
+    
+    .btn-save, .btn-delete {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Ajuste del editor Quill para aprovechar espacio */
+    #editor {
+        font-size: 1rem; 
+    }
 }
