@@ -1214,3 +1214,181 @@ button.btn-yellow-state:hover {
         font-size: 1rem; 
     }
 }
+
+
+/* =========================================
+   ESTILO NOTION (PROGRESO)
+   ========================================= */
+
+.progress-layout {
+    display: flex;
+    justify-content: center;
+    padding-top: 5rem;
+}
+
+.progress-container {
+    background: white; /* Blanco puro para look limpio */
+    width: 100%;
+    max-width: 1300px; /* Más ancho para las columnas */
+    padding: 2rem;
+    box-sizing: border-box;
+    /* Sin bordes redondeados ni sombras fuertes para parecerse a Notion */
+}
+
+.progress-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+}
+
+.progress-header h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    color: #37352f;
+}
+
+#progress-table {
+    width: 100%;
+    border-collapse: collapse; /* Importante */
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    color: #37352f;
+}
+
+/* Cabeceras */
+#progress-table th {
+    font-weight: normal;
+    color: #787774;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid #e9e9e9;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.th-dynamic {
+    position: relative;
+    min-width: 80px;
+    text-align: center !important; /* Checkboxes centrados */
+}
+
+.col-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    cursor: pointer;
+}
+.col-header-content:hover .col-name {
+    text-decoration: underline;
+}
+
+.btn-del-col {
+    background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; padding: 0;
+}
+.btn-del-col:hover { color: var(--color-peligro); }
+
+/* Filas */
+#progress-table td {
+    border-bottom: 1px solid #e9e9e9;
+    padding: 4px 8px;
+    height: 40px; /* Altura fija Notion-like */
+}
+
+.progress-row:hover {
+    background-color: #f7f7f5; /* Hover sutil */
+}
+
+/* Inputs "Invisibles" */
+.notion-input {
+    width: 100%;
+    border: none;
+    background: transparent;
+    padding: 6px;
+    font-size: 0.95rem;
+    color: inherit;
+    border-radius: 4px;
+}
+.notion-input:focus {
+    background: white;
+    box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.2);
+    outline: none;
+}
+
+/* Select Estado (Badges) */
+.select-status {
+    appearance: none;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+    font-weight: 500;
+}
+
+/* Checkboxes */
+.check-dynamic {
+    width: 1.1rem;
+    height: 1.1rem;
+    cursor: pointer;
+    accent-color: #2eaadc; /* Azul Notion */
+}
+.td-center { text-align: center; }
+
+/* Barra de Dominio */
+.dominio-bar-container {
+    background-color: #f0f0f0;
+    border-radius: 4px;
+    height: 18px;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+.dominio-bar-fill {
+    height: 100%;
+    transition: width 0.3s ease;
+}
+.dominio-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.7rem;
+    font-weight: bold;
+    color: #333;
+    text-shadow: 0 0 2px white;
+}
+
+/* Botones Fantasma */
+.btn-ghost {
+    background: transparent;
+    color: #787774;
+    border: none;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+}
+.btn-ghost:hover {
+    background-color: #efefef;
+    border-radius: 4px;
+    color: #37352f;
+}
+
+.btn-icon-del {
+    background: none; border: none; cursor: pointer; opacity: 0; transition: opacity 0.2s;
+}
+.progress-row:hover .btn-icon-del { opacity: 0.5; }
+.btn-icon-del:hover { opacity: 1; }
+
+/* Responsive */
+@media (max-width: 900px) {
+    .table-responsive { overflow-x: auto; padding-bottom: 1rem; }
+    .progress-layout { padding: 1rem; padding-top: 5rem; }
+}
