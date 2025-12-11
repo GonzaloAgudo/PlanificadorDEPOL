@@ -13,6 +13,7 @@
 <body style="display: none;">
 
     <button id="menu-toggle">☰</button>
+    
     <nav id="main-nav"></nav>
 
     <main class="content-wrapper settings-layout">
@@ -48,19 +49,33 @@
                     
                     <div class="form-group">
                         <label>Palabra clave</label>
-                        <input type="text" id="keyword-input" placeholder="Ej: clase, test..." required>
+                        <input type="text" id="keyword-input" placeholder="Ej: clase, examen, repaso..." required>
                     </div>
                     
                     <div class="form-group">
-                        <label>Color</label>
-                        <div class="color-palette" id="color-palette"></div>
+                        <label>Elige un color</label>
+                        <div class="color-picker-container">
+                            <div class="color-input-wrapper">
+                                <input type="color" id="custom-color-picker" value="#e6f7e9">
+                            </div>
+                            <span id="color-hex-display">#E6F7E9</span>
+                        </div>
+
                         <input type="hidden" id="bg-color-input">
                         <input type="hidden" id="border-color-input">
                     </div>
+
+                    <div class="form-group">
+                        <label>Usados recientemente</label>
+                        <div class="palette-grid" id="quick-palette">
+                            <p class="empty-msg">Guarda reglas para llenar tu paleta.</p>
+                        </div>
+                    </div>
                     
-                    <div id="rule-error-message"></div>
+                    <div id="rule-error-message" style="color: var(--color-peligro); margin-top: 10px; font-weight: bold;"></div>
+
                     <div class="form-buttons">
-                        <button type="submit" id="save-rule-btn">Guardar</button>
+                        <button type="submit" id="save-rule-btn">Guardar Regla</button>
                         <button type="button" id="cancel-edit-btn" style="display: none;">Cancelar</button>
                     </div>
                 </form>

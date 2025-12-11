@@ -4,34 +4,19 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// Paleta de colores
-const PALETTE = {
-    verde: ['#e6f7e9', '#6fbf7b'],
-    azul: ['#e0f1fb', '#5d9cec'],
-    naranja: ['#fef3e5', '#f6a623'],
-    violeta: ['#f0e6fa', '#a787d9'],
-    rojo: ['#fde8e8', '#e57373'],
-    cyan: ['#e0f7fa', '#4dd0e1'],
-    lima: ['#f9fbe7', '#d4e157'],
-    rosa: ['#fce4ec', '#ec407a'],
-    indigo: ['#e8eaf6', '#7986cb'],
-    gris: ['#f5f5f5', '#bdbdbd']
-};
-
 document.addEventListener('DOMContentLoaded', () => {
 
     // --- REFERENCIAS DOM ---
     const settingsMenu = document.getElementById('settings-menu');
     const sections = document.querySelectorAll('.settings-section');
-    
-    // CORRECCIÓN AQUÍ: Seleccionamos la nueva clase y solo los que tengan data-target
     const optionBtns = document.querySelectorAll('.settings-nav-btn[data-target]');
-    
     const backBtns = document.querySelectorAll('.back-btn');
     const deleteAccountBtn = document.getElementById('btn-delete-account');
 
     // Referencias Reglas
-    const paletteContainer = document.getElementById('color-palette');
+    const quickPaletteContainer = document.getElementById('quick-palette'); // Nuevo contenedor
+    const customColorPicker = document.getElementById('custom-color-picker'); // Nuevo picker
+    const colorHexDisplay = document.getElementById('color-hex-display');
     const rulesList = document.getElementById('rules-list');
     const ruleForm = document.getElementById('rule-form');
     const ruleFormTitle = document.getElementById('form-title');
@@ -54,93 +39,130 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionTopicInput = document.getElementById('session-topic-input');
     const cancelSessionBtn = document.getElementById('cancel-session-btn');
 
-    let selectedColorElement = null;
     let lastVisibleSession = null;
     const SESSIONS_PER_PAGE = 15;
+    
+    // Almacén local de reglas para generar la paleta rápida
+    let loadedRules = []; 
 
     // ==========================================
-    // 1. NAVEGACIÓN DEL MENÚ
+    // 1. UTILIDADES DE COLOR (NUEVO)
     // ==========================================
     
-    // Abrir sección
+    // Función para oscurecer un color HEX (para generar el borde)
+    function adjustColor(color, amount) {
+        return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
+    }
+
+    // Al cambiar el picker, actualizamos inputs y borde
+    if (customColorPicker) {
+        customColorPicker.addEventListener('input', (e) => {
+            const hex = e.target.value;
+            selectColor(hex);
+        });
+    }
+
+    function selectColor(hexBg, hexBorder = null) {
+        // 1. Actualizar visualmente el picker y texto
+        customColorPicker.value = hexBg;
+        colorHexDisplay.textContent = hexBg;
+
+        // 2. Calcular borde si no viene dado (oscurecer 20%)
+        // Si hexBorder es null, lo generamos restando 40 al valor RGB
+        const calculatedBorder = hexBorder ? hexBorder : adjustColor(hexBg, -40);
+
+        // 3. Rellenar inputs ocultos
+        bgColorInput.value = hexBg;
+        borderColorInput.value = calculatedBorder;
+        
+        // 4. Feedback visual en paleta rápida (si coincide)
+        document.querySelectorAll('.color-swatch').forEach(sw => {
+            if (sw.dataset.bg === hexBg) sw.classList.add('selected');
+            else sw.classList.remove('selected');
+        });
+    }
+
+    // Inicializar con un color por defecto
+    selectColor('#e6f7e9');
+
+
+    // ==========================================
+    // 2. NAVEGACIÓN
+    // ==========================================
     optionBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            const targetId = btn.dataset.target; // Esto lee el data-target="section-rules" del HTML
+            const targetId = btn.dataset.target;
             if (targetId) {
                 settingsMenu.style.display = 'none';
-                
                 const targetSection = document.getElementById(targetId);
                 if(targetSection) {
                     targetSection.style.display = 'block';
-
-                    // Cargar datos si es la primera vez
-                    if (targetId === 'section-history' && sessionsList.children.length === 0) {
-                        loadHistory();
-                    } else if (targetId === 'section-rules' && rulesList.children.length === 0) {
-                        loadRules();
-                    }
+                    if (targetId === 'section-history' && sessionsList.children.length === 0) loadHistory();
+                    else if (targetId === 'section-rules') loadRules();
                 }
             }
         });
     });
 
-    // Volver al menú
     backBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             sections.forEach(s => s.style.display = 'none');
-            settingsMenu.style.display = 'block'; // Volvemos a mostrar el menú principal (si usas block o flex depende de tu CSS general, block suele ir bien aquí)
+            settingsMenu.style.display = 'block';
         });
     });
 
-    // ==========================================
-    // 2. ELIMINAR CUENTA
-    // ==========================================
     if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', async () => {
-            const confirm1 = confirm("⚠️ ¿ESTÁS SEGURO?\n\nEsta acción eliminará tu cuenta permanentemente. No se puede deshacer.");
-            if (!confirm1) return;
-
-            const confirm2 = confirm("⚠️ Último aviso.\n\nTodos tus datos (tareas, tiempos, estadísticas) se perderán.\n\n¿Confirmar eliminación?");
-            if (!confirm2) return;
-
+            if (!confirm("⚠️ ¿Eliminar cuenta y perder todos los datos?")) return;
             const user = auth.currentUser;
             if (user) {
                 try {
                     await deleteUser(user);
-                    alert("Tu cuenta ha sido eliminada.");
+                    alert("Cuenta eliminada.");
                     window.location.href = "login.html";
                 } catch (error) {
-                    console.error("Error borrando usuario:", error);
-                    if (error.code === 'auth/requires-recent-login') {
-                        alert("Por seguridad, necesitas iniciar sesión de nuevo antes de eliminar tu cuenta. Por favor, sal y vuelve a entrar.");
-                        // Opcional: forzar logout aquí
-                    } else {
-                        alert("Error al eliminar cuenta: " + error.message);
-                    }
+                    alert("Error. Inicia sesión de nuevo e inténtalo.");
                 }
             }
         });
     }
 
     // ==========================================
-    // 3. LÓGICA DE REGLAS DE COLOR (Igual que antes)
+    // 3. LÓGICA DE REGLAS
     // ==========================================
-    function renderPalette() {
-        if(!paletteContainer) return; // Seguridad por si cambia el HTML
-        paletteContainer.innerHTML = '';
-        Object.entries(PALETTE).forEach(([name, [bg, border]]) => {
+
+    function renderQuickPalette() {
+        if(!quickPaletteContainer) return;
+        quickPaletteContainer.innerHTML = '';
+        
+        // Extraer colores únicos de las reglas cargadas
+        const uniqueColors = new Set();
+        const colorsArray = [];
+
+        loadedRules.forEach(rule => {
+            const key = rule.bg_color + '|' + rule.border_color;
+            if (!uniqueColors.has(key)) {
+                uniqueColors.add(key);
+                colorsArray.push({ bg: rule.bg_color, border: rule.border_color });
+            }
+        });
+
+        if (colorsArray.length === 0) {
+            quickPaletteContainer.innerHTML = '<p style="font-size:0.8rem; color:#888;">No hay colores guardados aún.</p>';
+            return;
+        }
+
+        colorsArray.forEach(color => {
             const swatch = document.createElement('div');
             swatch.className = 'color-swatch';
-            swatch.style.backgroundColor = bg;
-            swatch.style.borderColor = border;
+            swatch.style.backgroundColor = color.bg;
+            swatch.style.borderColor = color.border;
+            swatch.dataset.bg = color.bg; // Para identificarlo
+            
             swatch.addEventListener('click', () => {
-                if (selectedColorElement) selectedColorElement.classList.remove('selected');
-                swatch.classList.add('selected');
-                selectedColorElement = swatch;
-                bgColorInput.value = bg;
-                borderColorInput.value = border;
+                selectColor(color.bg, color.border);
             });
-            paletteContainer.appendChild(swatch);
+            quickPaletteContainer.appendChild(swatch);
         });
     }
 
@@ -164,16 +186,28 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRules() {
         if (!auth.currentUser) return;
         rulesList.innerHTML = 'Cargando...'; 
+        
         const q = query(collection(db, "color_rules"), where("user_id", "==", auth.currentUser.uid), orderBy("keyword"));
         const querySnapshot = await getDocs(q);
+        
         rulesList.innerHTML = ''; 
-        querySnapshot.forEach(doc => renderRule(doc));
+        loadedRules = []; // Resetear cache local
+
+        querySnapshot.forEach(doc => {
+            loadedRules.push(doc.data()); // Guardar datos para la paleta
+            renderRule(doc);
+        });
+
+        // Generar la paleta de acceso rápido con lo que acabamos de cargar
+        renderQuickPalette();
     }
 
     if(ruleForm) {
         ruleForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            ruleErrorMsg.textContent = '';
+            const errorDiv = document.getElementById('rule-error-message');
+            if(errorDiv) errorDiv.textContent = '';
+            
             if (!auth.currentUser) return;
 
             const ruleData = {
@@ -184,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             
             if (!ruleData.keyword || !ruleData.bg_color) {
-                ruleErrorMsg.textContent = 'Faltan datos.';
+                if(errorDiv) errorDiv.textContent = 'Faltan datos.';
                 return;
             }
 
@@ -194,12 +228,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     await addDoc(collection(db, "color_rules"), ruleData);
                 }
-                // Recargar reglas manualmente en lugar de recargar página
-                loadRules();
+                loadRules(); // Recargar lista y paleta
                 resetForm();
             } catch (error) {
                 console.error(error);
-                ruleErrorMsg.textContent = 'Error al guardar.';
+                if(errorDiv) errorDiv.textContent = 'Error al guardar.';
             }
         });
     }
@@ -217,16 +250,9 @@ document.addEventListener('DOMContentLoaded', () => {
         ruleFormTitle.textContent = 'Editar Regla';
         ruleIdInput.value = ruleDoc.id;
         keywordInput.value = rule.keyword;
-        bgColorInput.value = rule.bg_color;
-        borderColorInput.value = rule.border_color;
         
-        if (selectedColorElement) selectedColorElement.classList.remove('selected');
-        Array.from(paletteContainer.children).forEach(swatch => {
-            if(swatch.style.backgroundColor === rule.bg_color) {
-                swatch.classList.add('selected');
-                selectedColorElement = swatch;
-            }
-        });
+        // Usar nuestra nueva función para setear el color en los inputs y el picker
+        selectColor(rule.bg_color, rule.border_color);
         
         saveRuleBtn.textContent = 'Actualizar';
         cancelRuleEditBtn.style.display = 'inline-block';
@@ -237,22 +263,20 @@ document.addEventListener('DOMContentLoaded', () => {
         ruleFormTitle.textContent = 'Añadir Nueva Regla';
         ruleIdInput.value = '';
         keywordInput.value = '';
-        bgColorInput.value = '';
-        borderColorInput.value = '';
-        if (selectedColorElement) {
-            selectedColorElement.classList.remove('selected');
-            selectedColorElement = null;
-        }
+        // Reset color al default
+        selectColor('#e6f7e9');
+        
         saveRuleBtn.textContent = 'Guardar';
         cancelRuleEditBtn.style.display = 'none';
-        ruleErrorMsg.textContent = '';
+        const errorDiv = document.getElementById('rule-error-message');
+        if(errorDiv) errorDiv.textContent = '';
     }
 
     if(cancelRuleEditBtn) cancelRuleEditBtn.addEventListener('click', resetForm);
 
 
     // ==========================================
-    // 4. LÓGICA DE HISTORIAL DE SESIONES
+    // 4. HISTORIAL DE SESIONES
     // ==========================================
     async function loadHistory(isNextPage = false) {
         if (!auth.currentUser) return;
@@ -288,20 +312,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = doc.data();
                 const date = s.fecha_sesion.toDate();
                 
-                // --- NUEVA LÓGICA VISUAL PARA EL HISTORIAL ---
-                let tipoVisual = s.tipo; // Por defecto el que viene de la BD
+                let tipoVisual = s.tipo;
                 const temaTexto = (s.tema || '').toLowerCase().trim();
-                
-                // Si el tema empieza por test/examen, forzamos visualmente 'test'
                 if (temaTexto.startsWith('test') || temaTexto.startsWith('examen')) {
                     tipoVisual = 'test';
                 }
-                // ---------------------------------------------
 
                 const li = document.createElement('li');
                 li.className = 'history-item';
-                
-                // Nota: Asegúrate de tener CSS para .history-badge.test (te lo pongo abajo)
                 li.innerHTML = `
                     <div class="history-info">
                         <span class="history-date">${date.toLocaleString()}</span>
@@ -322,7 +340,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error("Error historial:", error);
-            if(error.message.includes("index")) alert("Falta el índice para historial. Mira la consola.");
         }
     }
 
@@ -382,8 +399,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Inicializar
-    renderPalette();
     auth.onAuthStateChanged(user => {
-        // Ya no cargamos nada automáticamente, esperamos al click del menú
+        // Esperamos interacción del usuario
     });
 });

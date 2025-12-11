@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekTitle = document.getElementById('week-title');
     const prevWeekBtn = document.getElementById('prev-week-btn');
     const nextWeekBtn = document.getElementById('next-week-btn');
+    // Referencia al selector del filtro
+    const filterSelect = document.getElementById('filter-tasks-select');
     
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
@@ -39,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Función Principal de Carga ---
     async function loadWeek(startDate) {
-        if (!auth.currentUser) return; // Esperar a que el usuario esté listo
+        if (!auth.currentUser) return; 
         
         document.querySelectorAll('.task-list').forEach(list => list.innerHTML = 'Cargando...');
         
@@ -59,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const date = dates[index];
             col.setAttribute('data-date', formatDate(date));
             col.querySelector('.day-date').textContent = `(${date.getDate()}/${date.getMonth() + 1})`;
-            col.querySelector('.task-list').innerHTML = ''; // Limpiar
+            col.querySelector('.task-list').innerHTML = ''; 
         });
 
         // Cargar las reglas de color
@@ -104,17 +106,14 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const batch = writeBatch(db);
             
-            // 1. Mover y actualizar la fecha de la tarea
             const taskRef = doc(db, "tareas_semanales", taskId);
             batch.update(taskRef, { fecha_tarea: newDate });
             
-            // 2. Reordenar lista de origen
             sourceListIds.forEach((id, index) => {
                 const docRef = doc(db, "tareas_semanales", id);
                 batch.update(docRef, { orden: index + 1 });
             });
             
-            // 3. Reordenar lista de destino
             destListIds.forEach((id, index) => {
                 const docRef = doc(db, "tareas_semanales", id);
                 batch.update(docRef, { orden: index + 1 });
@@ -123,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await batch.commit();
         } catch (error) { 
             console.error('Error al mover la tarea:', error); 
-            location.reload(); // Recarga si la BD falla
+            location.reload(); 
         }
     }
     
@@ -135,9 +134,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const taskList = cell.querySelector('.task-list'); 
         const listItem = document.createElement('li');
         listItem.className = 'task-item'; 
-        listItem.setAttribute('data-id', taskDoc.id); // ID del documento
+        listItem.setAttribute('data-id', taskDoc.id); 
         
-        applyColorRule(listItem, task.texto); // De colorRules.js
+        applyColorRule(listItem, task.texto); 
 
         if (task.completada) {
             listItem.classList.add('completed');
@@ -152,15 +151,14 @@ document.addEventListener('DOMContentLoaded', () => {
         taskList.appendChild(listItem);
     }
 
-    // --- AQUÍ ESTÁ EL CAMBIO (Retraso para móviles) ---
     function initSortable() {
         document.querySelectorAll('.task-list').forEach(list => {
             new Sortable(list, {
                 group: 'semana-tasks', 
                 animation: 150,
                 handle: '.task-item',
-                delay: 200, // <--- Retraso de 200ms (Mantiene pulsado para arrastrar)
-                delayOnTouchOnly: true, // <--- Solo en móviles, en PC es instantáneo
+                delay: 200, 
+                delayOnTouchOnly: true, 
                 filter: '.task-checkbox, .edit-task-btn, .delete-task-btn',
                 onEnd: function (evt) {
                     const sourceList = evt.from;
@@ -182,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function addTask(text, date) {
         if (text.trim() === '' || !auth.currentUser) return;
         try {
-            // Obtener orden más alto
             const qOrder = query(
                 collection(db, "tareas_semanales"),
                 where("user_id", "==", auth.currentUser.uid),
@@ -226,6 +223,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function deleteTask(id) {
         try { await deleteDoc(doc(db, "tareas_semanales", id)); } catch(e) { console.error(e); }
+    }
+
+    // --- Lógica del Filtro (ESTA ES LA PARTE QUE FALTABA) ---
+    if (filterSelect) {
+        filterSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'pending') {
+                weekGrid.classList.add('hide-completed');
+            } else {
+                weekGrid.classList.remove('hide-completed');
+            }
+        });
     }
 
     // --- Event Listeners ---

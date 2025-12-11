@@ -16,7 +16,6 @@ const timerDisplay = document.getElementById('timer-display');
 const inputEstudio = document.getElementById('input-estudio');
 const inputDescanso = document.getElementById('input-descanso');
 const btnIniciar = document.getElementById('btn-iniciar');
-// const btnPausa eliminada (ya no existe en HTML)
 const btnReset = document.getElementById('btn-reset');
 const tabBotones = document.querySelectorAll('.tab-btn');
 const inputDescansoLargo = document.getElementById('input-descanso-largo');
@@ -30,7 +29,6 @@ const pomodoroUI = document.getElementById('pomodoro-ui');
 const stopwatchUI = document.getElementById('stopwatch-ui');
 const stopwatchDisplay = document.getElementById('stopwatch-display');
 const btnStopwatchStart = document.getElementById('btn-stopwatch-start'); 
-// const btnStopwatchPause eliminada (ya no existe en HTML)
 const btnStopwatchSave = document.getElementById('btn-stopwatch-save');
 const btnStopwatchManual = document.getElementById('btn-stopwatch-manual');
 const btnPomodoroManual = document.getElementById('btn-pomodoro-manual'); 
@@ -77,17 +75,30 @@ function releaseWakeLock() {
     if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
 }
 
-// Helpers de UI
+// --- FUNCIÓN CORREGIDA: SWITCH ACTIVITY ---
 function switchActivity(newActivity) {
-    activityBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.activity === newActivity));
+    // 1. Actualizar visualmente los botones
+    activityBotones.forEach(btn => {
+        if (btn.dataset.activity === newActivity) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    // 2. Mostrar/Ocultar paneles según la actividad
     if (newActivity === 'estudio') {
-        pomodoroUI.style.display = 'block';
-        stopwatchUI.style.display = 'none';
-        topicInputContainer.style.display = 'block'; 
+        if(pomodoroUI) pomodoroUI.style.display = 'block';
+        if(stopwatchUI) stopwatchUI.style.display = 'none';
+        if(topicInputContainer) topicInputContainer.style.display = 'block'; 
     } else { 
-        pomodoroUI.style.display = 'none';
-        stopwatchUI.style.display = 'block';
-        topicInputContainer.style.display = (newActivity === 'psicotecnicos') ? 'none' : 'block'; 
+        if(pomodoroUI) pomodoroUI.style.display = 'none';
+        if(stopwatchUI) stopwatchUI.style.display = 'block';
+        
+        // Ocultar input de tema SOLO si es psicotécnicos
+        if(topicInputContainer) {
+            topicInputContainer.style.display = (newActivity === 'psicotecnicos') ? 'none' : 'block'; 
+        }
     }
 }
 
@@ -96,7 +107,9 @@ function getValidatedTopic() {
     if (remoteState.status === 'running') return { valid: true, topic: remoteState.topic };
 
     const tema = topicInput.value.trim();
-    const act = document.querySelector('.activity-btn.active').dataset.activity;
+    // Obtener la actividad activa desde el botón visual (más seguro)
+    const activeBtn = document.querySelector('.activity-btn.active');
+    const act = activeBtn ? activeBtn.dataset.activity : 'estudio';
     
     if (act === 'psicotecnicos') return { valid: true, topic: null };
     if (tema === '') {
@@ -146,38 +159,27 @@ function actualizarEstadoDesdeRemoto(data) {
     
     if (data.status === 'running') {
         requestWakeLock();
-        
-        // Actualizar estado del botón
         btnIniciar.textContent = "Pausar"; 
         btnIniciar.classList.add('btn-yellow-state'); 
         btnIniciar.onclick = pausarTimerRemoto; 
 
-        // --- LÓGICA CRÍTICA CORREGIDA PARA MÓVIL ---
+        // --- LÓGICA ROBUSTA PARA MÓVIL (Check Time) ---
         const checkTime = () => {
             const currentNow = Date.now();
-            // Calculamos diferencia real contra el servidor
             const currentSecondsLeft = Math.ceil((data.endTime - currentNow) / 1000);
 
             if (currentSecondsLeft <= 0) {
-                // ¡EL TIEMPO YA ACABÓ!
+                // TIEMPO TERMINADO
                 clearInterval(visualInterval);
                 timerDisplay.textContent = "00:00";
-                
-                // IMPORTANTE: Solo el dispositivo "dueño" o activo debería llamar a terminar
-                // Para evitar condiciones de carrera, lo llamamos directamente.
-                // La función terminarSesionRemota tiene un guardafrenos (if status !== running)
-                // así que es seguro llamarla varias veces.
-                terminarSesionRemota(); 
+                terminarSesionRemota(); // Guardar y parar
             } else {
                 updateDisplay(currentSecondsLeft);
             }
         };
 
-        // 1. Ejecutar comprobación INMEDIATAMENTE (al recibir datos de Firebase)
-        // Esto arregla el caso de "abro el móvil y ya pasaron 5 minutos del cero"
+        // Ejecutar inmediatamente y luego cada segundo
         checkTime();
-
-        // 2. Iniciar bucle visual para la cuenta atrás
         visualInterval = setInterval(checkTime, 1000);
 
     } else if (data.status === 'paused') {
@@ -262,7 +264,6 @@ async function guardarYResetearRemoto() {
     if (!auth.currentUser) return;
     
     if (remoteState.status === 'running' || remoteState.status === 'paused') {
-        
         let secondsLeft = 0;
         if (remoteState.status === 'running') {
             const now = Date.now();
@@ -291,9 +292,7 @@ async function guardarYResetearRemoto() {
             lastUpdated: Date.now()
         });
         
-        // Reset Visual Inmediato
         esEstudio = true;
-        // Aseguramos que se quita el amarillo
         btnIniciar.classList.remove('btn-yellow-state');
         btnIniciar.textContent = "Iniciar";
 
@@ -337,7 +336,6 @@ async function terminarSesionRemota() {
             timeLeft: 0,
             lastUpdated: Date.now()
         });
-        // Quitar amarillo al terminar
         btnIniciar.classList.remove('btn-yellow-state');
         btnIniciar.textContent = "Iniciar";
     } catch (e) { console.error("Error al terminar sesión:", e); }
@@ -348,14 +346,10 @@ async function terminarSesionRemota() {
 // ==============================================================
 
 async function guardarSesionEnBD(duracion, tipo, tema = null) { 
-    if (!auth.currentUser) {
-        console.error("No hay usuario logueado.");
-        return;
-    }
+    if (!auth.currentUser) return;
     if (!duracion || duracion <= 0) return;
 
     try {
-        console.log(`Guardando: ${duracion}m ${tipo} - ${tema}`);
         await addDoc(collection(db, "sesiones_estudio"), {
             user_id: auth.currentUser.uid,
             fecha_sesion: Timestamp.now(), 
@@ -370,7 +364,6 @@ async function guardarSesionEnBD(duracion, tipo, tema = null) {
         }
     } catch (error) {
         console.error("Error guardando sesión:", error);
-        alert('Error al guardar la sesión. Revisa tu conexión.');
     }
 }
 
@@ -418,13 +411,9 @@ function updateStopwatchDisplay() {
     document.title = `${stopwatchDisplay.textContent} - Cronómetro`;
 }
 
-// Función principal que alterna entre Start y Pause
 function toggleStopwatch() {
-    if (stopwatchPaused) {
-        startStopwatch();
-    } else {
-        pauseStopwatch();
-    }
+    if (stopwatchPaused) startStopwatch();
+    else pauseStopwatch();
 }
 
 function startStopwatch() {
@@ -438,7 +427,6 @@ function startStopwatch() {
         stopwatchStartTime = Date.now();
         stopwatchInterval = setInterval(updateStopwatchDisplay, 1000);
         
-        // Actualizar botón a PAUSAR (AMARILLO)
         btnStopwatchStart.textContent = "Pausar"; 
         btnStopwatchStart.classList.add('btn-yellow-state');
     }
@@ -451,14 +439,13 @@ function pauseStopwatch() {
         clearInterval(stopwatchInterval);
         stopwatchElapsedTime += Date.now() - stopwatchStartTime;
         
-        // Actualizar botón a CONTINUAR (NORMAL)
         btnStopwatchStart.textContent = "Continuar"; 
         btnStopwatchStart.classList.remove('btn-yellow-state');
     }
 }
 
 function resetStopwatch(save = false) {
-    pauseStopwatch(); // Aseguramos pausa
+    pauseStopwatch(); 
     
     let totalMinutes = 0;
     if (stopwatchElapsedTime > 0) totalMinutes = Math.round((stopwatchElapsedTime / 1000) / 60);
@@ -472,7 +459,6 @@ function resetStopwatch(save = false) {
     stopwatchElapsedTime = 0;
     stopwatchStartTime = 0;
     stopwatchDisplay.textContent = "00:00:00";
-    // Resetear botón a INICIAR (NORMAL)
     btnStopwatchStart.textContent = "Iniciar";
     btnStopwatchStart.classList.remove('btn-yellow-state');
 }
@@ -487,7 +473,10 @@ function renderTask(taskDoc) {
     listItem.setAttribute('data-id', taskDoc.id); 
     applyColorRule(listItem, task.texto);
     if (task.completada) listItem.classList.add('completed');
+    
+    // Icono para arrastrar (handle)
     listItem.innerHTML = `
+        <span class="drag-handle">⋮⋮</span>
         <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
         <span class="task-text">${task.texto}</span>
         <button class="edit-task-btn">✏️</button>
@@ -503,13 +492,12 @@ async function loadAndRenderTasks() {
         await fetchColorRules();
         const todayStr = new Date().toISOString().split('T')[0];
         
-        // 1. Cargar Tareas
         const tasksQ = query(collection(db, "tareas_semanales"), where("user_id", "==", auth.currentUser.uid), where("fecha_tarea", "==", todayStr), orderBy("orden", "asc"));
         const tasksSnap = await getDocs(tasksQ);
         taskList.innerHTML = ''; 
         tasksSnap.forEach(doc => renderTask(doc));
 
-        // 2. Cargar Estadísticas Rápidas
+        // Stats Rápidas
         const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
         const endOfDay = new Date(); endOfDay.setHours(23,59,59,999);
         const sessionsQ = query(collection(db, "sesiones_estudio"), where("user_id", "==", auth.currentUser.uid), where("tipo", "==", "estudio"), where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)), where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay)));
@@ -528,7 +516,7 @@ async function addTask() {
     const todayStr = new Date().toISOString().split('T')[0];
     await addDoc(collection(db, "tareas_semanales"), { user_id: auth.currentUser.uid, texto: txt, fecha_tarea: todayStr, completada: false, orden: 999 });
     newTaskInput.value = '';
-    loadAndRenderTasks(); // Recargar para ordenar
+    loadAndRenderTasks();
 }
 
 async function saveTaskOrder(taskIds) {
@@ -541,12 +529,13 @@ async function saveTaskOrder(taskIds) {
 }
 
 // ==============================================================
-//  LISTENERS DE EVENTOS
+//  LISTENERS DE EVENTOS (BOTONES Y CLICKS)
 // ==============================================================
 
 btnReset.addEventListener('click', guardarYResetearRemoto); 
 if(btnPomodoroManual) btnPomodoroManual.addEventListener('click', addManualTime);
 
+// Listener Pestañas
 tabBotones.forEach(btn => { 
     btn.addEventListener('click', () => {
         if(remoteState.status === 'stopped') {
@@ -555,17 +544,29 @@ tabBotones.forEach(btn => {
     }); 
 });
 
+// Listener Actividad (CORREGIDO)
 activityBotones.forEach(btn => btn.addEventListener('click', () => {
-    // Permitir cambio de actividad visual aunque esté corriendo el cronómetro
-    // Pero si el pomodoro está corriendo, eso lo gestiona la BD
-    if(remoteState.status === 'stopped') switchActivity(btn.dataset.activity);
+    // Si hay un timer corriendo, pedimos confirmación antes de cambiar
+    if(remoteState.status === 'running') {
+        const confirmar = confirm("Tienes una sesión activa. ¿Deseas detenerla para cambiar de actividad?");
+        if(confirmar) {
+            pausarTimerRemoto(); // O resetear directamente
+            // Forzar estado local para desbloquear UI inmediatamente
+            remoteState.status = 'stopped';
+            switchActivity(btn.dataset.activity);
+        }
+    } else {
+        // Si está parado, cambiamos sin problemas
+        switchActivity(btn.dataset.activity);
+    }
 }));
 
-// CRONÓMETRO: Listener único para toggle
+// Listener Cronómetro
 btnStopwatchStart.addEventListener('click', toggleStopwatch);
 btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
 if(btnStopwatchManual) btnStopwatchManual.addEventListener('click', addManualTime);
 
+// Listener Tareas
 addTaskBtn.addEventListener('click', addTask);
 newTaskInput.addEventListener('keypress', (e) => { if(e.key==='Enter') addTask(); });
 
@@ -592,11 +593,11 @@ taskList.addEventListener('click', (e) => {
     }
 });
 
+// Sortable JS para Tareas (Con retraso para móvil)
 if (typeof Sortable !== 'undefined') {
     new Sortable(taskList, {
-        animation: 150,
-        delay: 200, // <--- Retraso de 200ms antes de activar el arrastre
-        delayOnTouchOnly: true, // <--- Solo aplica el retraso en pantallas táctiles (en PC será instantáneo)
+        animation: 150, 
+        handle: '.drag-handle', // Solo arrastra desde el icono
         filter: 'button, input',
         onEnd: function (evt) {
             const taskIds = Array.from(taskList.querySelectorAll('li.task-item')).map(i => i.dataset.id);

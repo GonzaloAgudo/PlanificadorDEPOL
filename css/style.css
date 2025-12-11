@@ -629,6 +629,41 @@ button.btn-yellow-state:hover {
     flex-shrink: 0; 
 }
 
+/* --- FILTRO SEMANAL --- */
+
+/* Estilo del selector */
+.header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.filter-select {
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid #ccc;
+    background-color: white;
+    font-size: 0.9rem;
+    cursor: pointer;
+    font-weight: 500;
+    color: var(--color-secundario);
+    outline: none;
+    transition: box-shadow 0.2s;
+}
+
+.filter-select:hover {
+    border-color: var(--color-primario);
+    color: var(--color-primario);
+}
+
+/* --- LA MAGIA DEL FILTRO --- */
+
+/* Cuando el contenedor .week-grid tiene la clase 'hide-completed'... */
+.week-grid.hide-completed .task-item.completed {
+    display: none !important; /* ...oculta las tareas completadas */
+}
+
 /* --- 10. PÁGINA: Calendario (calendario.php) --- */
 .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .calendar-header h1 { color: var(--color-primario); font-size: 1.8rem; margin: 0; }
@@ -643,17 +678,28 @@ button.btn-yellow-state:hover {
 .calendar-day:hover { background-color: #fcfcfc; }
 .day-number { font-weight: 600; font-size: 0.9rem; }
 .day-other-month { color: #ccc; background-color: #f9f9f9; cursor: default; }
+/* --- ESTILO DEL EVENTO EN EL CALENDARIO --- */
 .calendar-event { 
     font-size: 0.85rem; 
     padding: 0.2rem 0.5rem; 
     border-radius: 4px; 
     margin-top: 0.25rem; 
-    border-left: 3px solid var(--color-secundario); 
+    
+    /* Fondo y borde por defecto (gris) por si no hay regla */
     background-color: #f4f4f4; 
+    border-left: 4px solid #ccc; /* La franja izquierda */
+    
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
     word-break: break-word; 
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.calendar-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 .event-text { 
     flex-grow: 1; 
@@ -1250,28 +1296,44 @@ button.btn-yellow-state:hover {
     color: #37352f;
 }
 
-#progress-table {
-    width: 100%;
-    border-collapse: collapse; /* Importante */
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-    color: #37352f;
-}
-
-/* Cabeceras */
+/* Cabeceras Fijas (Sticky) - VERSIÓN COLORIDA */
 #progress-table th {
-    font-weight: normal;
-    color: #787774;
-    font-size: 0.9rem;
-    padding: 0.5rem 0.8rem;
-    border-bottom: 1px solid #e9e9e9;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    
+    /* --- CAMBIOS DE COLOR --- */
+    background-color: #4a6fa5; /* Un azul pizarra sólido que destaca */
+    color: white;              /* Texto blanco para máximo contraste */
+    font-weight: 600;          /* Letra un poco más gruesa */
+    border-bottom: 3px solid #3b5987; /* Borde inferior más oscuro para dar volumen */
+    /* ------------------------ */
+    
+    font-size: 0.95rem;
+    padding: 0.8rem 1rem;      /* Un poco más de espacio */
     text-align: left;
     white-space: nowrap;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); /* Sombra más pronunciada para que "flote" */
+}
+
+
+#progress-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+
+#progress-table td {
+    border-bottom: 1px solid #e9e9e9;
+    padding: 4px 8px;
+    height: 40px;
+    background-color: white;
 }
 
 .th-dynamic {
     position: relative;
     min-width: 80px;
-    text-align: center !important; /* Checkboxes centrados */
+    text-align: center !important;
 }
 
 .col-header-content {
@@ -1286,15 +1348,18 @@ button.btn-yellow-state:hover {
 }
 
 .btn-del-col {
-    background: none; border: none; color: #ccc; cursor: pointer; font-size: 1rem; padding: 0;
+    background: none; 
+    border: none; 
+    /* Color blanco semitransparente para que no moleste mucho */
+    color: rgba(255, 255, 255, 0.6) !important; 
+    cursor: pointer; 
+    font-size: 1.1rem; 
+    padding: 0 5px;
 }
-.btn-del-col:hover { color: var(--color-peligro); }
 
-/* Filas */
-#progress-table td {
-    border-bottom: 1px solid #e9e9e9;
-    padding: 4px 8px;
-    height: 40px; /* Altura fija Notion-like */
+/* Al pasar el ratón, que se ponga de un rojo clarito */
+.btn-del-col:hover {
+    color: #ffadad !important; 
 }
 
 .progress-row:hover {
@@ -1391,4 +1456,121 @@ button.btn-yellow-state:hover {
 @media (max-width: 900px) {
     .table-responsive { overflow-x: auto; padding-bottom: 1rem; }
     .progress-layout { padding: 1rem; padding-top: 5rem; }
+}
+
+
+/* =========================================
+   SELECTOR DE COLOR PRO
+   ========================================= */
+
+/* Contenedor fila (Picker + Texto) */
+.color-picker-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 12px;
+    border: 1px solid #e9ecef;
+}
+
+/* Wrapper para hacer el input redondo y bonito */
+.color-input-wrapper {
+    position: relative;
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    border: 2px solid white;
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.color-input-wrapper:hover {
+    transform: scale(1.1);
+}
+
+/* El input real (lo hacemos gigante para que ocupe todo el wrapper y sea clickable) */
+#custom-color-picker {
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    padding: 0;
+    margin: 0;
+    border: none;
+    cursor: pointer;
+    appearance: none;
+    background: none;
+}
+
+/* Texto Hexadecimal */
+#color-hex-display {
+    font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
+    font-size: 1rem;
+    color: var(--color-secundario-oscuro);
+    background: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    min-width: 80px;
+    text-align: center;
+}
+
+/* =========================================
+   PALETA RÁPIDA (GRID)
+   ========================================= */
+
+.palette-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); /* Responsive automático */
+    gap: 12px;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+}
+
+.empty-msg {
+    font-size: 0.85rem;
+    color: #adb5bd;
+    grid-column: 1 / -1; /* Ocupa todo el ancho */
+    font-style: italic;
+}
+
+/* Los círculos de la paleta */
+.color-swatch {
+    width: 100%; /* Se adapta al grid */
+    aspect-ratio: 1 / 1; /* Siempre cuadrados/redondos */
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid rgba(0,0,0,0.05); /* Borde sutil por defecto */
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efecto Pop */
+    position: relative;
+}
+
+.color-swatch:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    z-index: 2;
+}
+
+/* ESTADO SELECCIONADO (El efecto pro) */
+.color-swatch.selected {
+    transform: scale(1.15);
+    border-color: white !important; /* Anillo interior blanco */
+    box-shadow: 
+        0 0 0 3px var(--color-primario), /* Anillo exterior azul */
+        0 8px 15px rgba(0,0,0,0.2);      /* Sombra */
+    z-index: 2;
+}
+
+/* Ajuste para el formulario */
+.form-group label {
+    font-size: 0.9rem;
+    color: var(--color-secundario);
+    margin-bottom: 0.5rem;
+    display: block;
 }
