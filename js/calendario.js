@@ -1,7 +1,7 @@
 import { db, auth } from './firebase-config.js';
 import { 
     collection, addDoc, query, where, getDocs, 
-    doc, deleteDoc, updateDoc // Importamos updateDoc
+    doc, deleteDoc, updateDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fetchColorRules, applyEventColorRule } from './colorRules.js';
 
@@ -11,17 +11,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const monthYearTitle = document.getElementById('month-year-title');
     const prevMonthBtn = document.getElementById('prev-month-btn');
     const nextMonthBtn = document.getElementById('next-month-btn');
+    const modeBtns = document.querySelectorAll('.mode-btn');
 
     let currentDate = new Date(); 
+    let currentMode = 'clases'; // Por defecto
+
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
-    // Helper para formato YYYY-MM-DD
     function formatDate(date) {
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
     }
+
+    // --- CAMBIO DE MODO ---
+    modeBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Actualizar visual
+            modeBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            // Actualizar lógica
+            currentMode = btn.dataset.mode;
+            renderCalendar(currentDate); // Recargar eventos
+        });
+    });
 
     async function renderCalendar(date) {
         if (!auth.currentUser) return;
@@ -39,19 +54,16 @@ document.addEventListener('DOMContentLoaded', () => {
         let firstDayOfWeek = firstDayOfMonth.getDay() - 1;
         if (firstDayOfWeek === -1) firstDayOfWeek = 6; 
 
-        // Días del mes anterior
         for (let i = 0; i < firstDayOfWeek; i++) {
             calendarBody.appendChild(createDayCell(null, true)); 
         }
 
-        // Días del mes actual
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDayDate = new Date(year, month, day);
             const dateString = formatDate(currentDayDate);
             calendarBody.appendChild(createDayCell(day, false, dateString));
         }
 
-        // Rellenar hasta el final
         const totalCells = 42; 
         const cellsRendered = firstDayOfWeek + daysInMonth;
         const remainingCells = totalCells - cellsRendered;
@@ -78,7 +90,10 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.addEventListener('click', (e) => {
                 if(e.target.closest('.calendar-event')) return;
                 
-                const text = prompt(`Añadir evento para el ${dateString}:`);
+                // Texto personalizado según el modo
+                const tipoTexto = currentMode === 'clases' ? 'clase/estudio' : 'entrenamiento';
+                const text = prompt(`Añadir ${tipoTexto} para el ${dateString}:`);
+                
                 if (text && text.trim() !== '') {
                     addEvent(dateString, text);
                 }
@@ -92,11 +107,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
             const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
 
+            // AHORA FILTRAMOS TAMBIÉN POR 'tipo_calendario'
             const q = query(
                 collection(db, "calendario_eventos"),
                 where("user_id", "==", auth.currentUser.uid),
                 where("fecha_evento", ">=", startStr),
-                where("fecha_evento", "<=", endStr)
+                where("fecha_evento", "<=", endStr),
+                where("tipo_calendario", "==", currentMode) // <--- CLAVE
             );
 
             const querySnapshot = await getDocs(q);
@@ -112,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error('Error al cargar eventos:', error);
+            // Si falla por falta de índice, avisa en consola
         }
     }
 
@@ -127,11 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <button class="delete-event-btn">✕</button>
         `;
         
-        // --- EVENTO PARA EDITAR AL HACER CLIC ---
         eventEl.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evitar que se active el clic de la celda (crear nuevo)
-            
-            // Si pulsamos en el botón de borrar, no editamos (aunque ya tiene su propio listener, por seguridad)
+            e.stopPropagation(); 
             if (e.target.classList.contains('delete-event-btn')) return;
 
             const newText = prompt("Editar evento:", evento.texto_evento);
@@ -139,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 editEvent(evento.id, newText, eventEl);
             }
         });
-        // ----------------------------------------
 
         eventEl.querySelector('.delete-event-btn').addEventListener('click', (e) => {
             e.stopPropagation(); 
@@ -157,7 +171,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const newEvent = {
                 user_id: auth.currentUser.uid,
                 fecha_evento: dateString,
-                texto_evento: text
+                texto_evento: text,
+                tipo_calendario: currentMode // <--- GUARDAMOS EL TIPO
             };
             
             const docRef = await addDoc(collection(db, "calendario_eventos"), newEvent);
@@ -169,29 +184,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Error añadiendo evento:", error);
-            alert('Error al añadir evento.');
+            // Si es por índice, el usuario lo verá en consola
+            alert('Error al añadir evento. Revisa la consola si es la primera vez (Índices).');
         }
     }
 
-    // --- NUEVA FUNCIÓN PARA ACTUALIZAR EN FIREBASE ---
     async function editEvent(id, newText, eventEl) {
         try {
             const eventRef = doc(db, "calendario_eventos", id);
             await updateDoc(eventRef, {
                 texto_evento: newText
             });
-            
-            // Actualizar vista
             eventEl.querySelector('.event-text').textContent = newText;
-            // Reaplicar colores por si el texto cambió y afecta a reglas
             applyEventColorRule(eventEl, newText); 
-            
         } catch (error) {
             console.error("Error editando evento:", error);
             alert("No se pudo actualizar el evento.");
         }
     }
-    // -------------------------------------------------
 
     async function deleteEvent(id, element) {
         try {
@@ -219,3 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+
+
+

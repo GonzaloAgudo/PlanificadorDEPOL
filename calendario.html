@@ -14,6 +14,11 @@
 
     <main class="content-wrapper calendario-layout">
         <div class="calendar-container">
+            
+            <div class="calendar-mode-switcher">
+                <button class="mode-btn active" data-mode="clases">📚 Clases</button>
+                <button class="mode-btn" data-mode="entrenamientos">🏋️ Entrenamientos</button>
+            </div>
             <div class="calendar-header">
                 <button id="prev-month-btn">&lt;</button>
                 <h1 id="month-year-title">Cargando...</h1>
@@ -37,14 +42,5 @@
     <script type="module" src="js/nav.js"></script>
     <script type="module" src="js/colorRules.js"></script>
     <script type="module" src="js/calendario.js"></script>
-    
-    <script>
-        (function() {
-            history.pushState(null, null, location.href);
-            window.addEventListener('popstate', function () {
-                window.location.replace('index.html');
-            });
-        })();
-    </script>
 </body>
 </html>
