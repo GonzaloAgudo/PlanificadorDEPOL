@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modeBtns = document.querySelectorAll('.mode-btn');
 
     let currentDate = new Date(); 
-    let currentMode = 'clases'; // Por defecto
+    let currentMode = 'clases'; // Modo por defecto
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -25,18 +25,22 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${y}-${m}-${d}`;
     }
 
-    // --- CAMBIO DE MODO ---
+    // --- LÓGICA DE CAMBIO DE MODO ---
+    // Este listener actualiza la variable currentMode y recarga el calendario
+    // filtrando los eventos según el nuevo modo seleccionado.
     modeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
-            // Actualizar visual
+            // Actualizar estado visual de los botones
             modeBtns.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Actualizar lógica
+            // Actualizar estado lógico
             currentMode = btn.dataset.mode;
-            renderCalendar(currentDate); // Recargar eventos
+            renderCalendar(currentDate); // Recargar eventos con el nuevo filtro
         });
     });
+
+    
 
     async function renderCalendar(date) {
         if (!auth.currentUser) return;
@@ -54,16 +58,19 @@ document.addEventListener('DOMContentLoaded', () => {
         let firstDayOfWeek = firstDayOfMonth.getDay() - 1;
         if (firstDayOfWeek === -1) firstDayOfWeek = 6; 
 
+        // Días de relleno del mes anterior
         for (let i = 0; i < firstDayOfWeek; i++) {
             calendarBody.appendChild(createDayCell(null, true)); 
         }
 
+        // Días del mes actual
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDayDate = new Date(year, month, day);
             const dateString = formatDate(currentDayDate);
             calendarBody.appendChild(createDayCell(day, false, dateString));
         }
 
+        // Días de relleno del mes siguiente
         const totalCells = 42; 
         const cellsRendered = firstDayOfWeek + daysInMonth;
         const remainingCells = totalCells - cellsRendered;
@@ -82,7 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isOtherMonth) {
             cell.classList.add('day-other-month');
         } else {
-            cell.innerHTML = `<span class="day-number">${dayNumber}</span>`;
+            // Lógica para mostrar nombre del día en móvil (opcional)
+            const dayNamesShort = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+            let dayNameHTML = '';
+            if(dateString) {
+                const dateStruct = new Date(dateString);
+                const dayName = dayNamesShort[dateStruct.getDay()];
+                dayNameHTML = `<span class="d-name" style="font-size:0.8rem; color:#888; font-weight:normal; margin-left:5px;">${dayName}</span>`;
+            }
+
+            cell.innerHTML = `<span class="day-number"><span class="d-num">${dayNumber}</span>${dayNameHTML}</span>`;
         }
         
         if (dateString && !isOtherMonth) {
@@ -90,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cell.addEventListener('click', (e) => {
                 if(e.target.closest('.calendar-event')) return;
                 
-                // Texto personalizado según el modo
+                // Personalizar el texto del prompt según el modo
                 const tipoTexto = currentMode === 'clases' ? 'clase/estudio' : 'entrenamiento';
                 const text = prompt(`Añadir ${tipoTexto} para el ${dateString}:`);
                 
@@ -107,13 +123,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const startStr = `${year}-${String(month).padStart(2, '0')}-01`;
             const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
 
-            // AHORA FILTRAMOS TAMBIÉN POR 'tipo_calendario'
+            // CONSULTA DE FILTRADO
+            // Ahora filtramos por 'tipo_calendario' para traer solo los eventos relevantes
             const q = query(
                 collection(db, "calendario_eventos"),
                 where("user_id", "==", auth.currentUser.uid),
                 where("fecha_evento", ">=", startStr),
                 where("fecha_evento", "<=", endStr),
-                where("tipo_calendario", "==", currentMode) // <--- CLAVE
+                where("tipo_calendario", "==", currentMode) // <--- FILTRO CRÍTICO
             );
 
             const querySnapshot = await getDocs(q);
@@ -129,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.error('Error al cargar eventos:', error);
-            // Si falla por falta de índice, avisa en consola
+            // Este error suele indicar que falta un índice compuesto en Firestore
         }
     }
 
@@ -165,6 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
         cell.appendChild(eventEl);
     }
 
+    
+
     async function addEvent(dateString, text) {
         if (!auth.currentUser) return;
         try {
@@ -184,7 +203,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error("Error añadiendo evento:", error);
-            // Si es por índice, el usuario lo verá en consola
             alert('Error al añadir evento. Revisa la consola si es la primera vez (Índices).');
         }
     }
@@ -229,7 +247,3 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-
-
-

@@ -800,6 +800,75 @@ button.btn-yellow-state:hover {
     color: #e67e22; /* Naranja deportivo */
 }
 
+@media (max-width: 768px) {
+    
+    /* 1. Ocultar la cabecera de días (Lunes, Martes...) porque ya no es una tabla */
+    .calendar-grid-header {
+        display: none; 
+    }
+
+    /* 2. Cambiar la rejilla a una sola columna (Lista vertical) */
+    .calendar-grid-body {
+        grid-template-columns: 1fr !important; /* Una sola columna */
+        gap: 15px; /* Espacio entre días */
+    }
+
+    /* 3. Estilo de cada día (ahora parece una tarjeta) */
+    .calendar-day {
+        min-height: 80px; /* Altura mínima para que sea fácil tocar */
+        height: auto !important; /* Que crezca según el contenido */
+        border: 1px solid #e0e0e0;
+        border-radius: 12px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        position: relative;
+    }
+
+    /* 4. Ocultar los días que no son de este mes para limpiar la vista */
+    .day-other-month {
+        display: none; 
+    }
+
+    /* 5. El número del día: lo hacemos más grande y le ponemos el nombre del día al lado */
+    .day-number {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: var(--color-primario);
+        margin-bottom: 8px;
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    /* Truco CSS avanzado: Añadir "Lunes", "Martes" dinámicamente es complejo solo con CSS.
+       Si quieres que ponga el nombre del día, habría que tocar JS. 
+       Por ahora, con el diseño de tarjeta vertical se entiende muy bien. */
+
+    /* 6. Los eventos dentro del día: que ocupen todo el ancho y se lean bien */
+    .calendar-event {
+        font-size: 0.95rem; /* Letra más grande */
+        padding: 8px 10px;
+        margin-bottom: 6px;
+        white-space: normal; /* Permitir que el texto ocupe varias líneas */
+        height: auto;
+    }
+    
+    /* Botón de borrar evento más grande para el dedo */
+    .delete-event-btn {
+        font-size: 1.2rem;
+        padding: 5px 10px;
+    }
+}
+
+.d-name { display: none; } /* Oculto en PC */
+
+@media (max-width: 768px) {
+    .d-name { display: inline-block; } /* Visible en móvil */
+}
+
 /* --- 11. PÁGINA: Ajustes (ajustes.php) --- */
 
 .settings-menu-grid {
