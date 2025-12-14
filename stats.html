@@ -50,10 +50,16 @@
                 </label>
             </div>
             <div class="filtros">
-                <button class="filtro-btn active" data-filtro="today">Hoy</button>
+                <button class="filtro-btn active" data-filtro="day">Día</button>
                 <button class="filtro-btn" data-filtro="week">Semana</button>
                 <button class="filtro-btn" data-filtro="month">Mes</button>
                 <button class="filtro-btn" data-filtro="year">Año</button>
+            </div>
+
+            <div class="time-navigation">
+                <button id="btn-prev-period" class="nav-arrow">&lt;</button>
+                <span id="period-display">Hoy</span>
+                <button id="btn-next-period" class="nav-arrow">&gt;</button>
             </div>
 
             <div class="resumen-stats" id="resumen-texto">
@@ -61,13 +67,6 @@
             </div>
             <div class="chart-container" id="chart-container">
                 <canvas id="statsChart"></canvas>
-            </div>
-            
-            <div class="filtro-dia">
-                <h3>Consultar un día específico</h3>
-                <input type="date" id="input-fecha-stats">
-                <button id="btn-ver-stats-dia">Consultar</button>
-                <div id="resultado-stats-dia"></div>
             </div>
 
         </div>

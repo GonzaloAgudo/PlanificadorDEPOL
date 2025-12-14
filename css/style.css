@@ -528,6 +528,47 @@ button.btn-yellow-state:hover {
 .filtro-dia button { background: var(--color-primario); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
 .filtro-dia button:hover { background: var(--color-primario-oscuro); }
 #resultado-stats-dia { margin-top: 1rem; font-weight: 600; }
+/* --- NAVEGACIÓN ESTADÍSTICAS --- */
+.time-navigation {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin: 1.5rem 0;
+    background: white;
+    padding: 0.8rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+#period-display {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primario);
+    min-width: 150px;
+    text-align: center;
+    text-transform: capitalize;
+}
+
+.nav-arrow {
+    background: #f1f3f5;
+    border: none;
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    color: #555;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-arrow:hover {
+    background: var(--color-primario);
+    color: white;
+}
 
 /* --- 9. PÁGINA: Semana (semana.php) --- */
 .settings-link-icon {
