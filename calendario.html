@@ -36,6 +36,29 @@
             <div class="calendar-grid-body" id="calendar-body">
                 </div>
         </div>
+
+        <div id="event-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h2>Detalles del Evento</h2>
+            
+            <div class="modal-form">
+                <label>Título del evento</label>
+                <input type="text" id="modal-title" placeholder="Ej: Clase T33">
+                
+                <label>Descripción / Hora</label>
+                <textarea id="modal-desc" rows="3" placeholder="Ej: 10:00 - 12:00. Llevar apuntes nuevos."></textarea>
+                
+                <input type="hidden" id="modal-event-id"> </div>
+
+            <div class="modal-buttons">
+                <button id="btn-modal-delete" class="btn-danger">🗑️ Borrar</button>
+                <div class="right-btns">
+                    <button id="btn-modal-cancel" class="btn-secondary">Cancelar</button>
+                    <button id="btn-modal-save" class="btn-primary">💾 Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     </main>
 
     <script type="module" src="js/auth-guard.js"></script>

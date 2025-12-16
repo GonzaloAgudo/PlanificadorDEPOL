@@ -13,8 +13,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const nextMonthBtn = document.getElementById('next-month-btn');
     const modeBtns = document.querySelectorAll('.mode-btn');
 
+    // --- ELEMENTOS DEL MODAL ---
+    const modal = document.getElementById('event-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const modalDesc = document.getElementById('modal-desc');
+    const modalId = document.getElementById('modal-event-id');
+    const btnSave = document.getElementById('btn-modal-save');
+    const btnCancel = document.getElementById('btn-modal-cancel');
+    const btnDelete = document.getElementById('btn-modal-delete');
+    // Cambiamos el título del modal según si es nuevo o editar
+    const modalHeader = document.querySelector('.modal-content h2'); 
+
     let currentDate = new Date(); 
     let currentMode = 'clases'; 
+    let activeCellElement = null; 
+    let targetDateForNewEvent = null; // VARIABLE NUEVA: Guarda la fecha al crear nuevo
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -35,9 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // --- SCROLL AUTOMÁTICO AL DÍA DE HOY (MÓVIL) ---
+    // --- SCROLL AUTOMÁTICO (SOLO MÓVIL) ---
     function scrollToToday() {
-        // Pequeño timeout para asegurar que el DOM se ha pintado
+        if (window.innerWidth > 768) return; 
         setTimeout(() => {
             const todayEl = document.querySelector('.calendar-day.is-today');
             if (todayEl) {
@@ -46,6 +59,119 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 300);
     }
 
+    // --- FUNCIONES DEL MODAL ---
+    
+    // Función unificada para abrir el modal (Crear o Editar)
+    function openModal(id, title, desc, cellElement, dateForNew = null) {
+        modalId.value = id || ''; 
+        modalTitle.value = title || '';
+        modalDesc.value = desc || ''; 
+        activeCellElement = cellElement;
+        targetDateForNewEvent = dateForNew; // Si es nuevo, guardamos la fecha
+
+        // Cambiar textos visuales
+        if (id) {
+            modalHeader.textContent = "Editar Evento";
+            btnDelete.style.display = 'block'; // Mostrar borrar
+        } else {
+            modalHeader.textContent = "Nuevo Evento";
+            btnDelete.style.display = 'none'; // Ocultar borrar si es nuevo
+        }
+
+        modal.classList.remove('hidden');
+        // Poner foco en el título automáticamente
+        setTimeout(() => modalTitle.focus(), 100);
+    }
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modalId.value = '';
+        modalTitle.value = '';
+        modalDesc.value = '';
+        targetDateForNewEvent = null;
+    }
+
+    btnCancel.addEventListener('click', closeModal);
+    
+    // --- LÓGICA DE GUARDADO (CREAR O EDITAR) ---
+    btnSave.addEventListener('click', async () => {
+        const id = modalId.value;
+        const newTitle = modalTitle.value.trim();
+        const newDesc = modalDesc.value.trim();
+        
+        if (!newTitle) return alert("El título es obligatorio");
+
+        try {
+            if (id) {
+                // CASO 1: EDITAR EVENTO EXISTENTE
+                const eventRef = doc(db, "calendario_eventos", id);
+                await updateDoc(eventRef, { 
+                    texto_evento: newTitle,
+                    descripcion: newDesc
+                });
+                
+                // Si cambiamos a Festivo, hay que refrescar visualmente la celda roja
+                if (newTitle.toLowerCase() === 'festivo' || (activeCellElement && activeCellElement.classList.contains('is-weekend'))) {
+                    renderCalendar(currentDate); 
+                } else {
+                    // Actualización ligera
+                    renderCalendar(currentDate);
+                }
+
+            } else {
+                // CASO 2: CREAR NUEVO EVENTO
+                // Usamos la fecha que guardamos al hacer click
+                if (!targetDateForNewEvent) return;
+
+                const newEvent = {
+                    user_id: auth.currentUser.uid,
+                    fecha_evento: targetDateForNewEvent,
+                    texto_evento: newTitle,
+                    descripcion: newDesc,
+                    tipo_calendario: currentMode
+                };
+                
+                await addDoc(collection(db, "calendario_eventos"), newEvent);
+                renderCalendar(currentDate);
+            }
+            
+            closeModal();
+
+        } catch (e) {
+            console.error(e);
+            alert("Error al guardar");
+        }
+    });
+
+    // Borrar desde el modal
+    btnDelete.addEventListener('click', async () => {
+        const id = modalId.value;
+        if (!id) return;
+        
+        if (confirm("¿Seguro que quieres borrar este evento?")) {
+            try {
+                // Limpiar estilo festivo si es necesario
+                const oldTitle = modalTitle.value;
+                if (oldTitle.toLowerCase() === 'festivo' && activeCellElement) {
+                    activeCellElement.classList.remove('is-weekend');
+                    delete activeCellElement.dataset.festivoId;
+                }
+
+                await deleteDoc(doc(db, "calendario_eventos", id));
+                renderCalendar(currentDate);
+                closeModal();
+            } catch (e) {
+                console.error(e);
+                alert("Error al borrar");
+            }
+        }
+    });
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // --- RENDERIZADO DEL CALENDARIO ---
     async function renderCalendar(date) {
         if (!auth.currentUser) return;
 
@@ -83,7 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         await fetchColorRules();
         await fetchEvents(year, month + 1);
         
-        // Al terminar de cargar todo, hacemos scroll si es el mes actual
         const now = new Date();
         if (month === now.getMonth() && year === now.getFullYear()) {
             scrollToToday();
@@ -94,20 +219,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const cell = document.createElement('div');
         cell.className = 'calendar-day';
         
-        // 1. DETECTAR HOY
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        if (dateString === todayStr && !isOtherMonth) {
-            cell.classList.add('is-today');
-        }
+        if (dateString === todayStr && !isOtherMonth) cell.classList.add('is-today');
 
-        // 2. DETECTAR FIN DE SEMANA (Automático)
         if (dateString && !isOtherMonth) {
             const dateStruct = new Date(dateString);
             const dayOfWeek = dateStruct.getDay(); 
-            if (dayOfWeek === 0 || dayOfWeek === 6) {
-                cell.classList.add('is-weekend'); 
-            }
+            if (dayOfWeek === 0 || dayOfWeek === 6) cell.classList.add('is-weekend'); 
         }
 
         if (isOtherMonth) {
@@ -126,34 +245,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dateString && !isOtherMonth) {
             cell.setAttribute('data-date', dateString);
             cell.addEventListener('click', (e) => {
-                // Si pulsa en un evento visible, no hacemos nada aquí (lo maneja el evento)
                 if(e.target.closest('.calendar-event')) return;
                 
-                // LÓGICA ESPECIAL: Si hay un festivo oculto en este día
                 if (cell.dataset.festivoId) {
-                    const removeFestivo = confirm("Este día está marcado como Festivo. ¿Quieres quitar el festivo?");
-                    if (removeFestivo) {
-                        // Borramos el evento oculto
-                        // Como no tenemos el elemento visual del evento aquí, lo buscamos o llamamos a delete directo
-                        deleteDoc(doc(db, "calendario_eventos", cell.dataset.festivoId))
-                            .then(() => {
-                                cell.classList.remove('is-weekend');
-                                delete cell.dataset.festivoId;
-                                // Si era finde real, volvemos a poner la clase, si no, la quitamos
-                                const dObj = new Date(dateString);
-                                if (dObj.getDay() === 0 || dObj.getDay() === 6) cell.classList.add('is-weekend');
-                            })
-                            .catch(err => console.error(err));
-                        return; // Salimos para no abrir el prompt de añadir
-                    }
+                    openModal(cell.dataset.festivoId, "Festivo", "", cell);
+                    return;
                 }
 
-                const tipoTexto = currentMode === 'clases' ? 'clase/estudio' : 'entrenamiento';
-                const text = prompt(`Añadir ${tipoTexto} para el ${dateString}:\n(Escribe "Festivo" para marcar en rojo)`);
-                
-                if (text && text.trim() !== '') {
-                    addEvent(dateString, text);
-                }
+                // --- CAMBIO CLAVE: ABRIR MODAL VACÍO PARA CREAR ---
+                // Pasamos null como ID y la fecha actual como fecha destino
+                openModal(null, '', '', cell, dateString);
             });
         }
         return cell;
@@ -187,105 +288,36 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderEvent(cell, evento) {
         const isFestivo = evento.texto_evento.trim().toLowerCase() === 'festivo';
 
-        // --- 3. GESTIÓN DE FESTIVOS ---
         if (isFestivo) {
-            cell.classList.add('is-weekend'); // Pintar rojo
-            cell.dataset.festivoId = evento.id; // Guardar ID en la celda para poder borrarlo al hacer click en el día
+            cell.classList.add('is-weekend'); 
+            cell.dataset.festivoId = evento.id; 
         }
-        // ------------------------------
 
         const eventEl = document.createElement('div');
         eventEl.className = 'calendar-event';
-        
-        // Si es festivo, le añadimos la clase para ocultarlo
         if (isFestivo) eventEl.classList.add('festivo-hidden');
 
         eventEl.setAttribute('data-id', evento.id);
         
         applyEventColorRule(eventEl, evento.texto_evento); 
         
+        let descIndicator = '';
+        if (evento.descripcion && evento.descripcion.trim() !== '') {
+            descIndicator = '<span class="has-desc-indicator" title="Ver detalles"></span>';
+        }
+
         eventEl.innerHTML = `
             <span class="event-text">${evento.texto_evento}</span>
-            <button class="delete-event-btn">✕</button>
+            ${descIndicator}
         `;
         
         eventEl.addEventListener('click', (e) => {
             e.stopPropagation(); 
-            if (e.target.classList.contains('delete-event-btn')) return;
-
-            const newText = prompt("Editar evento:", evento.texto_evento);
-            if (newText && newText !== evento.texto_evento) {
-                // Si deja de ser festivo
-                if (isFestivo && newText.toLowerCase() !== 'festivo') {
-                    cell.classList.remove('is-weekend');
-                    delete cell.dataset.festivoId;
-                    eventEl.classList.remove('festivo-hidden');
-                }
-                editEvent(evento.id, newText, eventEl);
-            }
-        });
-
-        eventEl.querySelector('.delete-event-btn').addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            if (confirm('¿Eliminar este evento?')) {
-                if (isFestivo) {
-                    cell.classList.remove('is-weekend');
-                    delete cell.dataset.festivoId;
-                }
-                deleteEvent(evento.id, eventEl);
-            }
+            // Abrimos modal en modo edición (pasamos el ID)
+            openModal(evento.id, evento.texto_evento, evento.descripcion, cell);
         });
         
         cell.appendChild(eventEl);
-    }
-
-    async function addEvent(dateString, text) {
-        if (!auth.currentUser) return;
-        try {
-            const newEvent = {
-                user_id: auth.currentUser.uid,
-                fecha_evento: dateString,
-                texto_evento: text,
-                tipo_calendario: currentMode
-            };
-            const docRef = await addDoc(collection(db, "calendario_eventos"), newEvent);
-            const cell = document.querySelector(`.calendar-day[data-date="${dateString}"]`);
-            if (cell) {
-                newEvent.id = docRef.id;
-                renderEvent(cell, newEvent);
-            }
-        } catch (error) {
-            console.error("Error añadiendo evento:", error);
-            alert('Error al añadir evento.');
-        }
-    }
-
-    async function editEvent(id, newText, eventEl) {
-        try {
-            await updateDoc(doc(db, "calendario_eventos", id), { texto_evento: newText });
-            eventEl.querySelector('.event-text').textContent = newText;
-            applyEventColorRule(eventEl, newText); 
-            // Si acabamos de convertir un evento normal a festivo, hay que recargar para aplicar estilos o hacerlo manual
-            if (newText.toLowerCase() === 'festivo') {
-                // Truco rápido: Recargar el calendario es lo más seguro visualmente
-                // renderCalendar(currentDate); 
-                // O forzar reload de página:
-                 location.reload();
-            }
-        } catch (error) {
-            console.error("Error editando evento:", error);
-            alert("No se pudo actualizar el evento.");
-        }
-    }
-
-    async function deleteEvent(id, element) {
-        try {
-            await deleteDoc(doc(db, "calendario_eventos", id));
-            element.remove(); 
-        } catch (error) {
-            console.error("Error eliminando evento:", error);
-            alert('Error al eliminar evento.');
-        }
     }
 
     prevMonthBtn.addEventListener('click', () => {
