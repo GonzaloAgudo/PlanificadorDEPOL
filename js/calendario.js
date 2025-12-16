@@ -21,13 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSave = document.getElementById('btn-modal-save');
     const btnCancel = document.getElementById('btn-modal-cancel');
     const btnDelete = document.getElementById('btn-modal-delete');
-    // Cambiamos el título del modal según si es nuevo o editar
+    
     const modalHeader = document.querySelector('.modal-content h2'); 
 
     let currentDate = new Date(); 
     let currentMode = 'clases'; 
     let activeCellElement = null; 
-    let targetDateForNewEvent = null; // VARIABLE NUEVA: Guarda la fecha al crear nuevo
+    let targetDateForNewEvent = null; 
 
     const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 
@@ -67,20 +67,22 @@ document.addEventListener('DOMContentLoaded', () => {
         modalTitle.value = title || '';
         modalDesc.value = desc || ''; 
         activeCellElement = cellElement;
-        targetDateForNewEvent = dateForNew; // Si es nuevo, guardamos la fecha
+        targetDateForNewEvent = dateForNew;
 
         // Cambiar textos visuales
         if (id) {
-            modalHeader.textContent = "Editar Evento";
-            btnDelete.style.display = 'block'; // Mostrar borrar
+            modalHeader.textContent = "Detalles del Evento"; // Texto más neutro
+            btnDelete.style.display = 'block'; 
         } else {
             modalHeader.textContent = "Nuevo Evento";
-            btnDelete.style.display = 'none'; // Ocultar borrar si es nuevo
+            btnDelete.style.display = 'none'; 
         }
 
         modal.classList.remove('hidden');
-        // Poner foco en el título automáticamente
-        setTimeout(() => modalTitle.focus(), 100);
+        
+        // --- CAMBIO AQUÍ: ELIMINAMOS EL FOCO AUTOMÁTICO ---
+        // Antes: setTimeout(() => modalTitle.focus(), 100);
+        // Ahora: No hacemos nada. El usuario debe pulsar el input para escribir.
     }
 
     function closeModal() {
@@ -110,17 +112,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     descripcion: newDesc
                 });
                 
-                // Si cambiamos a Festivo, hay que refrescar visualmente la celda roja
                 if (newTitle.toLowerCase() === 'festivo' || (activeCellElement && activeCellElement.classList.contains('is-weekend'))) {
                     renderCalendar(currentDate); 
                 } else {
-                    // Actualización ligera
                     renderCalendar(currentDate);
                 }
 
             } else {
                 // CASO 2: CREAR NUEVO EVENTO
-                // Usamos la fecha que guardamos al hacer click
                 if (!targetDateForNewEvent) return;
 
                 const newEvent = {
@@ -150,7 +149,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (confirm("¿Seguro que quieres borrar este evento?")) {
             try {
-                // Limpiar estilo festivo si es necesario
                 const oldTitle = modalTitle.value;
                 if (oldTitle.toLowerCase() === 'festivo' && activeCellElement) {
                     activeCellElement.classList.remove('is-weekend');
@@ -252,8 +250,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // --- CAMBIO CLAVE: ABRIR MODAL VACÍO PARA CREAR ---
-                // Pasamos null como ID y la fecha actual como fecha destino
+                // Abrir modal vacío para crear
                 openModal(null, '', '', cell, dateString);
             });
         }
@@ -313,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         eventEl.addEventListener('click', (e) => {
             e.stopPropagation(); 
-            // Abrimos modal en modo edición (pasamos el ID)
+            // Abrimos modal en modo edición
             openModal(evento.id, evento.texto_evento, evento.descripcion, cell);
         });
         
