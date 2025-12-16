@@ -1,21 +1,25 @@
 /* ===================================================================
-   ÍNDICE
-   1.  Variables Globales (:root)
-   2.  Estilos Globales y Cuerpo (body)
-   3.  Páginas de Autenticación (Login/Registro)
-   4.  Componente: Menú de Navegación
-   5.  Contenedores y Layouts de Página
-   6.  PÁGINA: Pomodoro (index.php)
-   7.  COMPONENTE: Tareas (index.php, semana.php)
-   8.  PÁGINA: Estadísticas (stats.php)
-   9.  PÁGINA: Semana (semana.php)
-   10. PÁGINA: Calendario (calendario.php)
-   11. PÁGINA: Ajustes (ajustes.php)
-   12. Diseño Responsive (Media Queries)
+   ÍNDICE DE CONTENIDOS
+   1.  Variables Globales (:root) & Reset
+   2.  Estilos Generales (Body, Botones)
+   3.  Autenticación (Login/Registro)
+   4.  Navegación (Menú Lateral)
+   5.  Layouts y Contenedores Generales
+   6.  PÁGINA: Pomodoro & Cronómetro
+   7.  COMPONENTE: Tareas (Listas, Items, Menú 3 puntos)
+   8.  PÁGINA: Semana (Planificador)
+   9.  PÁGINA: Calendario Mensual
+   10. PÁGINA: Estadísticas
+   11. PÁGINA: Ajustes (Configuración)
+   12. PÁGINA: Bloc de Notas
+   13. PÁGINA: Seguimiento Temario (Estilo Notion)
+   14. PÁGINA: Calculadora de Notas
+   15. Componentes Globales (Modales, Popups)
 =================================================================== */
 
-
-/* --- 1. Variables Globales (:root) --- */
+/* =========================================
+   1. VARIABLES GLOBALES (:root)
+   ========================================= */
 :root {
     --color-primario: #007bff;
     --color-primario-oscuro: #0056b3;
@@ -23,20 +27,24 @@
     --color-secundario-oscuro: #545b62;
     --color-estudio: #28a745; /* Verde */
     --color-estudio-oscuro: #218838;
-    --color-clase: #6f42c1; /* Violeta */ 
-    --color-psico: #fd7e14; /* Naranja */
+    --color-clase: #6f42c1;   /* Violeta */ 
+    --color-psico: #fd7e14;   /* Naranja */
     --color-descanso: #ffc107;
     --color-peligro: #dc3545; /* Rojo */
     --color-peligro-oscuro: #c82333;
+    
     --color-fondo: #f4f7f6;
     --color-tarjeta: #ffffff;
     --color-menu: #2c3e50;
     --color-menu-texto: #ecf0f1;
+    
     --sombra: 0 4px 15px rgba(0,0,0,0.1);
     --ancho-menu: 250px;
 }
 
-/* --- 2. Estilos Globales y Cuerpo (body) --- */
+/* =========================================
+   2. ESTILOS GENERALES
+   ========================================= */
 body { 
     font-family: system-ui, -apple-system, sans-serif; 
     margin: 0; 
@@ -44,15 +52,17 @@ body {
     color: #333; 
 }
 
-/* Animación global para todos los botones */
+/* Animación global para botones */
 button {
     transition: background-color 0.2s ease, transform 0.1s ease, border-color 0.2s ease, opacity 0.2s ease;
 }
 button:active {
-    transform: scale(0.98); /* Efecto de clic */
+    transform: scale(0.98);
 }
 
-/* --- 3. Páginas de Autenticación (Login/Registro) --- */
+/* =========================================
+   3. AUTENTICACIÓN (LOGIN/REGISTRO)
+   ========================================= */
 .login-container { 
     display: grid; 
     place-items: center; 
@@ -72,2166 +82,690 @@ button:active {
     color: var(--color-primario); 
     margin-top: 0; 
 }
-.form-group { 
-    margin-bottom: 1rem; 
-}
-.form-group label { 
-    display: block; 
-    margin-bottom: 0.5rem; 
-    font-weight: 600; 
-}
+.form-group { margin-bottom: 1rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
 .form-group input { 
-    width: 100%; 
-    padding: 0.75rem; 
-    font-size: 1rem; 
-    border: 1px solid #ccc; 
-    border-radius: 8px; 
-    box-sizing: border-box; 
+    width: 100%; padding: 0.75rem; font-size: 1rem; 
+    border: 1px solid #ccc; border-radius: 8px; box-sizing: border-box; 
 }
 .login-container button { 
-    width: 100%; 
-    padding: 0.75rem; 
-    font-size: 1.1rem; 
-    font-weight: 600; 
-    background: var(--color-estudio); 
-    color: white; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer; 
+    width: 100%; padding: 0.75rem; font-size: 1.1rem; font-weight: 600; 
+    background: var(--color-estudio); color: white; border: none; border-radius: 8px; cursor: pointer; 
 }
-.login-container button:hover {
-    background: var(--color-estudio-oscuro);
-}
-.login-container p { 
-    text-align: center; 
-    margin-top: 1rem; 
-}
-#error-message { 
-    color: var(--color-peligro); 
-    font-weight: 600; 
-    min-height: 1.2em; 
-}
+.login-container button:hover { background: var(--color-estudio-oscuro); }
+.login-container p { text-align: center; margin-top: 1rem; }
+#error-message { color: var(--color-peligro); font-weight: 600; min-height: 1.2em; }
 
-/* --- 4. Componente: Menú de Navegación --- */
+/* =========================================
+   4. NAVEGACIÓN (MENÚ LATERAL)
+   ========================================= */
 #menu-toggle { 
-    position: fixed; 
-    top: 1rem; 
-    left: 1rem; 
-    z-index: 10000; 
-    background: var(--color-tarjeta); 
-    border: none; 
-    font-size: 1.5rem; 
-    padding: 0.5rem 0.8rem; 
-    border-radius: 8px; 
-    cursor: pointer; 
-    box-shadow: var(--sombra); 
-    transition: left 0.3s ease, transform 0.2s; 
+    position: fixed; top: 1rem; left: 1rem; z-index: 10000; 
+    background: var(--color-tarjeta); border: none; font-size: 1.5rem; 
+    padding: 0.5rem 0.8rem; border-radius: 8px; cursor: pointer; 
+    box-shadow: var(--sombra); transition: left 0.3s ease, transform 0.2s; 
 }
-#menu-toggle:hover {
-    transform: scale(1.05);
-}
-#main-nav { 
-    position: fixed; 
-    top: 0; 
-    left: 0; 
-    width: var(--ancho-menu); 
-    height: 100vh; 
-    background-color: var(--color-menu); 
-    box-shadow: 4px 0 10px rgba(0,0,0,0.2); 
-    z-index: 9999; 
-    padding-top: 70px; /* Espacio extra */
-    transform: translateX(-100%); 
-    transition: transform 0.3s ease; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-between; 
-    box-sizing: border-box; 
-}
-#main-nav.active { 
-    transform: translateX(0); 
-}
-#main-nav ul { 
-    list-style: none; 
-    padding: 0; 
-    margin: 0; 
-    display: flex; 
-    flex-direction: column; 
-    flex-grow: 1; 
-}
-#main-nav li a { 
-    display: block; 
-    padding: 1rem 1.5rem; 
-    color: var(--color-menu-texto); 
-    text-decoration: none; 
-    font-size: 1.1rem; 
-    font-weight: 600; 
-    border-bottom: 1px solid #34495e; 
-    transition: background-color 0.2s;
-}
-#main-nav li a:hover { 
-    background-color: #34495e; 
-}
-#main-nav ul li:last-child { 
-    margin-top: auto; 
-}
-.logout-link { 
-    color: var(--color-peligro) !important; 
-    font-weight: bold; 
-    border-top: 1px solid #555; 
-}
-.logout-link:hover { 
-    background-color: var(--color-peligro) !important; 
-    color: white !important; 
-}
+#menu-toggle:hover { transform: scale(1.05); }
 
-/* --- 5. Contenedores y Layouts de Página --- */
+#main-nav { 
+    position: fixed; top: 0; left: 0; width: var(--ancho-menu); height: 100vh; 
+    background-color: var(--color-menu); box-shadow: 4px 0 10px rgba(0,0,0,0.2); 
+    z-index: 9999; padding-top: 70px; transform: translateX(-100%); 
+    transition: transform 0.3s ease; display: flex; flex-direction: column; 
+    justify-content: space-between; box-sizing: border-box; 
+}
+#main-nav.active { transform: translateX(0); }
+#main-nav ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; flex-grow: 1; }
+#main-nav li a { 
+    display: block; padding: 1rem 1.5rem; color: var(--color-menu-texto); 
+    text-decoration: none; font-size: 1.1rem; font-weight: 600; 
+    border-bottom: 1px solid #34495e; transition: background-color 0.2s;
+}
+#main-nav li a:hover { background-color: #34495e; }
+#main-nav ul li:last-child { margin-top: auto; }
+
+.logout-link { color: var(--color-peligro) !important; font-weight: bold; border-top: 1px solid #555; }
+.logout-link:hover { background-color: var(--color-peligro) !important; color: white !important; }
+
+/* Icono de Ajustes (Acceso rápido en Semana) */
+.settings-link-icon {
+    position: fixed; top: 1rem; right: 1rem; font-size: 1.8rem; text-decoration: none;
+    color: var(--color-secundario); opacity: 0.7; transition: opacity 0.2s, transform 0.2s; z-index: 10000;
+}
+.settings-link-icon:hover { opacity: 1; transform: scale(1.1) rotate(15deg); }
+
+/* =========================================
+   5. LAYOUTS Y CONTENEDORES GENERALES
+   ========================================= */
 .content-wrapper { 
-    padding: 2rem; 
-    padding-top: 5rem; 
-    box-sizing: border-box; 
-    width: 100%; 
+    padding: 2rem; padding-top: 5rem; box-sizing: border-box; width: 100%; 
 }
 .index-layout { 
-    display: flex; 
-    flex-direction: row; 
-    justify-content: center; 
-    align-items: flex-start; 
-    gap: 2rem; 
+    display: flex; flex-direction: row; justify-content: center; align-items: flex-start; gap: 2rem; 
 }
+/* Layouts específicos */
+.stats-layout, .calendario-layout, .settings-layout { 
+    display: grid; place-items: center; 
+}
+
+/* Responsividad General de Layouts */
+@media (max-width: 900px) { 
+    .content-wrapper { padding: 0.5rem; padding-top: 5rem; }
+    .index-layout { flex-direction: column; align-items: center; }
+}
+
+/* =========================================
+   6. PÁGINA: POMODORO & CRONÓMETRO
+   ========================================= */
 .pomodoro-app, .task-list-container { 
-    background: var(--color-tarjeta); 
-    border-radius: 16px; 
-    padding: 2rem; 
-    box-shadow: var(--sombra); 
-    width: 100%; 
-    max-width: 450px; 
-    box-sizing: border-box; 
+    background: var(--color-tarjeta); border-radius: 16px; padding: 2rem; 
+    box-shadow: var(--sombra); width: 100%; max-width: 450px; box-sizing: border-box; 
 }
 .pomodoro-app { text-align: center; }
-.task-list-container { text-align: left; }
 
-.stats-layout { 
-    display: grid; 
-    place-items: center; 
+/* Switchers (Actividad y Pestañas) */
+.activity-switcher, .tabs { 
+    display: flex; background-color: #e9ecef; border-radius: 10px; margin-bottom: 1rem; 
 }
-.stats-app { 
-    background: var(--color-tarjeta); 
-    border-radius: 16px; 
-    padding: 2rem; 
-    box-shadow: var(--sombra); 
-    width: 100%; 
-    max-width: 500px; 
-    text-align: center; 
-    box-sizing: border-box; 
+.activity-btn, .tab-btn { 
+    flex: 1; padding: 0.75rem; font-size: 1rem; font-weight: 600; border: none; 
+    background-color: transparent; cursor: pointer; border-radius: 10px; 
 }
+.activity-btn:not(.active):hover, .tab-btn:not(.active):hover { background-color: rgba(0,0,0,0.05); }
 
-.week-tasks-container { 
-    width: 100%; 
-    box-sizing: border-box; 
-    position: relative;
-}
-.week-tasks-container h1 { 
-    text-align: center; 
-    color: var(--color-primario); 
-    margin-top: 0; 
-}
-.calendario-layout { 
-    display: grid; 
-    place-items: center; 
-}
-.calendar-container { 
-    background: var(--color-tarjeta); 
-    border-radius: 16px; 
-    padding: 2rem; 
-    box-shadow: var(--sombra); 
-    width: 100%; 
-    max-width: 1200px; 
-    box-sizing: border-box; 
-}
+/* Colores Activos */
+.activity-btn.active { background-color: var(--color-primario); color: white; }
+.activity-btn.active[data-activity="estudio"] { background-color: var(--color-primario); }
+.activity-btn.active[data-activity="clase"] { background-color: var(--color-clase); }
+.activity-btn.active[data-activity="psicotecnicos"] { background-color: var(--color-psico); }
 
-/* --- 6. PÁGINA: Pomodoro (index.php) --- */
-.activity-switcher { 
-    display: flex; 
-    background-color: #e9ecef; 
-    border-radius: 10px; 
-    margin-bottom: 1rem; 
-}
-.activity-btn { 
-    flex: 1; 
-    padding: 0.75rem; 
-    font-size: 1rem; 
-    font-weight: 600; 
-    border: none; 
-    background-color: transparent; 
-    cursor: pointer; 
-    border-radius: 10px; 
-}
-.activity-btn:not(.active):hover {
-    background-color: #dde2e6; /* Hover para botones inactivos */
-}
-.activity-btn.active { 
-    background-color: var(--color-primario); 
-    color: white; 
-}
-.activity-btn.active[data-activity="estudio"] {
-    background-color: var(--color-primario); 
-}
-.activity-btn.active[data-activity="clase"] {
-    background-color: var(--color-clase); 
-}
-.activity-btn.active[data-activity="psicotecnicos"] {
-    background-color: var(--color-psico); 
-}
+.tab-btn.active[data-mode=estudio] { background-color: var(--color-estudio); color: white; }
+.tab-btn.active[data-mode=descanso] { background-color: var(--color-descanso); color: #333; }
 
-.topic-input-container {
-    margin-bottom: 1rem;
-}
-#topic-input {
-    width: 100%;
-    box-sizing: border-box; 
-    padding: 0.75rem;
-    font-size: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    text-align: center;
-}
+/* Input y Timer */
+.topic-input-container { margin-bottom: 1rem; }
+#topic-input { width: 100%; padding: 0.75rem; font-size: 1rem; border: 1px solid #ccc; border-radius: 8px; text-align: center; box-sizing: border-box; }
+.pomodoro-counter { font-size: 1.1rem; font-weight: 600; color: var(--color-secundario); background-color: var(--color-fondo); padding: 0.5rem; border-radius: 8px; margin-bottom: 1rem; }
+.pomodoro-counter span { color: var(--color-estudio); font-size: 1.2rem; }
+.timer { font-size: 5rem; font-weight: 700; margin: 1rem 0; }
 
-.tabs { 
-    display: flex; 
-    background-color: #e9ecef; 
-    border-radius: 10px; 
-    margin-bottom: 1rem; 
-}
-.tab-btn { 
-    flex: 1; 
-    padding: 0.75rem; 
-    font-size: 1rem; 
-    font-weight: 600; 
-    border: none; 
-    background-color: transparent; 
-    cursor: pointer; 
-    border-radius: 10px; 
-}
-.tab-btn:not(.active):hover {
-    background-color: rgba(0,0,0,0.05);
-}
-.tab-btn.active[data-mode=estudio] { 
-    background-color: var(--color-estudio); 
-    color: white; 
-}
-.tab-btn.active[data-mode=descanso] { 
-    background-color: var(--color-descanso); 
-    color: #333; 
-}
-.pomodoro-counter { 
-    font-size: 1.1rem; 
-    font-weight: 600; 
-    color: var(--color-secundario); 
-    background-color: var(--color-fondo); 
-    padding: 0.5rem; 
-    border-radius: 8px; 
-    margin-bottom: 1rem; 
-}
-.pomodoro-counter span { 
-    color: var(--color-estudio); 
-    font-size: 1.2rem; 
-}
-.timer { 
-    font-size: 5rem; 
-    font-weight: 700; 
-    margin: 1rem 0; 
-}
-.controles { 
-    display: flex; 
-    justify-content: center; 
-    gap: 0.5rem; 
-    margin-bottom: 1.5rem; 
-}
-.controles button { 
-    font-size: 1rem; 
-    padding: 0.6rem 1rem; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer; 
-}
+/* Controles */
+.controles { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+.controles button { font-size: 1rem; padding: 0.6rem 1rem; border: none; border-radius: 8px; cursor: pointer; }
 
-/* Botones de Acción Principales (Iniciar/Pausar) */
-#btn-iniciar, #btn-stopwatch-start { 
-    background: var(--color-estudio); 
-    color: white; 
-}
-/* Hover solo si NO está en modo pausa (clase amarilla) */
-#btn-iniciar:not(.btn-yellow-state):hover, 
-#btn-stopwatch-start:not(.btn-yellow-state):hover {
-    background: var(--color-estudio-oscuro);
-}
+#btn-iniciar, #btn-stopwatch-start { background: var(--color-estudio); color: white; }
+#btn-iniciar:not(.btn-yellow-state):hover, #btn-stopwatch-start:not(.btn-yellow-state):hover { background: var(--color-estudio-oscuro); }
+#btn-reset, #btn-stopwatch-save { background: var(--color-peligro); color: white; }
+#btn-reset:hover, #btn-stopwatch-save:hover { background: var(--color-peligro-oscuro); }
 
-/* Botones de Guardar/Reset */
-#btn-reset, #btn-stopwatch-save { 
-    background: var(--color-peligro); 
-    color: white; 
-}
-#btn-reset:hover, #btn-stopwatch-save:hover { 
-    background: var(--color-peligro-oscuro);
-}
+/* Estado Pausa (Amarillo) */
+button.btn-yellow-state { background-color: #ffc107 !important; color: #212529 !important; border-color: #ffc107 !important; }
+button.btn-yellow-state:hover { background-color: #e0a800 !important; }
 
-/* Botones manuales (Gris) */
+/* Botones Manuales */
 #pomodoro-ui .btn-manual-add, #stopwatch-ui .btn-manual-add {
-    font-size: 1rem;
-    padding: 0.6rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background: var(--color-secundario);
+    font-size: 1rem; padding: 0.6rem 1rem; border: none; border-radius: 8px; cursor: pointer;
+    background: var(--color-secundario); color: white; width: 100%; margin-bottom: 1.5rem; box-sizing: border-box;
+}
+#pomodoro-ui .btn-manual-add:hover, #stopwatch-ui .btn-manual-add:hover { background: var(--color-secundario-oscuro); }
+
+/* Configuración */
+.config { margin-top: 1.5rem; text-align: left; border-top: 1px solid #eee; padding-top: 1rem; }
+.config h3 { cursor: pointer; margin: 0 0 1rem 0; }
+.config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1rem; align-items: center; }
+.config-column { display: grid; grid-template-columns: auto 1fr; gap: 0.75rem 0.5rem; align-items: center; }
+.config-column label { font-size: 0.9rem; font-weight: 600; text-align: right; }
+.config-column input[type="number"] { width: 60px; font-size: 1rem; padding: 0.25rem; border: 1px solid #ccc; border-radius: 5px; }
+
+/* Responsive Pomodoro */
+@media (max-width: 900px) {
+    .pomodoro-app, .task-list-container { max-width: 100%; margin-bottom: 1.5rem; border-radius: 0; box-shadow: none; }
+    .timer { font-size: 4rem; }
+    .controles { flex-wrap: wrap; }
+    .controles button { flex-basis: 48%; }
+    #btn-iniciar { width: 100%; order: -1; margin-bottom: 0.5rem; }
+}
+
+/* =========================================
+   BOTÓN "VER ESTADÍSTICAS" (POMODORO)
+   ========================================= */
+
+.stats-link {
+    display: inline-block; /* Para que coja el padding y parezca botón */
+    margin-top: 1.5rem;
+    padding: 0.75rem 1.5rem; /* Un poco más grande para que sea fácil de pulsar */
+    
+    background-color: var(--color-primario);
     color: white;
-    width: 100%;
-    margin-bottom: 1.5rem; 
-    box-sizing: border-box; 
-}
-#pomodoro-ui .btn-manual-add:hover, #stopwatch-ui .btn-manual-add:hover {
-    background: var(--color-secundario-oscuro);
-}
-
-#stopwatch-ui .timer { 
-    font-size: 4rem; 
-    margin-top: 4rem; 
-    margin-bottom: 2rem; 
-}
-#stopwatch-ui .controles { 
-    margin-top: 2rem; 
-    margin-bottom: 1rem; 
-}
-#stopwatch-ui .btn-manual-add { 
-    margin-bottom: 4rem; 
+    text-decoration: none; /* Quitamos el subrayado típico de los enlaces */
+    
+    border-radius: 8px;
+    font-weight: 600;
+    text-align: center;
+    
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); /* Sombrita suave */
+    transition: all 0.2s ease;
 }
 
-/* Configuración Pomodoro */
-.config { 
-    margin-top: 1.5rem; 
-    text-align: left; 
-    border-top: 1px solid #eee; 
-    padding-top: 1rem; 
-}
-.config h3 { 
-    cursor: pointer; 
-    margin: 0 0 1rem 0; 
-}
-.config-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 0 1rem; 
-    align-items: center; 
-}
-.config-column { 
-    display: grid; 
-    grid-template-columns: auto 1fr; 
-    gap: 0.75rem 0.5rem; 
-    align-items: center; 
-}
-.config-column label { 
-    font-size: 0.9rem; 
-    font-weight: 600; 
-    text-align: right; 
-}
-.config-column input[type="number"] { 
-    width: 60px; 
-    font-size: 1rem; 
-    padding: 0.25rem; 
-    border: 1px solid #ccc; 
-    border-radius: 5px; 
-    justify-self: left; 
-}
-.stats-link { 
-    display: inline-block; 
-    margin-top: 1.5rem; 
-    padding: 0.6rem 1rem; 
-    background-color: var(--color-primario); 
-    color: white; 
-    text-decoration: none; 
-    border-radius: 8px; 
-    font-weight: 600; 
-    transition: background-color 0.2s;
-}
-.stats-link:hover { 
-    background-color: var(--color-primario-oscuro); 
+.stats-link:hover {
+    background-color: var(--color-primario-oscuro);
+    transform: translateY(-2px); /* Efecto de elevarse al pasar el ratón */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
 }
 
-/* ESTADO DE PAUSA (Amarillo) */
-button.btn-yellow-state {
-    background-color: #ffc107 !important; /* Amarillo estándar */
-    color: #212529 !important; /* Texto oscuro */
-    border-color: #ffc107 !important;
+.stats-link:active {
+    transform: translateY(0); /* Efecto de hundirse al hacer clic */
 }
 
-button.btn-yellow-state:hover {
-    background-color: #e0a800 !important; /* Amarillo oscuro al pasar ratón */
-    border-color: #d39e00 !important;
-}
-/* -------------------------------------------------------------- */
-
-/* --- 7. COMPONENTE: Tareas (index.php, semana.php) --- */
+/* =========================================
+   7. COMPONENTE: TAREAS (LISTAS & ITEMS)
+   ========================================= */
+.task-list-container { text-align: left; }
 .task-list-container h2 { text-align: center; color: var(--color-primario); margin-top: 0; margin-bottom: 1.5rem; }
+
 .task-input-group { display: flex; margin-bottom: 1.5rem; gap: 0.5rem; }
 .task-input-group input[type="text"] { flex-grow: 1; padding: 0.75rem; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
 .task-input-group button { background-color: var(--color-estudio); color: white; border: none; border-radius: 8px; padding: 0.75rem 1rem; cursor: pointer; font-size: 1.2rem; line-height: 1; }
 .task-input-group button:hover { background-color: var(--color-estudio-oscuro); transform: scale(1.05); }
 
-#task-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; margin-bottom: 1rem; }
-.task-list { list-style: none; padding: 0; margin: 0; max-height: 450px; overflow-y: auto; }
-.task-item { 
-    display: flex; 
-    align-items: center; 
-    padding: 0.75rem 0.5rem; 
-    border-bottom: 1px solid #eee; 
-    border-left: 4px solid transparent; 
-    transition: background-color 0.2s; 
-    cursor: grab; 
+#task-list, .task-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; }
+#task-list { max-height: 400px; margin-bottom: 1rem; }
+.task-list { max-height: 450px; }
 
-    /* --- BLOQUEO PARA XIAOMI / ANDROID --- */
-    
-    /* 1. Imprescindible: Evita que el texto se vuelva azul (seleccionado) */
+/* --- ELEMENTO DE TAREA (TASK-ITEM) --- */
+.task-item { 
+    display: flex; align-items: center; padding: 0.75rem 0.5rem; 
+    border-bottom: 1px solid #eee; border-left: 4px solid transparent; 
+    transition: background-color 0.2s; cursor: grab; 
+
+    /* --- BLOQUEO TABLET/MÓVIL (CRÍTICO) --- */
     -webkit-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
     user-select: none !important;
-
-    /* 2. Evita el menú contextual de mantener pulsado */
     -webkit-touch-callout: none !important;
-
-    /* 3. Evita el resaltado azul al tocar */
     -webkit-tap-highlight-color: transparent !important;
-
-    /* 4. Permite scroll vertical pero deja el control horizontal/pulsación a JS */
     touch-action: pan-y !important;
 }
 .task-item:last-child { border-bottom: none; }
 .task-item.sortable-ghost { opacity: 0.4; background-color: #e0f1fb; }
 .task-item.sortable-chosen { cursor: grabbing; }
-.task-checkbox { margin-right: 1rem; width: 1.25rem; height: 1.25rem; cursor: pointer; -webkit-appearance: none; -moz-appearance: none; appearance: none; border: 2px solid var(--color-secundario); border-radius: 50%; outline: none; transition: background-color 0.2s, border-color 0.2s; flex-shrink: 0; }
+.task-item.completed .task-text { text-decoration: line-through; color: var(--color-secundario); }
+
+/* Checkbox Tarea */
+.task-checkbox { 
+    margin-right: 1rem; width: 1.25rem; height: 1.25rem; cursor: pointer; 
+    -webkit-appearance: none; appearance: none; border: 2px solid var(--color-secundario); 
+    border-radius: 50%; outline: none; transition: background-color 0.2s, border-color 0.2s; flex-shrink: 0; 
+}
 .task-checkbox:checked { background-color: var(--color-estudio); border-color: var(--color-estudio); }
 .task-checkbox:checked::before { content: '✓'; display: block; color: white; font-size: 0.9rem; text-align: center; line-height: 1.1; }
+
 .task-text { flex-grow: 1; font-size: 1.1rem; line-height: 1.5; word-break: break-word; }
-.task-item.completed .task-text { text-decoration: line-through; color: var(--color-secundario); }
-.edit-task-btn, .delete-task-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.6; flex-shrink: 0; transition: opacity 0.2s; padding: 0 0.25rem; }
+
+/* Botón Mover a Mañana */
+.move-task-btn {
+    background: none; border: none; font-size: 1.2rem; cursor: pointer; 
+    opacity: 0.6; flex-shrink: 0; transition: opacity 0.2s, transform 0.2s; 
+    margin-left: 0.5rem; padding: 0 0.25rem;
+}
+.move-task-btn:hover { opacity: 1; transform: translateX(3px); }
+
+/* Botones Editar/Borrar (Legacy, si se usan fuera del menú) */
+.edit-task-btn, .delete-task-btn { 
+    background: none; border: none; font-size: 1.2rem; cursor: pointer; 
+    opacity: 0.6; flex-shrink: 0; transition: opacity 0.2s; padding: 0 0.25rem; 
+}
 .edit-task-btn:hover, .delete-task-btn:hover { opacity: 1; transform: scale(1.1); }
 .edit-task-btn { color: var(--color-secundario); margin-left: 1rem; }
 .delete-task-btn { color: var(--color-peligro); margin-left: 0.5rem; }
 
-/* --- 8. PÁGINA: Estadísticas (stats.php) --- */
-.activity-filter { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.5rem; background-color: #e9ecef; border-radius: 10px; flex-wrap: wrap; }
-.activity-filter label { font-weight: 600; cursor: pointer; padding: 0.5rem 0.75rem; border-radius: 8px; transition: background-color 0.2s; }
-.activity-filter input { margin-right: 0.25rem; }
-.activity-filter label:hover { background-color: rgba(0,0,0,0.05); }
-.activity-filter label:has(input:checked) { background-color: var(--color-primario); color: white; }
-.activity-filter label.conjunto-label:has(input:checked) { background-color: var(--color-secundario); color: white; }
-.activity-filter label.temas-label:has(input:checked) { background-color: var(--color-psico); color: white; }
-.topic-sub-filter { display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
-.topic-sub-filter.hidden { display: none; }
-.topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: transform 0.1s; }
-.topic-sub-filter input { margin-right: 0.25rem; }
-.topic-sub-filter label:hover { transform: scale(1.05); }
-/* Estilo para checkboxes seleccionados */
-.topic-sub-filter label:has(input:checked) {
-    background-color: var(--color-primario);
-    color: white;
-    border-radius: 12px;
-    padding: 0.2rem 0.6rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+/* --- MENÚ TRES PUNTOS (DROPDOWN) --- */
+.task-actions-container { position: relative; margin-left: 0.5rem; }
+.task-menu-btn { 
+    background: none; border: none; font-size: 1.3rem; color: #888; 
+    cursor: pointer; padding: 0 0.5rem; border-radius: 4px; transition: background-color 0.2s; 
+}
+.task-menu-btn:hover, .task-menu-btn.active { background-color: #f0f0f0; color: #333; }
+
+.task-dropdown { 
+    display: none; position: absolute; right: 0; top: 100%; 
+    background: white; border: 1px solid #e0e0e0; border-radius: 8px; 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15); z-index: 1000; min-width: 140px; 
+    overflow: hidden; flex-direction: column; 
+}
+.task-dropdown.show { display: flex; animation: fadeIn 0.1s ease-out; }
+.task-dropdown button { 
+    background: none; border: none; text-align: left; padding: 10px 15px; 
+    font-size: 0.95rem; cursor: pointer; width: 100%; color: #444; 
+    transition: background 0.2s; display: flex; align-items: center; gap: 8px; 
+}
+.task-dropdown button:hover { background-color: #f5f9ff; color: var(--color-primario); }
+.task-dropdown button.delete-task-btn:hover { background-color: #ffebee; color: #c62828; }
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* =========================================
+   8. PÁGINA: SEMANA (PLANIFICADOR)
+   ========================================= */
+.week-tasks-container { width: 100%; box-sizing: border-box; position: relative; }
+.week-tasks-container h1 { text-align: center; color: var(--color-primario); margin-top: 0; }
+
+/* Cabecera y Navegación Semana */
+.week-header { 
+    display: flex; justify-content: space-between; align-items: center; 
+    margin-bottom: 1rem; padding: 0.5rem; background-color: var(--color-tarjeta); 
+    border-radius: 12px; box-shadow: var(--sombra); 
+}
+.week-header h1 { margin: 0; font-size: 1.5rem; color: var(--color-primario-oscuro); }
+.week-nav-btn { 
+    background: var(--color-primario); color: white; border: none; font-size: 1.5rem; 
+    font-weight: bold; border-radius: 8px; cursor: pointer; padding: 0.4rem 1rem; 
+}
+.week-nav-btn:hover { background: var(--color-primario-oscuro); }
+
+/* Filtro Tareas Completadas */
+.header-center { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
+.filter-select { 
+    padding: 0.4rem 0.8rem; border-radius: 20px; border: 1px solid #ccc; 
+    background-color: white; font-size: 0.9rem; cursor: pointer; font-weight: 500; 
+    color: var(--color-secundario); outline: none; transition: box-shadow 0.2s; 
+}
+.filter-select:hover { border-color: var(--color-primario); color: var(--color-primario); }
+.week-grid.hide-completed .task-item.completed { display: none !important; }
+
+/* Grid de la Semana */
+.week-grid { 
+    display: flex; flex-direction: row; gap: 1.5rem; overflow-x: auto; 
+    padding: 1.5rem; background: var(--color-fondo); border-radius: 16px; 
+    min-height: 60vh; cursor: grab; user-select: none;
+    -webkit-user-select: none; -moz-user-select: none;
+}
+.week-grid.is-panning { cursor: grabbing; }
+
+.day-column { 
+    min-width: 320px; max-width: 320px; flex-shrink: 0; background: var(--color-tarjeta); 
+    border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 1rem; 
+    display: flex; flex-direction: column; user-select: none;
+    -webkit-user-select: none; -moz-user-select: none;
+}
+.day-column h2 { 
+    text-align: left; margin-top: 0; font-size: 1.2rem; color: var(--color-primario-oscuro); 
+    border-bottom: 2px solid #eee; padding-bottom: 0.5rem; flex-shrink: 0; 
+    display: flex; justify-content: space-between; 
+}
+.day-column h2 .day-date { font-size: 1rem; color: var(--color-secundario); font-weight: 500; }
+.day-column .task-list { flex-grow: 1; max-height: none; margin-bottom: 1rem; }
+.day-column .task-input-group { flex-shrink: 0; }
+
+@media (max-width: 900px) {
+    .week-grid { gap: 1rem; padding: 1rem; border-radius: 0; }
+    .day-column { min-width: 280px; max-width: 280px; }
+}
+
+/* =========================================
+   9. PÁGINA: CALENDARIO MENSUAL
+   ========================================= */
+.calendar-container { 
+    background: var(--color-tarjeta); border-radius: 16px; padding: 2rem; 
+    box-shadow: var(--sombra); width: 100%; max-width: 1200px; box-sizing: border-box; 
+}
+.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+.calendar-header h1 { color: var(--color-primario); font-size: 1.8rem; margin: 0; }
+.calendar-header button { background: var(--color-primario); color: white; border: none; font-size: 1.5rem; font-weight: bold; border-radius: 8px; cursor: pointer; padding: 0.4rem 1rem; }
+.calendar-header button:hover { background: var(--color-primario-oscuro); }
+
+/* Interruptor de Modo */
+.calendar-mode-switcher { 
+    display: flex; justify-content: center; gap: 1rem; margin-bottom: 1.5rem; 
+    background: #f1f3f5; padding: 0.5rem; border-radius: 12px; width: fit-content; margin-inline: auto; 
+}
+.mode-btn { 
+    background: transparent; border: none; padding: 0.5rem 1.5rem; border-radius: 8px; 
+    font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: all 0.2s ease; 
+}
+.mode-btn:hover { background: rgba(0,0,0,0.05); }
+.mode-btn.active { background: white; color: var(--color-primario); box-shadow: 0 2px 5px rgba(0,0,0,0.1); transform: scale(1.05); }
+.mode-btn.active[data-mode="entrenamientos"] { color: #e67e22; }
+
+/* Rejilla Calendario (PC) */
+.calendar-grid-header, .calendar-grid-body { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
+.calendar-grid-header { background-color: var(--color-secundario); color: white; font-weight: 600; border-radius: 8px 8px 0 0; }
+.calendar-grid-header > div { padding: 0.75rem 0.5rem; text-align: center; }
+.calendar-grid-body { border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; }
+
+.calendar-day { 
+    min-height: 120px; border-right: 1px solid #eee; border-top: 1px solid #eee; 
+    padding: 0.5rem; box-sizing: border-box; cursor: pointer; transition: background-color 0.2s; 
+}
+.calendar-day:nth-child(7n) { border-right: none; }
+.calendar-day:hover { background-color: #fcfcfc; }
+.day-number { font-weight: 600; font-size: 0.9rem; }
+.day-other-month { color: #ccc; background-color: #f9f9f9; cursor: default; }
+
+/* Estilos de Estado (Hoy, Finde) */
+.calendar-day.is-today { 
+    background-color: #e3f2fd !important; border: 2px solid #2196f3 !important; position: relative; z-index: 5; 
+}
+.calendar-day.is-weekend { 
+    background-color: #ffecec !important; border: 1px solid #ffcdd2 !important; color: #c0392b; 
+}
+
+/* Eventos */
+.calendar-event { 
+    font-size: 0.85rem; padding: 0.2rem 0.5rem; border-radius: 4px; margin-top: 0.25rem; 
+    background-color: #f4f4f4; border-left: 4px solid #ccc; display: flex; 
+    justify-content: space-between; align-items: center; word-break: break-word; 
+    cursor: pointer; transition: transform 0.1s; 
+}
+.calendar-event:hover { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.calendar-event.festivo-hidden { display: none !important; }
+.has-desc-indicator { display: inline-block; width: 6px; height: 6px; background-color: rgba(0,0,0,0.2); border-radius: 50%; margin-left: 5px; }
+.delete-event-btn { background: none; border: none; color: var(--color-peligro); font-size: 1rem; font-weight: bold; cursor: pointer; opacity: 0.5; margin-left: 0.25rem; }
+.delete-event-btn:hover { opacity: 1; }
+
+.d-name { display: none; } /* Oculto en PC */
+
+/* RESPONSIVE CALENDARIO (VISTA MÓVIL/LISTA) */
+@media (max-width: 768px) {
+    .calendar-container { padding: 0.5rem; border-radius: 0; box-shadow: none; }
+    .calendar-grid-header { display: none; }
+    .calendar-grid-body { grid-template-columns: 1fr !important; gap: 15px; }
+    
+    .calendar-day { 
+        min-height: 80px; height: auto !important; border: 1px solid #e0e0e0; 
+        border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); 
+        display: flex; flex-direction: column; padding: 10px; position: relative; 
+    }
+    .day-other-month { display: none; }
+    .day-number { 
+        font-size: 1.1rem; font-weight: bold; color: var(--color-primario); 
+        margin-bottom: 8px; border-bottom: 1px solid #f0f0f0; padding-bottom: 5px; 
+        display: flex; justify-content: space-between; 
+    }
+    .d-name { display: inline-block; } /* Visible en móvil */
+    
+    .calendar-event { font-size: 0.95rem; padding: 8px 10px; margin-bottom: 6px; white-space: normal; height: auto; }
+    
+    /* Etiqueta HOY Móvil */
+    .calendar-day.is-today::after {
+        content: "HOY"; position: absolute; top: 8px; right: 8px; 
+        background: #2196f3; color: white; font-size: 0.75rem; 
+        padding: 3px 8px; border-radius: 6px; font-weight: bold; z-index: 20; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    }
+    .calendar-day.is-today .d-name { display: none !important; }
+    .day-number { overflow: visible; }
+    
+    /* Ajustes Fines de Semana Móvil */
+    .calendar-day.is-weekend { background-color: #ffecec !important; border-color: #ffcdd2 !important; }
+}
+
+/* =========================================
+   10. PÁGINA: ESTADÍSTICAS
+   ========================================= */
+.stats-app { 
+    background: var(--color-tarjeta); border-radius: 16px; padding: 2rem; 
+    box-shadow: var(--sombra); width: 100%; max-width: 500px; text-align: center; box-sizing: border-box; 
 }
 .stats-app h1 { margin-top: 0; color: var(--color-primario); }
+
+/* Filtros */
 .filtros { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .filtros.hidden { display: none; } 
 .filtro-btn { flex-grow: 1; padding: 0.5rem; font-size: 0.9rem; border: 1px solid var(--color-primario); background-color: var(--color-tarjeta); color: var(--color-primario); border-radius: 6px; cursor: pointer; flex-basis: 48%; }
 .filtro-btn:hover { background-color: #e7f1ff; }
 .filtro-btn.active { background-color: var(--color-primario); color: white; }
+
+.activity-filter { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.5rem; background-color: #e9ecef; border-radius: 10px; flex-wrap: wrap; }
+.activity-filter label { font-weight: 600; cursor: pointer; padding: 0.5rem 0.75rem; border-radius: 8px; transition: background-color 0.2s; }
+.activity-filter label:hover { background-color: rgba(0,0,0,0.05); }
+.activity-filter label:has(input:checked) { background-color: var(--color-primario); color: white; }
+.activity-filter label.conjunto-label:has(input:checked) { background-color: var(--color-secundario); color: white; }
+.activity-filter label.temas-label:has(input:checked) { background-color: var(--color-psico); color: white; }
+
+.topic-sub-filter { display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
+.topic-sub-filter.hidden { display: none; }
+.topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: transform 0.1s; }
+.topic-sub-filter label:has(input:checked) { background-color: var(--color-primario); color: white; border-radius: 12px; padding: 0.2rem 0.6rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+
+/* Resultados */
 .resumen-stats { font-size: 1.2rem; margin: 1.5rem 0; padding: 1rem; background-color: var(--color-fondo); border-radius: 8px; }
 .resumen-stats strong { color: var(--color-primario-oscuro); }
 .chart-container { position: relative; height: 300px; width: 100%; margin-bottom: 1.5rem; }
-.filtro-dia { border-top: 1px solid #eee; padding-top: 1rem; }
-.filtro-dia.hidden { display: none; } 
-.filtro-dia input[type="date"] { padding: 0.25rem; font-size: 1rem; }
-.filtro-dia button { background: var(--color-primario); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
-.filtro-dia button:hover { background: var(--color-primario-oscuro); }
-#resultado-stats-dia { margin-top: 1rem; font-weight: 600; }
-/* --- NAVEGACIÓN ESTADÍSTICAS --- */
-.time-navigation {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1.5rem;
-    margin: 1.5rem 0;
-    background: white;
-    padding: 0.8rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
 
-#period-display {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--color-primario);
-    min-width: 150px;
-    text-align: center;
-    text-transform: capitalize;
-}
+/* Navegación Temporal */
+.time-navigation { display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin: 1.5rem 0; background: white; padding: 0.8rem; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+#period-display { font-size: 1.1rem; font-weight: 700; color: var(--color-primario); min-width: 150px; text-align: center; text-transform: capitalize; }
+.nav-arrow { background: #f1f3f5; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-weight: bold; color: #555; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+.nav-arrow:hover { background: var(--color-primario); color: white; }
 
-.nav-arrow {
-    background: #f1f3f5;
-    border: none;
-    width: 35px;
-    height: 35px;
-    border-radius: 50%;
-    cursor: pointer;
-    font-weight: bold;
-    color: #555;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.nav-arrow:hover {
-    background: var(--color-primario);
-    color: white;
-}
-
-/* --- 9. PÁGINA: Semana (semana.php) --- */
-.settings-link-icon {
-    position: fixed;
-    top: 1rem;
-    right: 1rem;
-    font-size: 1.8rem;
-    text-decoration: none;
-    color: var(--color-secundario);
-    opacity: 0.7;
-    transition: opacity 0.2s, transform 0.2s;
-    z-index: 10000;
-}
-.settings-link-icon:hover {
-    opacity: 1;
-    transform: scale(1.1) rotate(15deg);
-}
-.week-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    background-color: var(--color-tarjeta);
-    border-radius: 12px;
-    box-shadow: var(--sombra);
-}
-.week-header h1 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--color-primario-oscuro);
-}
-.week-nav-btn {
-    background: var(--color-primario);
-    color: white;
-    border: none;
-    font-size: 1.5rem;
-    font-weight: bold;
-    border-radius: 8px;
-    cursor: pointer;
-    padding: 0.4rem 1rem;
-}
-.week-nav-btn:hover {
-    background: var(--color-primario-oscuro);
-}
-.week-grid { 
-    display: flex; 
-    flex-direction: row; 
-    gap: 1.5rem; 
-    overflow-x: auto; 
-    padding: 1.5rem; 
-    background: var(--color-fondo); 
-    border-radius: 16px; 
-    min-height: 60vh; 
-    cursor: grab; 
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-.week-grid.is-panning {
-    cursor: grabbing; 
-}
-.day-column { 
-    min-width: 320px; 
-    max-width: 320px; 
-    flex-shrink: 0; 
-    background: var(--color-tarjeta); 
-    border-radius: 12px; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
-    padding: 1rem; 
-    display: flex; 
-    flex-direction: column; 
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-}
-.day-column h2 { 
-    text-align: left; 
-    margin-top: 0; 
-    font-size: 1.2rem; 
-    color: var(--color-primario-oscuro); 
-    border-bottom: 2px solid #eee; 
-    padding-bottom: 0.5rem; 
-    flex-shrink: 0; 
-    display: flex;
-    justify-content: space-between;
-}
-.day-column h2 .day-date {
-    font-size: 1rem;
-    color: var(--color-secundario);
-    font-weight: 500;
-}
-.day-column .task-list { 
-    flex-grow: 1; 
-    max-height: none; 
-    margin-bottom: 1rem; 
-}
-.day-column .task-input-group { 
-    flex-shrink: 0; 
-}
-
-/* Botón para mover tarea al día siguiente */
-.move-task-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    opacity: 0.6;
-    flex-shrink: 0;
-    transition: opacity 0.2s, transform 0.2s;
-    margin-left: 0.5rem;
-    padding: 0 0.25rem;
-}
-
-.move-task-btn:hover {
-    opacity: 1;
-    transform: translateX(3px); /* Efecto de movimiento a la derecha */
-}
-
-/* --- MENÚ DE TAREAS (TRES PUNTOS) --- */
-
-/* El contenedor del botón de menú */
-.task-actions-container {
-    position: relative; /* Necesario para que el menú flote respecto a este botón */
-    margin-left: 0.5rem;
-}
-
-/* El botón de los tres puntos (⋮) */
-.task-menu-btn {
-    background: none;
-    border: none;
-    font-size: 1.3rem;
-    color: #888;
-    cursor: pointer;
-    padding: 0 0.5rem;
-    border-radius: 4px;
-    transition: background-color 0.2s;
-}
-
-.task-menu-btn:hover,
-.task-menu-btn.active {
-    background-color: #f0f0f0;
-    color: #333;
-}
-
-/* El menú desplegable (Oculto por defecto) */
-.task-dropdown {
-    display: none; /* Oculto */
-    position: absolute;
-    right: 0;
-    top: 100%; /* Justo debajo del botón */
-    
-    background: white;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
-    z-index: 1000; /* Por encima de todo */
-    
-    min-width: 140px;
-    overflow: hidden;
-    flex-direction: column;
-}
-
-/* Cuando tiene la clase 'show', se muestra */
-.task-dropdown.show {
-    display: flex;
-    animation: fadeIn 0.1s ease-out;
-}
-
-/* Los botones dentro del menú */
-.task-dropdown button {
-    background: none;
-    border: none;
-    text-align: left;
-    padding: 10px 15px;
-    font-size: 0.95rem;
-    cursor: pointer;
-    width: 100%;
-    color: #444;
-    transition: background 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 8px; /* Espacio entre icono y texto */
-}
-
-.task-dropdown button:hover {
-    background-color: #f5f9ff;
-    color: var(--color-primario);
-}
-
-.task-dropdown button.delete-task-btn:hover {
-    background-color: #ffebee;
-    color: #c62828;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- FILTRO SEMANAL --- */
-
-/* Estilo del selector */
-.header-center {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-.filter-select {
-    padding: 0.4rem 0.8rem;
-    border-radius: 20px;
-    border: 1px solid #ccc;
-    background-color: white;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: 500;
-    color: var(--color-secundario);
-    outline: none;
-    transition: box-shadow 0.2s;
-}
-
-.filter-select:hover {
-    border-color: var(--color-primario);
-    color: var(--color-primario);
-}
-
-/* --- LA MAGIA DEL FILTRO --- */
-
-/* Cuando el contenedor .week-grid tiene la clase 'hide-completed'... */
-.week-grid.hide-completed .task-item.completed {
-    display: none !important; /* ...oculta las tareas completadas */
-}
-
-/* --- 10. PÁGINA: Calendario (calendario.php) --- */
-.calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-.calendar-header h1 { color: var(--color-primario); font-size: 1.8rem; margin: 0; }
-.calendar-header button { background: var(--color-primario); color: white; border: none; font-size: 1.5rem; font-weight: bold; border-radius: 8px; cursor: pointer; padding: 0.4rem 1rem; }
-.calendar-header button:hover { background: var(--color-primario-oscuro); }
-.calendar-grid-header, .calendar-grid-body { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
-.calendar-grid-header { background-color: var(--color-secundario); color: white; font-weight: 600; border-radius: 8px 8px 0 0; }
-.calendar-grid-header > div { padding: 0.75rem 0.5rem; text-align: center; }
-.calendar-grid-body { border: 1px solid #ddd; border-top: none; border-radius: 0 0 8px 8px; }
-.calendar-day { min-height: 120px; border-right: 1px solid #eee; border-top: 1px solid #eee; padding: 0.5rem; box-sizing: border-box; cursor: pointer; transition: background-color 0.2s; }
-.calendar-day:nth-child(7n) { border-right: none; }
-.calendar-day:hover { background-color: #fcfcfc; }
-.day-number { font-weight: 600; font-size: 0.9rem; }
-.day-other-month { color: #ccc; background-color: #f9f9f9; cursor: default; }
-/* --- ESTILO DEL EVENTO EN EL CALENDARIO --- */
-.calendar-event { 
-    font-size: 0.85rem; 
-    padding: 0.2rem 0.5rem; 
-    border-radius: 4px; 
-    margin-top: 0.25rem; 
-    
-    /* Fondo y borde por defecto (gris) por si no hay regla */
-    background-color: #f4f4f4; 
-    border-left: 4px solid #ccc; /* La franja izquierda */
-    
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    word-break: break-word; 
-    cursor: pointer;
-    transition: transform 0.1s;
-}
-
-.calendar-event:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-.event-text { 
-    flex-grow: 1; 
-}
-.delete-event-btn { 
-    background: none; 
-    border: none; 
-    color: var(--color-peligro); 
-    font-size: 1rem; 
-    font-weight: bold; 
-    cursor: pointer; 
-    opacity: 0.5; 
-    margin-left: 0.25rem; 
-}
-.delete-event-btn:hover { 
-    opacity: 1; 
-}
-
-/* --- INTERRUPTOR DE CALENDARIOS --- */
-.calendar-mode-switcher {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-    background: #f1f3f5;
-    padding: 0.5rem;
-    border-radius: 12px;
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.mode-btn {
-    background: transparent;
-    border: none;
-    padding: 0.5rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 600;
-    color: var(--color-secundario);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.mode-btn:hover {
-    background: rgba(0,0,0,0.05);
-}
-
-.mode-btn.active {
-    background: white;
-    color: var(--color-primario);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    transform: scale(1.05);
-}
-
-/* Opcional: Cambiar color activo para entrenamientos */
-.mode-btn.active[data-mode="entrenamientos"] {
-    color: #e67e22; /* Naranja deportivo */
-}
-
-@media (max-width: 768px) {
-    
-    /* 1. Ocultar la cabecera de días (Lunes, Martes...) porque ya no es una tabla */
-    .calendar-grid-header {
-        display: none; 
-    }
-
-    /* 2. Cambiar la rejilla a una sola columna (Lista vertical) */
-    .calendar-grid-body {
-        grid-template-columns: 1fr !important; /* Una sola columna */
-        gap: 15px; /* Espacio entre días */
-    }
-
-    /* 3. Estilo de cada día (ahora parece una tarjeta) */
-    .calendar-day {
-        min-height: 80px; /* Altura mínima para que sea fácil tocar */
-        height: auto !important; /* Que crezca según el contenido */
-        border: 1px solid #e0e0e0;
-        border-radius: 12px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.03);
-        display: flex;
-        flex-direction: column;
-        padding: 10px;
-        position: relative;
-    }
-
-    /* 4. Ocultar los días que no son de este mes para limpiar la vista */
-    .day-other-month {
-        display: none; 
-    }
-
-    /* 5. El número del día: lo hacemos más grande y le ponemos el nombre del día al lado */
-    .day-number {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: var(--color-primario);
-        margin-bottom: 8px;
-        border-bottom: 1px solid #f0f0f0;
-        padding-bottom: 5px;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    /* Truco CSS avanzado: Añadir "Lunes", "Martes" dinámicamente es complejo solo con CSS.
-       Si quieres que ponga el nombre del día, habría que tocar JS. 
-       Por ahora, con el diseño de tarjeta vertical se entiende muy bien. */
-
-    /* 6. Los eventos dentro del día: que ocupen todo el ancho y se lean bien */
-    .calendar-event {
-        font-size: 0.95rem; /* Letra más grande */
-        padding: 8px 10px;
-        margin-bottom: 6px;
-        white-space: normal; /* Permitir que el texto ocupe varias líneas */
-        height: auto;
-    }
-    
-    /* Botón de borrar evento más grande para el dedo */
-    .delete-event-btn {
-        font-size: 1.2rem;
-        padding: 5px 10px;
-    }
-}
-
-.d-name { display: none; } /* Oculto en PC */
-
-@media (max-width: 768px) {
-    .d-name { display: inline-block; } /* Visible en móvil */
+@media (max-width: 900px) {
+    .stats-app { max-width: 100%; padding: 1.5rem; box-shadow: none; border-radius: 0; }
+    .filtros .filtro-btn { flex-basis: 48%; }
+    .activity-filter { flex-direction: column; align-items: stretch; }
+    .activity-filter label { text-align: center; }
 }
 
 /* =========================================
-   ESTILOS DE ESTADO (HOY, FESTIVOS, ETC)
+   11. PÁGINA: AJUSTES (CONFIGURACIÓN)
    ========================================= */
+.settings-container { width: 100%; max-width: 600px; }
+.settings-container h1 { text-align: center; color: var(--color-primario); }
+.settings-card { background: var(--color-tarjeta); border-radius: 16px; padding: 2rem; box-shadow: var(--sombra); margin-bottom: 2rem; }
+.settings-card h2 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
 
-/* 1. DÍA ACTUAL (HOY) - Base */
-.calendar-day.is-today {
-    background-color: #e3f2fd !important; /* Azul muy clarito */
-    border: 2px solid #2196f3 !important; /* Borde azul fuerte */
-    position: relative;
-    z-index: 5;
-}
+/* Menú Principal Ajustes */
+.settings-menu-grid { display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 400px; margin: 0 auto 20px auto; }
+.settings-nav-btn { display: flex; align-items: center; justify-content: flex-start; gap: 12px; padding: 12px 20px; width: 100%; background-color: #e9ecef; border: 1px solid #adb5bd; border-radius: 8px; color: #333; text-decoration: none; font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+.settings-nav-btn:hover { background-color: #dde2e6; border-color: #6c757d; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+.settings-nav-btn.danger { margin-top: 10px; background-color: #fff5f5; border-color: #f5c6cb; color: #dc3545; }
+.settings-nav-btn.danger:hover { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
 
-/* 2. FINES DE SEMANA Y FESTIVOS (Suave) */
-.calendar-day.is-weekend {
-    background-color: #ffecec !important; 
-    /* Borde rojo suave (pastel) */
-    border: 1px solid #ffcdd2 !important; 
-    color: #c0392b; 
-}
-
-/* Ocultar la etiqueta de texto del evento "Festivo" */
-.calendar-event.festivo-hidden {
-    display: none !important;
-}
-
-/* =========================================
-   AJUSTES ESPECÍFICOS PARA MÓVIL
-   ========================================= */
-
-@media (max-width: 768px) {
-    
-    /* Ajuste de color de borde en festivos para móvil */
-    .calendar-day.is-weekend {
-        background-color: #ffecec !important;
-        border-color: #ffcdd2 !important;
-    }
-
-    /* ETIQUETA "HOY" */
-    .calendar-day.is-today::after {
-        content: "HOY";
-        position: absolute;
-        top: 8px;     
-        right: 8px;
-        
-        background: #2196f3; 
-        color: white;
-        font-size: 0.75rem; 
-        padding: 3px 8px;
-        border-radius: 6px;
-        font-weight: bold;
-        z-index: 20; 
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
-    }
-
-    /* --- CAMBIO CLAVE: OCULTAR NOMBRE DEL DÍA EN "HOY" --- */
-    /* Si el día es "is-today", el span con el nombre (Lun, Mar...) desaparece */
-    .calendar-day.is-today .d-name {
-        display: none !important;
-    }
-
-    /* Restaurar comportamiento normal para el resto de días */
-    .day-number {
-        overflow: visible; 
-    }
-}
-
-/* --- VENTANA MODAL (POPUP) --- */
-.modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5); /* Fondo oscuro semitransparente */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000; /* Por encima de todo */
-    opacity: 1;
-    transition: opacity 0.2s;
-}
-
-.modal-overlay.hidden {
-    display: none;
-    opacity: 0;
-}
-
-.modal-content {
-    background: white;
-    padding: 2rem;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 400px; /* Tamaño máximo en PC */
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-    animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-    from { transform: translateY(20px); opacity: 0; }
-    to { transform: translateY(0); opacity: 1; }
-}
-
-.modal-content h2 {
-    margin-top: 0;
-    color: var(--color-primario);
-    margin-bottom: 1rem;
-    font-size: 1.2rem;
-}
-
-.modal-form label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 5px;
-    color: #555;
-    font-size: 0.9rem;
-}
-
-.modal-form input, 
-.modal-form textarea {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 1rem;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    font-family: inherit;
-    resize: none; /* Que no se pueda estirar el textarea */
-}
-
-.modal-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 1rem;
-}
-
-.right-btns {
-    display: flex;
-    gap: 10px;
-}
-
-.btn-primary { background: var(--color-primario); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
-.btn-secondary { background: #f1f3f5; color: #333; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
-.btn-danger { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
-
-/* Visualización de que hay descripción en el evento del calendario */
-.has-desc-indicator {
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    background-color: rgba(0,0,0,0.2);
-    border-radius: 50%;
-    margin-left: 5px;
-}
-
-/* --- 11. PÁGINA: Ajustes (ajustes.php) --- */
-
-.settings-menu-grid {
-    display: flex;
-    flex-direction: column; /* <--- ESTO los pone uno encima de otro */
-    gap: 15px; /* Un poco más de espacio entre botones */
-    width: 100%; /* Ocupar todo el ancho disponible */
-    max-width: 400px; /* Opcional: Para que no sean gigantes en pantallas grandes */
-    margin: 0 auto 20px auto; /* Centrar el bloque */
-}
-
-.settings-nav-btn {
-    display: flex; /* Usamos flex para controlar la posición del texto e icono */
-    align-items: center;
-    justify-content: flex-start; /* Alineado a la izquierda, queda mejor en lista */
-    gap: 12px; 
-    padding: 12px 20px; /* Botones un poco más grandes */
-    width: 100%; /* <--- ESTO hace que el botón se estire a los lados */
-    background-color: #e9ecef; 
-    border: 1px solid #adb5bd; 
-    border-radius: 8px; 
-    color: #333; 
-    text-decoration: none; 
-    font-size: 1rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.settings-nav-btn:hover {
-    background-color: #dde2e6;
-    border-color: #6c757d;
-    transform: translateY(-2px); 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.settings-nav-btn span.icon {
-    font-size: 1.2rem;
-}
-
-.settings-nav-btn.danger {
-    margin-top: 10px; /* Un extra de separación para el botón de borrar */
-    background-color: #fff5f5;
-    border-color: #f5c6cb;
-    color: #dc3545;
-}
-
-.settings-nav-btn.danger:hover {
-    background-color: #f8d7da;
-    color: #721c24;
-    border-color: #f5c6cb;
-}
-
-.settings-layout {
-    display: grid;
-    place-items: center;
-}
-.settings-container {
-    width: 100%;
-    max-width: 600px;
-}
-.settings-container h1 {
-    text-align: center;
-    color: var(--color-primario);
-}
-.settings-card {
-    background: var(--color-tarjeta);
-    border-radius: 16px;
-    padding: 2rem;
-    box-shadow: var(--sombra);
-    margin-bottom: 2rem;
-}
-.settings-card h2 {
-    margin-top: 0;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 0.5rem;
-}
-.color-palette {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem; 
-    margin-bottom: 1rem;
-}
-.color-swatch {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 3px solid transparent; 
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.color-swatch:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-.color-swatch.selected {
-    transform: scale(1.35);
-    border-color: #555; 
-    box-shadow: 0 8px 15px rgba(0,0,0,0.25);
-    z-index: 10; 
-}
-.form-buttons {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-#save-rule-btn, #save-session-btn {
-    background-color: var(--color-estudio);
-    color: white;
-    border: none;
-    padding: 0.75rem 1.5rem;
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: 8px;
-    cursor: pointer;
-}
-#save-rule-btn:hover, #save-session-btn:hover {
-    background-color: var(--color-estudio-oscuro);
-}
-#cancel-edit-btn, #cancel-session-btn {
-    background-color: var(--color-secundario);
-    color: white;
-    border: none;
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
-    font-weight: 600;
-    border-radius: 8px;
-    cursor: pointer;
-}
-#cancel-edit-btn:hover, #cancel-session-btn:hover {
-    background-color: var(--color-secundario-oscuro);
-}
-#rule-error-message {
-    color: var(--color-peligro);
-    font-weight: 600;
-    margin-top: 1rem;
-}
-#rules-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-.rule-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #eee;
-    font-size: 1.1rem;
-}
-.rule-item:last-child {
-    border-bottom: none;
-}
-.rule-swatch {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    border: 3px solid; 
-    margin-right: 1rem;
-    flex-shrink: 0;
-}
-.rule-keyword {
-    flex-grow: 1;
-    font-weight: 600;
-}
-.rule-actions {
-    margin-left: auto;
-    display: flex;
-    gap: 0.5rem;
-}
-.rule-actions .edit-btn, .rule-actions .delete-btn {
-    background: none;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    opacity: 0.6;
-    transition: opacity 0.2s;
-}
-.rule-actions .edit-btn:hover { opacity: 1; color: var(--color-primario); }
-.rule-actions .delete-btn:hover { opacity: 1; color: var(--color-peligro); }
-
-
-/* ----------------------------------------------------------
-   ESTILOS AÑADIDOS PARA LAS NUEVAS FUNCIONES DE AJUSTES
-   ---------------------------------------------------------- */
-   
-/* Pestañas */
+/* Formulario Reglas */
 .settings-tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
 .settings-tab-btn { flex: 1; padding: 0.8rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: all 0.2s; }
 .settings-tab-btn.active { background: var(--color-primario); color: white; border-color: var(--color-primario); box-shadow: 0 2px 5px rgba(0,123,255,0.3); }
 
-/* Select e inputs del formulario de edición */
-.settings-card select {
-    width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1rem;
-    margin-bottom: 1rem;
-}
+/* Selector Color (Grid) */
+.palette-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 12px; margin-top: 0.5rem; padding: 0.5rem; }
+.color-swatch { width: 100%; aspect-ratio: 1 / 1; border-radius: 50%; cursor: pointer; border: 2px solid rgba(0,0,0,0.05); transition: all 0.3s; position: relative; }
+.color-swatch:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.15); z-index: 2; }
+.color-swatch.selected { transform: scale(1.15); border-color: white !important; box-shadow: 0 0 0 3px var(--color-primario), 0 8px 15px rgba(0,0,0,0.2); z-index: 2; }
 
-/* Lista de Historial */
-.history-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    max-height: 400px;
-    overflow-y: auto;
-}
-.history-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #eee;
-    background: white;
-}
-.history-item:hover { background-color: #f9f9f9; }
+/* Selector Color Pro */
+.color-picker-container { display: flex; align-items: center; gap: 1rem; background: #f8f9fa; padding: 0.75rem; border-radius: 12px; border: 1px solid #e9ecef; }
+.color-input-wrapper { position: relative; width: 45px; height: 45px; border-radius: 50%; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 2px solid white; cursor: pointer; }
+#custom-color-picker { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; padding: 0; margin: 0; border: none; cursor: pointer; appearance: none; background: none; }
+#color-hex-display { font-family: monospace; font-size: 1rem; color: var(--color-secundario-oscuro); background: white; padding: 0.4rem 0.8rem; border-radius: 6px; border: 1px solid #dee2e6; letter-spacing: 1px; text-transform: uppercase; min-width: 80px; text-align: center; }
+
+/* Lista de Reglas */
+#rules-list { list-style: none; padding: 0; margin: 0; }
+.rule-item { display: flex; align-items: center; padding: 0.75rem 0; border-bottom: 1px solid #eee; font-size: 1.1rem; }
+.rule-item:last-child { border-bottom: none; }
+.rule-swatch { width: 25px; height: 25px; border-radius: 50%; border: 3px solid; margin-right: 1rem; flex-shrink: 0; }
+.rule-keyword { flex-grow: 1; font-weight: 600; }
+.rule-actions { margin-left: auto; display: flex; gap: 0.5rem; }
+.rule-actions button { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.6; transition: opacity 0.2s; }
+.rule-actions button:hover { opacity: 1; }
+
+/* Historial */
+.history-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; }
+.history-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #eee; background: white; }
 .history-info { flex-grow: 1; }
 .history-date { font-size: 0.85rem; color: var(--color-secundario); display: block; margin-bottom: 2px; }
 .history-title { font-weight: 600; font-size: 1rem; }
 .history-duration { font-weight: bold; color: var(--color-primario); margin: 0 15px; min-width: 70px; text-align: right; }
-.history-badge {
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    text-transform: uppercase;
-    margin-right: 5px;
-    color: white;
-}
+.history-badge { padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; text-transform: uppercase; margin-right: 5px; color: white; }
 .history-badge.estudio { background: var(--color-estudio); }
 .history-badge.clase { background: var(--color-clase); }
 .history-badge.psicotecnicos { background: var(--color-psico); }
-.history-badge.test { background: var(--color-peligro); }
-
-.btn-secondary-outline {
-    background: white;
-    color: var(--color-secundario);
-    border: 2px solid var(--color-secundario);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-}
-.btn-secondary-outline:hover {
-    background: var(--color-secundario);
-    color: white;
-}
-
-/* 12. Diseño Responsive (Media Queries) */
-@media (max-width: 900px) { 
-    .content-wrapper { padding: 0.5rem; padding-top: 5rem; }
-    .index-layout { flex-direction: column; align-items: center; }
-    .pomodoro-app, .task-list-container { max-width: 100%; margin-bottom: 1.5rem; border-radius: 0; box-shadow: none; }
-    .stats-app { max-width: 100%; padding: 1.5rem; box-shadow: none; border-radius: 0; }
-    .week-grid { gap: 1rem; padding: 1rem; border-radius: 0; }
-    .day-column { min-width: 280px; max-width: 280px; }
-    
-    .calendar-container { padding: 0.5rem; border-radius: 0; box-shadow: none; }
-    .calendar-header h1 { font-size: 1.2rem; }
-    .calendar-header button { padding: 0.2rem 0.6rem; font-size: 1.2rem; }
-    .calendar-grid-header { font-size: 0.7rem; }
-    .calendar-day { min-height: 80px; padding: 0.2rem; }
-    .day-number { font-size: 0.7rem; }
-    .calendar-event { font-size: 0.7rem; padding: 0.1rem 0.2rem; }
-    .delete-event-btn { font-size: 0.8rem; }
-
-    .settings-container { max-width: 100%; }
-    .settings-card { border-radius: 0; box-shadow: none; }
-    
-    .settings-link-icon {
-        top: 1rem;
-        right: 1rem;
-        font-size: 1.5rem;
-    }
-    
-    .timer { font-size: 4rem; }
-    .controles { flex-wrap: wrap; }
-    .controles button { flex-basis: 48%; }
-    #btn-iniciar { width: 100%; order: -1; margin-bottom: 0.5rem; }
-    .filtros .filtro-btn { flex-basis: 48%; }
-    .activity-switcher { flex-wrap: wrap; }
-    .activity-filter { flex-direction: column; align-items: stretch; }
-    .activity-filter label { text-align: center; }
-}
-@media (max-width: 480px) { 
-    .controles button { flex-basis: 100%; }
-    .filtros .filtro-btn { flex-basis: 100%; }
-}
 
 /* =========================================
-   ESTILOS DEL BLOC DE NOTAS
+   12. PÁGINA: BLOC DE NOTAS
    ========================================= */
+.notes-layout { display: flex; justify-content: center; height: 100vh; overflow: hidden; }
+.notes-app { display: flex; width: 100%; max-width: 1200px; background: white; border-radius: 16px; box-shadow: var(--sombra); height: calc(100vh - 7rem); overflow: hidden; }
 
-.notes-layout {
-    display: flex;
-    justify-content: center;
-    height: 100vh; /* Ocupar toda la altura */
-    overflow: hidden; /* Evitar scroll en el body */
-}
-
-.notes-app {
-    display: flex;
-    width: 100%;
-    max-width: 1200px;
-    background: white;
-    border-radius: 16px;
-    box-shadow: var(--sombra);
-    height: calc(100vh - 7rem); /* Ajustar altura restando el padding superior */
-    overflow: hidden;
-}
-
-/* --- Barra Lateral (Categorías) --- */
-.notes-sidebar {
-    width: 250px;
-    background-color: #f8f9fa;
-    border-right: 1px solid #dee2e6;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-}
-
-.sidebar-header {
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #dee2e6;
-    background-color: #e9ecef;
-}
-
+/* Sidebar */
+.notes-sidebar { width: 250px; background-color: #f8f9fa; border-right: 1px solid #dee2e6; display: flex; flex-direction: column; flex-shrink: 0; }
+.sidebar-header { padding: 1rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #dee2e6; background-color: #e9ecef; }
 .sidebar-header h3 { margin: 0; color: var(--color-menu); font-size: 1.1rem; }
-
-#add-category-btn {
-    background: var(--color-primario);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 30px;
-    height: 30px;
-    font-size: 1.2rem;
-    line-height: 1;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-#categories-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    overflow-y: auto;
-    flex-grow: 1;
-}
-
-.category-item {
-    padding: 1rem;
-    border-bottom: 1px solid #eee;
-    cursor: pointer;
-    transition: background 0.2s;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-weight: 500;
-}
-
+#add-category-btn { background: var(--color-primario); color: white; border: none; border-radius: 50%; width: 30px; height: 30px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+#categories-list { list-style: none; padding: 0; margin: 0; overflow-y: auto; flex-grow: 1; }
+.category-item { padding: 1rem; border-bottom: 1px solid #eee; cursor: pointer; transition: background 0.2s; display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
 .category-item:hover { background-color: #e2e6ea; }
-.category-item.active { 
-    background-color: #fff; 
-    border-left: 4px solid var(--color-primario);
-    color: var(--color-primario);
-}
-
-.delete-cat-btn {
-    background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.9rem;
-}
+.category-item.active { background-color: #fff; border-left: 4px solid var(--color-primario); color: var(--color-primario); }
+.delete-cat-btn { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.9rem; }
 .delete-cat-btn:hover { color: var(--color-peligro); }
 
-/* --- Área del Editor --- */
-.notes-editor-container {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    background-color: white;
-    position: relative;
-}
-
-.editor-header {
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-}
-
-#note-title {
-    flex-grow: 1;
-    font-size: 1.5rem;
-    font-weight: bold;
-    border: none;
-    outline: none;
-    color: var(--color-menu);
-}
-
-.editor-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.btn-save {
-    background-color: var(--color-estudio);
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-.btn-delete {
-    background-color: transparent;
-    border: 1px solid var(--color-peligro);
-    padding: 0.5rem;
-    border-radius: 6px;
-    cursor: pointer;
-}
+/* Editor */
+.notes-editor-container { flex-grow: 1; display: flex; flex-direction: column; background-color: white; position: relative; }
+.editor-header { padding: 1rem; border-bottom: 1px solid #dee2e6; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+#note-title { flex-grow: 1; font-size: 1.5rem; font-weight: bold; border: none; outline: none; color: var(--color-menu); }
+.editor-actions { display: flex; gap: 0.5rem; }
+.btn-save { background-color: var(--color-estudio); color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.btn-delete { background-color: transparent; border: 1px solid var(--color-peligro); padding: 0.5rem; border-radius: 6px; cursor: pointer; }
 .btn-delete:hover { background-color: #fff5f5; }
 
-/* Quill Editor Overrides */
-#editor {
-    flex-grow: 1;
-    border: none !important;
-    font-size: 1.1rem;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-.ql-toolbar {
-    border-top: none !important;
-    border-left: none !important;
-    border-right: none !important;
-    background-color: #fcfcfc;
-}
-.ql-container {
-    border: none !important;
-}
+/* Quill Overrides */
+#editor { flex-grow: 1; border: none !important; font-size: 1.1rem; font-family: 'Segoe UI', sans-serif; }
+.ql-toolbar { border-top: none !important; border-left: none !important; border-right: none !important; background-color: #fcfcfc; }
+.ql-container { border: none !important; }
+.status-message { position: absolute; bottom: 1rem; right: 1rem; font-size: 0.85rem; color: var(--color-secundario); background: rgba(255,255,255,0.9); padding: 5px 10px; border-radius: 4px; pointer-events: none; }
 
-.status-message {
-    position: absolute;
-    bottom: 1rem;
-    right: 1rem;
-    font-size: 0.85rem;
-    color: var(--color-secundario);
-    background: rgba(255,255,255,0.9);
-    padding: 5px 10px;
-    border-radius: 4px;
-    pointer-events: none;
-}
-
-/* =========================================
-   RESPONSIVE NOTAS (SOLUCIÓN MÓVIL)
-   ========================================= */
-
+/* Responsive Notas */
 @media (max-width: 768px) {
-    .notes-layout { 
-        padding: 0; 
-        padding-top: 4rem; /* Espacio para el menú de arriba */
-        height: 100vh; 
-        overflow: hidden; 
-    }
-
-    .notes-app { 
-        flex-direction: column; 
-        height: 100%; 
-        border-radius: 0; /* Quitar bordes redondeados en móvil */
-        box-shadow: none;
-    }
-
-    /* --- ESTADOS DE VISIBILIDAD --- */
+    .notes-layout { padding: 0; padding-top: 4rem; height: 100vh; overflow: hidden; }
+    .notes-app { flex-direction: column; height: 100%; border-radius: 0; box-shadow: none; }
+    .notes-sidebar { width: 100%; height: 100%; border-right: none; display: flex; }
+    .notes-editor-container { width: 100%; height: 100%; display: none; }
     
-    /* Por defecto en móvil: Barra lateral visible, Editor oculto */
-    .notes-sidebar { 
-        width: 100%; 
-        height: 100%; 
-        border-right: none; 
-        display: flex; /* Visible */
-    }
-
-    .notes-editor-container { 
-        width: 100%; 
-        height: 100%; 
-        display: none; /* Oculto */
-    }
-
-    /* Clase mágica para cuando abrimos una nota */
-    .notes-app.mobile-view-editor .notes-sidebar {
-        display: none;
-    }
+    .notes-app.mobile-view-editor .notes-sidebar { display: none; }
+    .notes-app.mobile-view-editor .notes-editor-container { display: flex; }
     
-    .notes-app.mobile-view-editor .notes-editor-container {
-        display: flex;
-    }
-
-    /* --- AJUSTES VISUALES MÓVIL --- */
-    
-    /* Botón de volver atrás */
-    .btn-back-mobile {
-        display: block !important; /* Hacer visible */
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        margin-right: 0.5rem;
-        cursor: pointer;
-        color: var(--color-primario);
-        padding: 0 0.5rem;
-    }
-
-    .sidebar-header h3 { 
-        font-size: 1.2rem; 
-    }
-    
-    /* Ajustar la cabecera del editor para que quepa todo */
-    .editor-header {
-        padding: 0.5rem;
-        gap: 0.5rem;
-    }
-    
-    #note-title {
-        font-size: 1.1rem;
-    }
-    
-    .btn-save, .btn-delete {
-        padding: 0.4rem 0.8rem;
-        font-size: 0.9rem;
-    }
-    
-    /* Ajuste del editor Quill para aprovechar espacio */
-    #editor {
-        font-size: 1rem; 
-    }
+    .btn-back-mobile { display: block !important; background: none; border: none; font-size: 1.5rem; margin-right: 0.5rem; cursor: pointer; color: var(--color-primario); padding: 0 0.5rem; }
+    .sidebar-header h3 { font-size: 1.2rem; }
+    .editor-header { padding: 0.5rem; gap: 0.5rem; }
+    #note-title { font-size: 1.1rem; }
 }
-
 
 /* =========================================
-   ESTILO NOTION (PROGRESO)
+   13. PÁGINA: SEGUIMIENTO TEMARIO (NOTION)
    ========================================= */
+.progress-layout { display: flex; justify-content: center; padding-top: 5rem; }
+.progress-container { background: white; width: 100%; max-width: 1300px; padding: 2rem; box-sizing: border-box; }
+.progress-header { display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+.progress-header h1 { margin: 0; font-size: 1.8rem; color: #37352f; }
 
-.progress-layout {
-    display: flex;
-    justify-content: center;
-    padding-top: 5rem;
+/* Tabla */
+#progress-table { border-collapse: separate; border-spacing: 0; }
+#progress-table th { 
+    position: sticky; top: 0; z-index: 100; background-color: #4a6fa5; color: white; 
+    font-weight: 600; border-bottom: 3px solid #3b5987; font-size: 0.95rem; 
+    padding: 0.8rem 1rem; text-align: left; white-space: nowrap; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); 
 }
+#progress-table td { border-bottom: 1px solid #e9e9e9; padding: 4px 8px; height: 40px; background-color: white; }
+.progress-row:hover { background-color: #f7f7f5; }
 
-.progress-container {
-    background: white; /* Blanco puro para look limpio */
-    width: 100%;
-    max-width: 1300px; /* Más ancho para las columnas */
-    padding: 2rem;
-    box-sizing: border-box;
-    /* Sin bordes redondeados ni sombras fuertes para parecerse a Notion */
-}
+/* Columnas Dinámicas */
+.th-dynamic { position: relative; min-width: 80px; text-align: center !important; }
+.col-header-content { display: flex; align-items: center; justify-content: center; gap: 5px; cursor: pointer; }
+.btn-del-col { background: none; border: none; color: rgba(255, 255, 255, 0.6) !important; cursor: pointer; font-size: 1.1rem; padding: 0 5px; }
+.btn-del-col:hover { color: #ffadad !important; }
 
-.progress-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 2rem;
-    border-bottom: 1px solid #eee;
-    padding-bottom: 1rem;
-}
-
-.progress-header h1 {
-    margin: 0;
-    font-size: 1.8rem;
-    color: #37352f;
-}
-
-/* Cabeceras Fijas (Sticky) - VERSIÓN COLORIDA */
-#progress-table th {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    
-    /* --- CAMBIOS DE COLOR --- */
-    background-color: #4a6fa5; /* Un azul pizarra sólido que destaca */
-    color: white;              /* Texto blanco para máximo contraste */
-    font-weight: 600;          /* Letra un poco más gruesa */
-    border-bottom: 3px solid #3b5987; /* Borde inferior más oscuro para dar volumen */
-    /* ------------------------ */
-    
-    font-size: 0.95rem;
-    padding: 0.8rem 1rem;      /* Un poco más de espacio */
-    text-align: left;
-    white-space: nowrap;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); /* Sombra más pronunciada para que "flote" */
-}
-
-
-#progress-table {
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
-
-#progress-table td {
-    border-bottom: 1px solid #e9e9e9;
-    padding: 4px 8px;
-    height: 40px;
-    background-color: white;
-}
-
-.th-dynamic {
-    position: relative;
-    min-width: 80px;
-    text-align: center !important;
-}
-
-.col-header-content {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    cursor: pointer;
-}
-.col-header-content:hover .col-name {
-    text-decoration: underline;
-}
-
-.btn-del-col {
-    background: none; 
-    border: none; 
-    /* Color blanco semitransparente para que no moleste mucho */
-    color: rgba(255, 255, 255, 0.6) !important; 
-    cursor: pointer; 
-    font-size: 1.1rem; 
-    padding: 0 5px;
-}
-
-/* Al pasar el ratón, que se ponga de un rojo clarito */
-.btn-del-col:hover {
-    color: #ffadad !important; 
-}
-
-.progress-row:hover {
-    background-color: #f7f7f5; /* Hover sutil */
-}
-
-/* Inputs "Invisibles" */
-.notion-input {
-    width: 100%;
-    border: none;
-    background: transparent;
-    padding: 6px;
-    font-size: 0.95rem;
-    color: inherit;
-    border-radius: 4px;
-}
-.notion-input:focus {
-    background: white;
-    box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.2);
-    outline: none;
-}
-
-/* Select Estado (Badges) */
-.select-status {
-    appearance: none;
-    border: none;
-    border-radius: 4px;
-    padding: 4px 8px;
-    font-size: 0.85rem;
-    cursor: pointer;
-    width: 100%;
-    text-align: center;
-    font-weight: 500;
-}
-
-/* Checkboxes */
-.check-dynamic {
-    width: 1.1rem;
-    height: 1.1rem;
-    cursor: pointer;
-    accent-color: #2eaadc; /* Azul Notion */
-}
+/* Inputs Tabla */
+.notion-input { width: 100%; border: none; background: transparent; padding: 6px; font-size: 0.95rem; color: inherit; border-radius: 4px; }
+.notion-input:focus { background: white; box-shadow: 0 0 0 2px rgba(35, 131, 226, 0.2); outline: none; }
+.select-status { appearance: none; border: none; border-radius: 4px; padding: 4px 8px; font-size: 0.85rem; cursor: pointer; width: 100%; text-align: center; font-weight: 500; }
+.check-dynamic { width: 1.1rem; height: 1.1rem; cursor: pointer; accent-color: #2eaadc; }
 .td-center { text-align: center; }
 
-/* Barra de Dominio */
-.dominio-bar-container {
-    background-color: #f0f0f0;
-    border-radius: 4px;
-    height: 18px;
-    position: relative;
-    overflow: hidden;
-    width: 100%;
-}
-.dominio-bar-fill {
-    height: 100%;
-    transition: width 0.3s ease;
-}
-.dominio-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 0.7rem;
-    font-weight: bold;
-    color: #333;
-    text-shadow: 0 0 2px white;
-}
+/* Barra Dominio */
+.dominio-bar-container { background-color: #f0f0f0; border-radius: 4px; height: 18px; position: relative; overflow: hidden; width: 100%; }
+.dominio-bar-fill { height: 100%; transition: width 0.3s ease; }
+.dominio-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 0.7rem; font-weight: bold; color: #333; text-shadow: 0 0 2px white; }
 
-/* Botones Fantasma */
-.btn-ghost {
-    background: transparent;
-    color: #787774;
-    border: none;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    font-size: 0.95rem;
-    margin-top: 0.5rem;
-    display: flex;
-    align-items: center;
-}
-.btn-ghost:hover {
-    background-color: #efefef;
-    border-radius: 4px;
-    color: #37352f;
-}
-
-.btn-icon-del {
-    background: none; border: none; cursor: pointer; opacity: 0; transition: opacity 0.2s;
-}
+/* Botones Tabla */
+.btn-ghost { background: transparent; color: #787774; border: none; padding: 0.5rem 1rem; cursor: pointer; font-size: 0.95rem; margin-top: 0.5rem; display: flex; align-items: center; }
+.btn-ghost:hover { background-color: #efefef; border-radius: 4px; color: #37352f; }
+.btn-icon-del { background: none; border: none; cursor: pointer; opacity: 0; transition: opacity 0.2s; }
 .progress-row:hover .btn-icon-del { opacity: 0.5; }
 .btn-icon-del:hover { opacity: 1; }
 
-/* Responsive */
-@media (max-width: 900px) {
+/* --- COMENTARIOS (POPUP TEXTAREA) --- */
+.td-comentario { position: relative !important; min-width: 150px; vertical-align: top; }
+.input-comentario {
+    width: 100%; height: 32px !important; min-height: 32px !important;
+    border: 1px solid transparent; background-color: transparent;
+    resize: none !important; overflow: hidden !important; white-space: nowrap !important;
+    text-overflow: ellipsis; font-family: inherit; font-size: 0.9rem; padding: 5px;
+    border-radius: 4px; cursor: pointer; transition: all 0.2s ease;
+}
+.input-comentario:hover { background-color: #f5f5f5; border-color: #e0e0e0; }
+.input-comentario:focus {
+    position: absolute !important; top: -10px; left: -10px;
+    width: 300px !important; height: 200px !important;
+    background: white !important; color: black; border: 2px solid #2196f3 !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important; z-index: 9999 !important;
+    white-space: normal !important; overflow-y: auto !important; padding: 15px !important;
+    border-radius: 8px; outline: none;
+}
+@media (max-width: 768px) {
+    .input-comentario:focus { width: 250px !important; left: auto !important; right: 0 !important; }
     .table-responsive { overflow-x: auto; padding-bottom: 1rem; }
     .progress-layout { padding: 1rem; padding-top: 5rem; }
 }
 
 /* =========================================
-   COMENTARIOS DEL TEMARIO (EFECTO POPUP)
+   14. PÁGINA: CALCULADORA DE NOTAS
    ========================================= */
-
-/* 1. La celda de la tabla actúa como "ancla" */
-.td-comentario {
-    position: relative !important; /* Importante para que el popup salga desde aquí */
-    min-width: 150px;
-    vertical-align: top; /* Alineación limpia */
+.calc-container { max-width: 500px; margin: 2rem auto; text-align: center; padding: 0 1rem; }
+.calc-container h1 { color: var(--color-primario); margin-bottom: 1.5rem; }
+.calc-card { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); text-align: left; }
+.input-group { margin-bottom: 1.5rem; }
+.input-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #555; font-size: 0.9rem; }
+.input-group input {
+    width: 100%; padding: 12px 15px; border: 2px solid #e0e0e0; border-radius: 12px;
+    font-size: 1.1rem; background-color: #fafafa; transition: all 0.2s ease; outline: none;
+    box-sizing: border-box; -webkit-appearance: none; appearance: none;
 }
+.input-group input:focus { border-color: var(--color-primario); background-color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
-/* 2. ESTADO NORMAL: Pequeño y discreto (una sola línea) */
-.input-comentario {
-    width: 100%;
-    height: 32px !important;      /* Altura fija de una línea */
-    min-height: 32px !important;
-    
-    border: 1px solid transparent; /* Sin borde visible por defecto */
-    background-color: transparent;
-    
-    resize: none !important;      /* QUITAMOS LAS FLECHITAS DE TAMAÑO */
-    overflow: hidden !important;  /* Ocultamos lo que sobre */
-    
-    white-space: nowrap !important; /* Fuerza una sola línea */
-    text-overflow: ellipsis;      /* Pone "..." si el texto es largo */
-    
-    font-family: inherit;
-    font-size: 0.9rem;
-    padding: 5px;
-    border-radius: 4px;
-    cursor: pointer; /* Manita para indicar que es clickable */
-    transition: all 0.2s ease;
-}
+.calc-row { display: flex; gap: 15px; align-items: flex-end; }
+.calc-row .input-group { flex: 1; min-width: 0; }
+@media (max-width: 350px) { .calc-row { flex-direction: column; gap: 10px; } }
 
-/* Al pasar el ratón por encima, marcamos un poco el borde */
-.input-comentario:hover {
-    background-color: #f5f5f5;
-    border-color: #e0e0e0;
-}
-
-/* 3. ESTADO EXPANDIDO (FOCUS): Se convierte en Popup */
-.input-comentario:focus {
-    position: absolute !important; /* FLOTA sobre la tabla */
-    top: -10px;  /* Lo subimos un poco para centrarlo bajo el dedo */
-    left: -10px; /* Lo movemos un poco a la izquierda */
-    
-    width: 300px !important;     /* Mucho más ancho */
-    height: 200px !important;    /* Mucho más alto */
-    
-    background: white !important;
-    color: black;
-    
-    /* Borde y sombra potentes para que destaque */
-    border: 2px solid #2196f3 !important; 
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
-    
-    z-index: 9999 !important; /* Asegura que tape TODO lo de abajo */
-    
-    white-space: normal !important; /* Permite escribir párrafos */
-    overflow-y: auto !important;    /* Scroll vertical si escribes mucho */
-    
-    padding: 15px !important;
-    border-radius: 8px;
-    outline: none; /* Quitamos el borde azul feo del navegador */
-}
-
-/* AJUSTE PARA MÓVIL: Que no se salga de la pantalla por la derecha */
-@media (max-width: 768px) {
-    .input-comentario:focus {
-        width: 250px !important;
-        left: auto !important;
-        right: 0 !important; /* Se expande hacia la izquierda */
-    }
-}
-
+.blancas-info { text-align: center; font-size: 0.9rem; color: #888; margin-bottom: 1.5rem; background: #f9f9f9; padding: 8px; border-radius: 8px; }
+.divider { border: 0; border-top: 1px solid #eee; margin: 1.5rem 0; }
+.result-box { text-align: center; background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #eee; transition: all 0.3s; }
+.result-label { display: block; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #777; margin-bottom: 0.5rem; }
+#final-score { font-size: 3rem; margin: 0; color: var(--color-primario); line-height: 1; }
+.score-msg { display: block; margin-top: 0.5rem; font-size: 0.9rem; font-weight: 500; }
+.result-box.pass { background-color: #e8f5e9; border-color: #c8e6c9; }
+.result-box.pass #final-score, .result-box.pass .score-msg { color: #2e7d32; }
+.result-box.fail { background-color: #ffebee; border-color: #ffcdd2; }
+.result-box.fail #final-score, .result-box.fail .score-msg { color: #c62828; }
 
 /* =========================================
-   SELECTOR DE COLOR PRO
+   15. COMPONENTES GLOBALES (MODALES)
    ========================================= */
-
-/* Contenedor fila (Picker + Texto) */
-.color-picker-container {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    background: #f8f9fa;
-    padding: 0.75rem;
-    border-radius: 12px;
-    border: 1px solid #e9ecef;
+.modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center;
+    align-items: center; z-index: 2000; opacity: 1; transition: opacity 0.2s;
 }
-
-/* Wrapper para hacer el input redondo y bonito */
-.color-input-wrapper {
-    position: relative;
-    width: 45px;
-    height: 45px;
-    border-radius: 50%;
-    overflow: hidden;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    border: 2px solid white;
-    transition: transform 0.2s;
-    cursor: pointer;
+.modal-overlay.hidden { display: none; opacity: 0; }
+.modal-content {
+    background: white; padding: 2rem; border-radius: 12px; width: 90%;
+    max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); animation: slideUp 0.3s ease;
 }
-
-.color-input-wrapper:hover {
-    transform: scale(1.1);
-}
-
-/* El input real (lo hacemos gigante para que ocupe todo el wrapper y sea clickable) */
-#custom-color-picker {
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    padding: 0;
-    margin: 0;
-    border: none;
-    cursor: pointer;
-    appearance: none;
-    background: none;
-}
-
-/* Texto Hexadecimal */
-#color-hex-display {
-    font-family: 'SF Mono', 'Consolas', 'Courier New', monospace;
-    font-size: 1rem;
-    color: var(--color-secundario-oscuro);
-    background: white;
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    border: 1px solid #dee2e6;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    min-width: 80px;
-    text-align: center;
-}
-
-/* =========================================
-   PALETA RÁPIDA (GRID)
-   ========================================= */
-
-.palette-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); /* Responsive automático */
-    gap: 12px;
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-}
-
-.empty-msg {
-    font-size: 0.85rem;
-    color: #adb5bd;
-    grid-column: 1 / -1; /* Ocupa todo el ancho */
-    font-style: italic;
-}
-
-/* Los círculos de la paleta */
-.color-swatch {
-    width: 100%; /* Se adapta al grid */
-    aspect-ratio: 1 / 1; /* Siempre cuadrados/redondos */
-    border-radius: 50%;
-    cursor: pointer;
-    border: 2px solid rgba(0,0,0,0.05); /* Borde sutil por defecto */
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efecto Pop */
-    position: relative;
-}
-
-.color-swatch:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-    z-index: 2;
-}
-
-/* ESTADO SELECCIONADO (El efecto pro) */
-.color-swatch.selected {
-    transform: scale(1.15);
-    border-color: white !important; /* Anillo interior blanco */
-    box-shadow: 
-        0 0 0 3px var(--color-primario), /* Anillo exterior azul */
-        0 8px 15px rgba(0,0,0,0.2);      /* Sombra */
-    z-index: 2;
-}
-
-/* Ajuste para el formulario */
-.form-group label {
-    font-size: 0.9rem;
-    color: var(--color-secundario);
-    margin-bottom: 0.5rem;
-    display: block;
-}
-
-/* --- CALCULADORA DE NOTAS --- */
-.calc-container {
-    max-width: 500px;
-    margin: 2rem auto;
-    text-align: center;
-    padding: 0 1rem;
-}
-
-.calc-container h1 {
-    color: var(--color-primario);
-    margin-bottom: 1.5rem;
-}
-
-.calc-card {
-    background: white;
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-    text-align: left;
-}
-
-/* Inputs bonitos */
-.input-group {
-    margin-bottom: 1.5rem;
-}
-
-.input-group label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: #555;
-    font-size: 0.9rem;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    transition: border-color 0.2s;
-    outline: none;
-}
-
-.input-group input:focus {
-    border-color: var(--color-primario);
-}
-
-/* --- AJUSTE DE FILA (Aciertos y Errores) --- */
-.calc-row {
-    display: flex;
-    gap: 15px; /* Espacio de seguridad entre las dos cajas */
-    align-items: flex-end; /* Alinea las cajas abajo por si las etiquetas tienen distinta altura */
-}
-
-.calc-row .input-group {
-    flex: 1;      /* Que ocupen el mismo ancho (50% cada una) */
-    min-width: 0; /* TRUCO: Evita que la caja se salga de la pantalla en móviles pequeños */
-}
-
-/* --- ESTILO DE LOS INPUTS (Cajas de texto) --- */
-.input-group input {
-    width: 100%;
-    /* CLAVE: Esto mete el borde y el relleno DENTRO del ancho total, evitando que se monten */
-    box-sizing: border-box; 
-    
-    padding: 12px 15px; /* Un poco más de aire dentro */
-    border: 2px solid #e0e0e0;
-    border-radius: 12px; /* Bordes más redonditos, más moderno */
-    font-size: 1.1rem;
-    background-color: #fafafa; /* Fondo muy sutil para diferenciarlo del blanco */
-    transition: all 0.2s ease;
-    outline: none;
-    
-    /* Eliminar apariencia por defecto en iOS/Android para que se vea nuestro diseño */
-    -webkit-appearance: none;
-    appearance: none;
-}
-
-.input-group input:focus {
-    border-color: var(--color-primario);
-    background-color: white;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Sombra suave al escribir */
-}
-
-/* Opcional: Si quieres que en pantallas MUY pequeñas (móviles antiguos) se pongan uno debajo de otro */
-@media (max-width: 350px) {
-    .calc-row {
-        flex-direction: column;
-        gap: 10px;
-    }
-}
-
-/* Info de preguntas en blanco */
-.blancas-info {
-    text-align: center;
-    font-size: 0.9rem;
-    color: #888;
-    margin-bottom: 1.5rem;
-    background: #f9f9f9;
-    padding: 8px;
-    border-radius: 8px;
-}
-
-.divider {
-    border: 0;
-    border-top: 1px solid #eee;
-    margin: 1.5rem 0;
-}
-
-/* Caja de Resultado */
-.result-box {
-    text-align: center;
-    background: #f8f9fa;
-    padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid #eee;
-    transition: all 0.3s;
-}
-
-.result-label {
-    display: block;
-    font-size: 0.85rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: #777;
-    margin-bottom: 0.5rem;
-}
-
-#final-score {
-    font-size: 3rem;
-    margin: 0;
-    color: var(--color-primario);
-    line-height: 1;
-}
-
-.score-msg {
-    display: block;
-    margin-top: 0.5rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-}
-
-/* Colores dinámicos para el resultado (Aprobado/Suspenso) */
-.result-box.pass {
-    background-color: #e8f5e9;
-    border-color: #c8e6c9;
-}
-.result-box.pass #final-score { color: #2e7d32; }
-.result-box.pass .score-msg { color: #2e7d32; }
-
-.result-box.fail {
-    background-color: #ffebee;
-    border-color: #ffcdd2;
-}
-.result-box.fail #final-score { color: #c62828; }
-.result-box.fail .score-msg { color: #c62828; }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-content h2 { margin-top: 0; color: var(--color-primario); margin-bottom: 1rem; font-size: 1.2rem; }
+.modal-form label { display: block; font-weight: 600; margin-bottom: 5px; color: #555; font-size: 0.9rem; }
+.modal-form input, .modal-form textarea { width: 100%; padding: 10px; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 8px; font-family: inherit; resize: none; box-sizing: border-box; }
+.modal-buttons { display: flex; justify-content: space-between; margin-top: 1rem; }
+.right-btns { display: flex; gap: 10px; }
+.btn-primary { background: var(--color-primario); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+.btn-secondary { background: #f1f3f5; color: #333; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
+.btn-danger { background: #ffebee; color: #c62828; border: 1px solid #ffcdd2; padding: 8px 16px; border-radius: 6px; cursor: pointer; }
