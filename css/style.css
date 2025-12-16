@@ -695,6 +695,105 @@ button.btn-yellow-state:hover {
     flex-shrink: 0; 
 }
 
+/* Botón para mover tarea al día siguiente */
+.move-task-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.6;
+    flex-shrink: 0;
+    transition: opacity 0.2s, transform 0.2s;
+    margin-left: 0.5rem;
+    padding: 0 0.25rem;
+}
+
+.move-task-btn:hover {
+    opacity: 1;
+    transform: translateX(3px); /* Efecto de movimiento a la derecha */
+}
+
+/* --- MENÚ DE TAREAS (TRES PUNTOS) --- */
+
+/* El contenedor del botón de menú */
+.task-actions-container {
+    position: relative; /* Necesario para que el menú flote respecto a este botón */
+    margin-left: 0.5rem;
+}
+
+/* El botón de los tres puntos (⋮) */
+.task-menu-btn {
+    background: none;
+    border: none;
+    font-size: 1.3rem;
+    color: #888;
+    cursor: pointer;
+    padding: 0 0.5rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.task-menu-btn:hover,
+.task-menu-btn.active {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+/* El menú desplegable (Oculto por defecto) */
+.task-dropdown {
+    display: none; /* Oculto */
+    position: absolute;
+    right: 0;
+    top: 100%; /* Justo debajo del botón */
+    
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    z-index: 1000; /* Por encima de todo */
+    
+    min-width: 140px;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+/* Cuando tiene la clase 'show', se muestra */
+.task-dropdown.show {
+    display: flex;
+    animation: fadeIn 0.1s ease-out;
+}
+
+/* Los botones dentro del menú */
+.task-dropdown button {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    width: 100%;
+    color: #444;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacio entre icono y texto */
+}
+
+.task-dropdown button:hover {
+    background-color: #f5f9ff;
+    color: var(--color-primario);
+}
+
+.task-dropdown button.delete-task-btn:hover {
+    background-color: #ffebee;
+    color: #c62828;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* --- FILTRO SEMANAL --- */
 
 /* Estilo del selector */

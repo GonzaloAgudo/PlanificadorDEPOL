@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const weekTitle = document.getElementById('week-title');
     const prevWeekBtn = document.getElementById('prev-week-btn');
     const nextWeekBtn = document.getElementById('next-week-btn');
-    // Referencia al selector del filtro
     const filterSelect = document.getElementById('filter-tasks-select');
     
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
@@ -31,8 +30,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // --- Función para formatear fechas ---
-    // Formato YYYY-MM-DD
     function formatDate(date) {
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        const d = String(date.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+
+    // --- Función para sumar 1 día (Para el botón "Mover a Mañana") ---
+    function sumarDia(fechaStr) {
+        const date = new Date(fechaStr);
+        date.setDate(date.getDate() + 1);
         const y = date.getFullYear();
         const m = String(date.getMonth() + 1).padStart(2, '0');
         const d = String(date.getDate()).padStart(2, '0');
@@ -64,10 +72,8 @@ document.addEventListener('DOMContentLoaded', () => {
             col.querySelector('.task-list').innerHTML = ''; 
         });
 
-        // Cargar las reglas de color
         await fetchColorRules();
         
-        // Pedir a la API las tareas para este rango de fechas
         try {
             const q = query(
                 collection(db, "tareas_semanales"),
@@ -87,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Lógica de Tareas ---
+    // --- Lógica de Tareas (Orden y Movimiento Drag&Drop) ---
 
     async function saveTaskOrder(taskIds) {
         if (!auth.currentUser) return;
@@ -126,6 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // --- Renderizado de una Tarea (Con Menú de 3 Puntos) ---
     function renderTask(taskDoc) {
         const task = taskDoc.data();
         const cell = document.querySelector(`.day-column[data-date="${task.fecha_tarea}"]`);
@@ -136,17 +143,34 @@ document.addEventListener('DOMContentLoaded', () => {
         listItem.className = 'task-item'; 
         listItem.setAttribute('data-id', taskDoc.id); 
         
+        // --- Bloqueo de menú contextual nativo (Tablet/Móvil) ---
+        listItem.addEventListener('contextmenu', (e) => {
+            if (e.cancelable) { e.preventDefault(); e.stopPropagation(); }
+            return false;
+        });
+        listItem.addEventListener('selectstart', (e) => e.preventDefault());
+        // --------------------------------------------------------
+
         applyColorRule(listItem, task.texto); 
 
         if (task.completada) {
             listItem.classList.add('completed');
         }
 
+        // HTML Actualizado: Checkbox + Texto + Menú Desplegable
         listItem.innerHTML = `
             <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
             <span class="task-text">${task.texto}</span>
-            <button class="edit-task-btn">✏️</button>
-            <button class="delete-task-btn">🗑️</button>
+            
+            <div class="task-actions-container">
+                <button class="task-menu-btn">⋮</button>
+                
+                <div class="task-dropdown">
+                    <button class="move-task-btn">➡️ Mover a mañana</button>
+                    <button class="edit-task-btn">✏️ Editar</button>
+                    <button class="delete-task-btn">🗑️ Borrar</button>
+                </div>
+            </div>
         `;
         taskList.appendChild(listItem);
     }
@@ -159,7 +183,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 handle: '.task-item',
                 delay: 200, 
                 delayOnTouchOnly: true, 
-                filter: '.task-checkbox, .edit-task-btn, .delete-task-btn',
+                // Evitamos que se pueda arrastrar desde los controles
+                filter: '.task-checkbox, .task-menu-btn, .task-dropdown', 
                 onEnd: function (evt) {
                     const sourceList = evt.from;
                     const destList = evt.to;
@@ -176,6 +201,8 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // --- Funciones CRUD ---
 
     async function addTask(text, date) {
         if (text.trim() === '' || !auth.currentUser) return;
@@ -225,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try { await deleteDoc(doc(db, "tareas_semanales", id)); } catch(e) { console.error(e); }
     }
 
-    // --- Lógica del Filtro (ESTA ES LA PARTE QUE FALTABA) ---
+    // --- Lógica del Filtro ---
     if (filterSelect) {
         filterSelect.addEventListener('change', (e) => {
             if (e.target.value === 'pending') {
@@ -236,26 +263,103 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Event Listeners ---
-    weekGrid.addEventListener('click', (e) => {
+    // --- DELEGACIÓN DE EVENTOS (CLICK) ---
+    weekGrid.addEventListener('click', async (e) => {
+        
+        // 0. GESTIÓN DEL MENÚ DESPLEGABLE (NUEVO)
+        if (e.target.classList.contains('task-menu-btn')) {
+            e.stopPropagation(); // Evita que se propague
+            
+            // Cierra todos los otros menús abiertos
+            document.querySelectorAll('.task-dropdown.show').forEach(menu => {
+                if (menu !== e.target.nextElementSibling) menu.classList.remove('show');
+            });
+            
+            // Alternar el actual
+            const dropdown = e.target.nextElementSibling;
+            dropdown.classList.toggle('show');
+            return;
+        }
+
+        // Si pulsamos una opción del menú, cerramos el menú visualmente
+        if (e.target.closest('.task-dropdown')) {
+             const dropdown = e.target.closest('.task-dropdown');
+             dropdown.classList.remove('show');
+        }
+
         const listItem = e.target.closest('li.task-item');
 
+        // 1. Añadir Tarea Nueva (Input inferior)
         if (e.target.tagName === 'BUTTON' && e.target.closest('.task-input-group')) {
             const dayColumn = e.target.closest('.day-column');
             const date = dayColumn.dataset.date;
             const input = dayColumn.querySelector('input');
             addTask(input.value, date);
             input.value = ''; 
+            return;
         }
 
         if (!listItem) return;
         const taskId = listItem.dataset.id;
 
-        if (e.target.classList.contains('task-checkbox')) { const isCompleted = e.target.checked; listItem.classList.toggle('completed', isCompleted); updateTask(taskId, isCompleted); }
-        else if (e.target.classList.contains('edit-task-btn')) { const currentText = listItem.querySelector('.task-text').textContent; editTask(taskId, currentText, listItem); }
-        else if (e.target.classList.contains('delete-task-btn')) { listItem.remove(); deleteTask(taskId); }
+        // 2. Checkbox (Completar)
+        if (e.target.classList.contains('task-checkbox')) { 
+            const isCompleted = e.target.checked; 
+            listItem.classList.toggle('completed', isCompleted); 
+            updateTask(taskId, isCompleted); 
+        }
+        // 3. Editar
+        else if (e.target.classList.contains('edit-task-btn')) { 
+            const currentText = listItem.querySelector('.task-text').textContent; 
+            editTask(taskId, currentText, listItem); 
+        }
+        // 4. Borrar
+        else if (e.target.classList.contains('delete-task-btn')) { 
+            listItem.remove(); 
+            deleteTask(taskId); 
+        }
+        
+        // 5. MOVER A MAÑANA (Lógica Optimista)
+        else if (e.target.classList.contains('move-task-btn')) {
+            const dayColumn = listItem.closest('.day-column');
+            const currentDate = dayColumn.dataset.date;
+            
+            // Calculamos la nueva fecha
+            const newDate = sumarDia(currentDate);
+
+            // Capturamos datos para repintar
+            const taskText = listItem.querySelector('.task-text').textContent;
+            const isCompleted = listItem.classList.contains('completed');
+
+            // --- PASO 1: Borrar visualmente YA ---
+            listItem.remove();
+
+            try {
+                // --- PASO 2: Guardar en DB ---
+                await updateDoc(doc(db, "tareas_semanales", taskId), { fecha_tarea: newDate });
+
+                // --- PASO 3: Pintar en destino si es visible ---
+                const targetColumn = document.querySelector(`.day-column[data-date="${newDate}"]`);
+                if (targetColumn) {
+                    renderTask({
+                        id: taskId,
+                        data: () => ({
+                            texto: taskText,
+                            fecha_tarea: newDate,
+                            completada: isCompleted,
+                            orden: 9999
+                        })
+                    });
+                }
+            } catch (error) {
+                console.error("Error moviendo tarea:", error);
+                alert("Error al mover. Recargando...");
+                location.reload();
+            }
+        }
     });
 
+    // Enter para añadir tareas
     weekGrid.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             if (e.target.tagName === 'INPUT' && e.target.closest('.task-input-group')) {
@@ -269,7 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // --- Listeners de Navegación de Semana ---
+    // --- Navegación Semanas ---
     prevWeekBtn.addEventListener('click', () => {
         currentWeekStart.setDate(currentWeekStart.getDate() - 7); 
         loadWeek(currentWeekStart);
@@ -280,13 +384,14 @@ document.addEventListener('DOMContentLoaded', () => {
         loadWeek(currentWeekStart);
     });
     
-    // --- Lógica de Paneo (Arrastrar Fondo) ---
+    // --- Paneo (Arrastrar Fondo) ---
     let isPanning = false;
     let startX;
     let scrollLeft;
 
     weekGrid.addEventListener('mousedown', (e) => {
-        const clickedOnTask = e.target.closest('.task-item, .task-input-group, button, input, .task-checkbox, .delete-task-btn, .edit-task-btn');
+        // Bloqueamos paneo si tocamos controles
+        const clickedOnTask = e.target.closest('.task-item, .task-input-group, button, input, .task-checkbox, .task-dropdown, .task-menu-btn');
         if (e.button !== 0 || clickedOnTask) return;
         isPanning = true;
         weekGrid.classList.add('is-panning');
@@ -309,7 +414,16 @@ document.addEventListener('DOMContentLoaded', () => {
         weekGrid.classList.remove('is-panning');
     });
 
-    // --- Carga Inicial (Esperando Auth) ---
+    // --- CERRAR MENÚS AL HACER CLICK FUERA (GLOBAL) ---
+    document.addEventListener('click', (e) => {
+        if (!e.target.matches('.task-menu-btn')) {
+            document.querySelectorAll('.task-dropdown.show').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+    });
+
+    // --- Carga Inicial ---
     auth.onAuthStateChanged(user => {
         if (user) {
             loadWeek(currentWeekStart);
