@@ -869,6 +869,72 @@ button.btn-yellow-state:hover {
     .d-name { display: inline-block; } /* Visible en móvil */
 }
 
+/* =========================================
+   ESTILOS DE ESTADO (HOY, FESTIVOS, ETC)
+   ========================================= */
+
+/* 1. DÍA ACTUAL (HOY) - Base */
+.calendar-day.is-today {
+    background-color: #e3f2fd !important; /* Azul muy clarito */
+    border: 2px solid #2196f3 !important; /* Borde azul fuerte */
+    position: relative;
+    z-index: 5;
+}
+
+/* 2. FINES DE SEMANA Y FESTIVOS (Suave) */
+.calendar-day.is-weekend {
+    background-color: #ffecec !important; 
+    /* Borde rojo suave (pastel) */
+    border: 1px solid #ffcdd2 !important; 
+    color: #c0392b; 
+}
+
+/* Ocultar la etiqueta de texto del evento "Festivo" */
+.calendar-event.festivo-hidden {
+    display: none !important;
+}
+
+/* =========================================
+   AJUSTES ESPECÍFICOS PARA MÓVIL
+   ========================================= */
+
+@media (max-width: 768px) {
+    
+    /* Ajuste de color de borde en festivos para móvil */
+    .calendar-day.is-weekend {
+        background-color: #ffecec !important;
+        border-color: #ffcdd2 !important;
+    }
+
+    /* ETIQUETA "HOY" */
+    .calendar-day.is-today::after {
+        content: "HOY";
+        position: absolute;
+        top: 8px;     
+        right: 8px;
+        
+        background: #2196f3; 
+        color: white;
+        font-size: 0.75rem; 
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-weight: bold;
+        z-index: 20; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    }
+
+    /* --- CAMBIO CLAVE: OCULTAR NOMBRE DEL DÍA EN "HOY" --- */
+    /* Si el día es "is-today", el span con el nombre (Lun, Mar...) desaparece */
+    .calendar-day.is-today .d-name {
+        display: none !important;
+    }
+
+    /* Restaurar comportamiento normal para el resto de días */
+    .day-number {
+        overflow: visible; 
+    }
+}
+
 /* --- 11. PÁGINA: Ajustes (ajustes.php) --- */
 
 .settings-menu-grid {
