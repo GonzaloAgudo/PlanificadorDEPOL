@@ -4,6 +4,7 @@ import {
     doc, updateDoc, deleteDoc, orderBy, limit, getDocs, writeBatch, setDoc, getDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+// Referencias al DOM
 const tableHead = document.getElementById('table-header-row');
 const tableBody = document.getElementById('progress-body');
 const addRowBtn = document.getElementById('add-row-btn');
@@ -55,7 +56,7 @@ async function addColumn() {
     // 1. Guardar la nueva columna
     await saveColumnsConfig();
     
-    // 2. Recalcular porcentajes de TODAS las filas (porque ahora el 100% es diferente)
+    // 2. Recalcular porcentajes de TODAS las filas
     await recalculateAllDomains();
 }
 
@@ -72,10 +73,7 @@ async function deleteColumn(colId) {
     if(!confirm("¿Borrar esta columna y sus datos?")) return;
     dynamicColumns = dynamicColumns.filter(c => c.id !== colId);
     
-    // 1. Guardar la nueva configuración
     await saveColumnsConfig();
-
-    // 2. Recalcular porcentajes (ahora hay menos columnas, el % sube)
     await recalculateAllDomains();
 }
 
@@ -84,7 +82,7 @@ async function saveColumnsConfig() {
     await updateDoc(configRef, { columns: dynamicColumns });
 }
 
-// --- FUNCIÓN NUEVA: RECALCULAR TODO EL DOMINIO ---
+// --- RECALCULAR DOMINIO GLOBAL ---
 async function recalculateAllDomains() {
     if (rowsData.length === 0) return;
     
@@ -94,12 +92,9 @@ async function recalculateAllDomains() {
 
     rowsData.forEach(row => {
         const checks = row.checks || {};
-        // Contamos cuántos checks activos coinciden con las columnas que EXISTEN actualmente
         const checkedCount = dynamicColumns.filter(col => checks[col.id]).length;
-        
         const nuevoDominio = totalCols === 0 ? 0 : Math.round((checkedCount / totalCols) * 100);
 
-        // Si el porcentaje ha cambiado, lo añadimos a la actualización
         if (row.dominio !== nuevoDominio) {
             const rowRef = doc(db, "progreso_temario", row.id);
             batch.update(rowRef, { dominio: nuevoDominio });
@@ -126,8 +121,7 @@ function loadData() {
     );
 
     onSnapshot(q, (snapshot) => {
-        loadingMsg.style.display = 'none';
-        // Guardamos los datos en memoria para poder usarlos en recalculateAllDomains
+        if (loadingMsg) loadingMsg.style.display = 'none';
         rowsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         renderTable();
     });
@@ -161,7 +155,6 @@ async function updateCheck(id, colId, isChecked) {
     
     currentChecks[colId] = isChecked;
     
-    // Calcular dominio solo para esta fila (más rápido)
     const totalCols = dynamicColumns.length;
     const checkedCount = dynamicColumns.filter(c => currentChecks[c.id]).length;
     const nuevoDominio = totalCols === 0 ? 0 : Math.round((checkedCount / totalCols) * 100);
@@ -182,7 +175,7 @@ async function deleteRow(id) {
 // =======================================================
 
 function renderTable() {
-    // 1. Renderizar Cabeceras
+    // 1. CABECERAS
     let headerHTML = `
         <th style="width: 200px;">Tema</th>
         <th style="width: 140px;">Estado</th>
@@ -203,6 +196,7 @@ function renderTable() {
     headerHTML += `<th style="width: 200px;">Comentarios</th><th style="width: 40px;"></th>`;
     tableHead.innerHTML = headerHTML;
 
+    // Listeners cabecera
     tableHead.querySelectorAll('.col-name').forEach(span => {
         span.addEventListener('click', (e) => {
             const colId = e.target.closest('th').dataset.colId;
@@ -217,13 +211,14 @@ function renderTable() {
         });
     });
 
-    // 2. Renderizar Filas
+    // 2. FILAS
     tableBody.innerHTML = '';
     rowsData.forEach(row => {
         const tr = document.createElement('tr');
         tr.className = 'progress-row';
         tr.setAttribute('data-id', row.id);
 
+        // Selector de estado
         let optionsHTML = '';
         for (const [key, val] of Object.entries(STATUS_OPTIONS)) {
             const selected = row.estado === key ? 'selected' : '';
@@ -232,9 +227,11 @@ function renderTable() {
         const currStyle = STATUS_OPTIONS[row.estado || 'sin_empezar'];
         const selectStyle = `background-color: ${currStyle.color}; color: ${currStyle.text};`;
 
+        // Barra de dominio
         const dom = row.dominio || 0;
         let barColor = dom === 100 ? '#4caf50' : '#2196f3'; 
 
+        // Construcción de la fila
         let rowHTML = `
             <td><input type="text" class="notion-input input-tema" value="${row.tema || ''}"></td>
             <td><select class="select-status" style="${selectStyle}">${optionsHTML}</select></td>
@@ -246,6 +243,7 @@ function renderTable() {
             </td>
         `;
 
+        // Checkboxes dinámicos
         dynamicColumns.forEach(col => {
             const isChecked = row.checks && row.checks[col.id] ? 'checked' : '';
             rowHTML += `
@@ -255,15 +253,22 @@ function renderTable() {
             `;
         });
 
+        // --- CAMBIO CLAVE: TEXTAREA EXPANDIBLE ---
         rowHTML += `
-            <td><input type="text" class="notion-input input-coments" value="${row.comentarios || ''}" placeholder="..."></td>
+            <td class="td-comentario">
+                <textarea class="input-comentario" rows="1" placeholder="..." data-id="${row.id}">${row.comentarios || ''}</textarea>
+            </td>
             <td class="td-center"><button class="btn-icon-del">🗑️</button></td>
         `;
 
         tr.innerHTML = rowHTML;
 
+        // Listeners
         tr.querySelector('.input-tema').addEventListener('change', (e) => updateRow(row.id, 'tema', e.target.value));
-        tr.querySelector('.input-coments').addEventListener('change', (e) => updateRow(row.id, 'comentarios', e.target.value));
+        
+        // Listener para el comentario (ahora textarea)
+        tr.querySelector('.input-comentario').addEventListener('change', (e) => updateRow(row.id, 'comentarios', e.target.value));
+        
         tr.querySelector('.btn-icon-del').addEventListener('click', () => deleteRow(row.id));
         
         const select = tr.querySelector('.select-status');
@@ -282,28 +287,19 @@ function renderTable() {
 
         tableBody.appendChild(tr);
     });
+    
+    // NOTA: No inicializamos SortableJS para que funcione el scroll en tablet
 }
 
 // --- INIT ---
-addRowBtn.addEventListener('click', addRow);
-addColBtn.addEventListener('click', addColumn);
-
-new Sortable(tableBody, {
-    animation: 150,
-    handle: '.input-tema', 
-    onEnd: async function (evt) {
-        const itemIds = Array.from(tableBody.querySelectorAll('tr')).map(el => el.dataset.id);
-        const batch = writeBatch(db);
-        itemIds.forEach((id, index) => {
-            batch.update(doc(db, "progreso_temario", id), { orden: index + 1 });
-        });
-        await batch.commit();
-    }
-});
+if(addRowBtn) addRowBtn.addEventListener('click', addRow);
+if(addColBtn) addColBtn.addEventListener('click', addColumn);
 
 auth.onAuthStateChanged(user => {
     if (user) {
         loadConfig(); 
         loadData();   
-    } else window.location.href = 'login.html';
+    } else {
+        window.location.href = 'login.html';
+    }
 });

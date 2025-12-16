@@ -478,7 +478,32 @@ button.btn-yellow-state:hover {
 
 #task-list { list-style: none; padding: 0; margin: 0; max-height: 400px; overflow-y: auto; margin-bottom: 1rem; }
 .task-list { list-style: none; padding: 0; margin: 0; max-height: 450px; overflow-y: auto; }
-.task-item { display: flex; align-items: center; padding: 0.75rem 0.5rem; border-bottom: 1px solid #eee; border-left: 4px solid transparent; transition: background-color 0.2s; cursor: grab; }
+.task-item { 
+    display: flex; 
+    align-items: center; 
+    padding: 0.75rem 0.5rem; 
+    border-bottom: 1px solid #eee; 
+    border-left: 4px solid transparent; 
+    transition: background-color 0.2s; 
+    cursor: grab; 
+
+    /* --- BLOQUEO PARA XIAOMI / ANDROID --- */
+    
+    /* 1. Imprescindible: Evita que el texto se vuelva azul (seleccionado) */
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+
+    /* 2. Evita el menú contextual de mantener pulsado */
+    -webkit-touch-callout: none !important;
+
+    /* 3. Evita el resaltado azul al tocar */
+    -webkit-tap-highlight-color: transparent !important;
+
+    /* 4. Permite scroll vertical pero deja el control horizontal/pulsación a JS */
+    touch-action: pan-y !important;
+}
 .task-item:last-child { border-bottom: none; }
 .task-item.sortable-ghost { opacity: 0.4; background-color: #e0f1fb; }
 .task-item.sortable-chosen { cursor: grabbing; }
@@ -1760,6 +1785,81 @@ button.btn-yellow-state:hover {
 @media (max-width: 900px) {
     .table-responsive { overflow-x: auto; padding-bottom: 1rem; }
     .progress-layout { padding: 1rem; padding-top: 5rem; }
+}
+
+/* =========================================
+   COMENTARIOS DEL TEMARIO (EFECTO POPUP)
+   ========================================= */
+
+/* 1. La celda de la tabla actúa como "ancla" */
+.td-comentario {
+    position: relative !important; /* Importante para que el popup salga desde aquí */
+    min-width: 150px;
+    vertical-align: top; /* Alineación limpia */
+}
+
+/* 2. ESTADO NORMAL: Pequeño y discreto (una sola línea) */
+.input-comentario {
+    width: 100%;
+    height: 32px !important;      /* Altura fija de una línea */
+    min-height: 32px !important;
+    
+    border: 1px solid transparent; /* Sin borde visible por defecto */
+    background-color: transparent;
+    
+    resize: none !important;      /* QUITAMOS LAS FLECHITAS DE TAMAÑO */
+    overflow: hidden !important;  /* Ocultamos lo que sobre */
+    
+    white-space: nowrap !important; /* Fuerza una sola línea */
+    text-overflow: ellipsis;      /* Pone "..." si el texto es largo */
+    
+    font-family: inherit;
+    font-size: 0.9rem;
+    padding: 5px;
+    border-radius: 4px;
+    cursor: pointer; /* Manita para indicar que es clickable */
+    transition: all 0.2s ease;
+}
+
+/* Al pasar el ratón por encima, marcamos un poco el borde */
+.input-comentario:hover {
+    background-color: #f5f5f5;
+    border-color: #e0e0e0;
+}
+
+/* 3. ESTADO EXPANDIDO (FOCUS): Se convierte en Popup */
+.input-comentario:focus {
+    position: absolute !important; /* FLOTA sobre la tabla */
+    top: -10px;  /* Lo subimos un poco para centrarlo bajo el dedo */
+    left: -10px; /* Lo movemos un poco a la izquierda */
+    
+    width: 300px !important;     /* Mucho más ancho */
+    height: 200px !important;    /* Mucho más alto */
+    
+    background: white !important;
+    color: black;
+    
+    /* Borde y sombra potentes para que destaque */
+    border: 2px solid #2196f3 !important; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3) !important;
+    
+    z-index: 9999 !important; /* Asegura que tape TODO lo de abajo */
+    
+    white-space: normal !important; /* Permite escribir párrafos */
+    overflow-y: auto !important;    /* Scroll vertical si escribes mucho */
+    
+    padding: 15px !important;
+    border-radius: 8px;
+    outline: none; /* Quitamos el borde azul feo del navegador */
+}
+
+/* AJUSTE PARA MÓVIL: Que no se salga de la pantalla por la derecha */
+@media (max-width: 768px) {
+    .input-comentario:focus {
+        width: 250px !important;
+        left: auto !important;
+        right: 0 !important; /* Se expande hacia la izquierda */
+    }
 }
 
 
