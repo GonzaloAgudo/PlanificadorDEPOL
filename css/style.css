@@ -1791,3 +1791,161 @@ button.btn-yellow-state:hover {
     margin-bottom: 0.5rem;
     display: block;
 }
+
+/* --- CALCULADORA DE NOTAS --- */
+.calc-container {
+    max-width: 500px;
+    margin: 2rem auto;
+    text-align: center;
+    padding: 0 1rem;
+}
+
+.calc-container h1 {
+    color: var(--color-primario);
+    margin-bottom: 1.5rem;
+}
+
+.calc-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    text-align: left;
+}
+
+/* Inputs bonitos */
+.input-group {
+    margin-bottom: 1.5rem;
+}
+
+.input-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    transition: border-color 0.2s;
+    outline: none;
+}
+
+.input-group input:focus {
+    border-color: var(--color-primario);
+}
+
+/* --- AJUSTE DE FILA (Aciertos y Errores) --- */
+.calc-row {
+    display: flex;
+    gap: 15px; /* Espacio de seguridad entre las dos cajas */
+    align-items: flex-end; /* Alinea las cajas abajo por si las etiquetas tienen distinta altura */
+}
+
+.calc-row .input-group {
+    flex: 1;      /* Que ocupen el mismo ancho (50% cada una) */
+    min-width: 0; /* TRUCO: Evita que la caja se salga de la pantalla en móviles pequeños */
+}
+
+/* --- ESTILO DE LOS INPUTS (Cajas de texto) --- */
+.input-group input {
+    width: 100%;
+    /* CLAVE: Esto mete el borde y el relleno DENTRO del ancho total, evitando que se monten */
+    box-sizing: border-box; 
+    
+    padding: 12px 15px; /* Un poco más de aire dentro */
+    border: 2px solid #e0e0e0;
+    border-radius: 12px; /* Bordes más redonditos, más moderno */
+    font-size: 1.1rem;
+    background-color: #fafafa; /* Fondo muy sutil para diferenciarlo del blanco */
+    transition: all 0.2s ease;
+    outline: none;
+    
+    /* Eliminar apariencia por defecto en iOS/Android para que se vea nuestro diseño */
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.input-group input:focus {
+    border-color: var(--color-primario);
+    background-color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05); /* Sombra suave al escribir */
+}
+
+/* Opcional: Si quieres que en pantallas MUY pequeñas (móviles antiguos) se pongan uno debajo de otro */
+@media (max-width: 350px) {
+    .calc-row {
+        flex-direction: column;
+        gap: 10px;
+    }
+}
+
+/* Info de preguntas en blanco */
+.blancas-info {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #888;
+    margin-bottom: 1.5rem;
+    background: #f9f9f9;
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.divider {
+    border: 0;
+    border-top: 1px solid #eee;
+    margin: 1.5rem 0;
+}
+
+/* Caja de Resultado */
+.result-box {
+    text-align: center;
+    background: #f8f9fa;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    transition: all 0.3s;
+}
+
+.result-label {
+    display: block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #777;
+    margin-bottom: 0.5rem;
+}
+
+#final-score {
+    font-size: 3rem;
+    margin: 0;
+    color: var(--color-primario);
+    line-height: 1;
+}
+
+.score-msg {
+    display: block;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Colores dinámicos para el resultado (Aprobado/Suspenso) */
+.result-box.pass {
+    background-color: #e8f5e9;
+    border-color: #c8e6c9;
+}
+.result-box.pass #final-score { color: #2e7d32; }
+.result-box.pass .score-msg { color: #2e7d32; }
+
+.result-box.fail {
+    background-color: #ffebee;
+    border-color: #ffcdd2;
+}
+.result-box.fail #final-score { color: #c62828; }
+.result-box.fail .score-msg { color: #c62828; }

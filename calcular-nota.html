@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcular Nota CNP</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="display: none;">
+
+    <button id="menu-toggle">☰</button>
+    <nav id="main-nav"></nav>
+
+    <main class="content-wrapper">
+        
+        <div class="calc-container">
+            <h1>Calculadora CNP 👮‍♂️</h1>
+
+            <div class="calendar-mode-switcher">
+                <button class="mode-btn active" data-mode="teoria">📖 Teoría (3 opc)</button>
+                <button class="mode-btn" data-mode="psicos">🧩 Psicos (4 opc)</button>
+            </div>
+
+            <div class="calc-card">
+                <div class="input-group full-width">
+                    <label>Nº Total de Preguntas (P)</label>
+                    <input type="number" id="input-total" placeholder="Ej: 100" min="1">
+                </div>
+
+                <div class="calc-row">
+                    <div class="input-group">
+                        <label>✅ Aciertos (A)</label>
+                        <input type="number" id="input-aciertos" placeholder="0" min="0">
+                    </div>
+
+                    <div class="input-group">
+                        <label>❌ Errores (E)</label>
+                        <input type="number" id="input-errores" placeholder="0" min="0">
+                    </div>
+                </div>
+
+                <div class="blancas-info">
+                    ⚪ En blanco: <span id="val-blancas">0</span>
+                </div>
+
+                <hr class="divider">
+
+                <div class="result-box">
+                    <span class="result-label">TU NOTA</span>
+                    <h2 id="final-score">0.000</h2>
+                    <span id="score-message" class="score-msg">Introduce tus datos</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/nav.js"></script>
+    <script type="module" src="js/calcular-nota.js"></script>
+</body>
+</html>

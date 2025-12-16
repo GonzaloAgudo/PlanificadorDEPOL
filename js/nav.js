@@ -12,8 +12,9 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Estadísticas', link: 'stats.html' },
         { name: 'Planificador Semanal', link: 'semana.html' },
         { name: 'Calendario', link: 'calendario.html' },
-        { name: 'Bloc de Notas', link: 'notas.html' },
         { name: 'Progreso', link: 'progreso.html' },
+        { name: "Calcular Nota", link: "calcular-nota.html", icon: "🧮" },
+        { name: 'Bloc de Notas', link: 'notas.html' },
         { name: 'Ajustes', link: 'ajustes.html' }
     ];
 
