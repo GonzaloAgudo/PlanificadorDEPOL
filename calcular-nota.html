@@ -6,6 +6,7 @@
     <title>Calcular Nota CNP</title>
     <link rel="icon" href="assets/logo.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body style="display: none;">
 
@@ -15,46 +16,89 @@
     <main class="content-wrapper">
         
         <div class="calc-container">
-            <h1>Calculadora CNP 👮‍♂️</h1>
+            
+            <div id="view-calculator">
+                <h1>Calculadora CNP 👮‍♂️</h1>
 
-            <div class="calendar-mode-switcher">
-                <button class="mode-btn active" data-mode="teoria">📖 Teoría (3 opc)</button>
-                <button class="mode-btn" data-mode="psicos">🧩 Psicos (4 opc)</button>
-            </div>
-
-            <div class="calc-card">
-                <div class="input-group full-width">
-                    <label>Nº Total de Preguntas (P)</label>
-                    <input type="number" id="input-total" placeholder="Ej: 100" min="1">
+                <div class="calendar-mode-switcher">
+                    <button class="mode-btn active" data-mode="teoria">📖 Teoría (3 opc)</button>
+                    <button class="mode-btn" data-mode="psicos">🧩 Psicos (4 opc)</button>
                 </div>
 
-                <div class="calc-row">
-                    <div class="input-group">
-                        <label>✅ Aciertos (A)</label>
-                        <input type="number" id="input-aciertos" placeholder="0" min="0">
+                <div class="calc-card">
+                    <div class="input-group full-width">
+                        <label>Nº Total de Preguntas (P)</label>
+                        <input type="number" id="input-total" placeholder="Ej: 100" min="1" class="calc-input">
                     </div>
 
-                    <div class="input-group">
-                        <label>❌ Errores (E)</label>
-                        <input type="number" id="input-errores" placeholder="0" min="0">
+                    <div class="calc-row">
+                        <div class="input-group">
+                            <label>✅ Aciertos (A)</label>
+                            <input type="number" id="input-aciertos" placeholder="0" min="0" class="calc-input">
+                        </div>
+
+                        <div class="input-group">
+                            <label>❌ Errores (E)</label>
+                            <input type="number" id="input-errores" placeholder="0" min="0" class="calc-input">
+                        </div>
                     </div>
-                </div>
 
-                <div class="blancas-info">
-                    ⚪ En blanco: <span id="val-blancas">0</span>
-                </div>
+                    <div class="blancas-info">
+                        ⚪ En blanco: <span id="val-blancas">0</span>
+                    </div>
 
-                <hr class="divider">
+                    <hr class="divider">
 
-                <div class="result-box">
-                    <span class="result-label">TU NOTA</span>
-                    <h2 id="final-score">0.000</h2>
-                    <span id="score-message" class="score-msg">Introduce tus datos</span>
+                    <div class="result-box">
+                        <span class="result-label">TU NOTA</span>
+                        <h2 id="final-score">0.000</h2>
+                        <span id="score-message" class="score-msg">Introduce tus datos</span>
+                    </div>
+
+                    <button id="btn-go-progress" class="btn-secondary-outline" style="width:100%; margin-top: 1.5rem;">
+                        📈 Guardar y Ver Progreso
+                    </button>
                 </div>
             </div>
+
+            <div id="view-progress" class="hidden">
+                <div class="progress-header-nav">
+                    <button id="btn-back-calc" class="nav-arrow" title="Volver a la calculadora">←</button>
+                    <h2>Tu Evolución</h2>
+                </div>
+
+                <div class="calc-card">
+                    
+                    <div class="add-grade-form">
+                        <input type="text" id="grade-title" placeholder="Ej: Test T5 o Examen 1" class="input-mini">
+                        <input type="number" id="grade-score" placeholder="Nota" step="0.001" class="input-mini">
+                        <input type="date" id="grade-date" class="input-mini">
+                        
+                        <button id="btn-save-grade" class="btn-primary-mini" title="Guardar">+</button>
+                        
+                        <button id="btn-cancel-edit" class="btn-cancel-mini hidden" title="Cancelar edición">✖</button>
+                    </div>
+
+                    <h3 style="margin: 20px 0 10px 0; color: #2c3e50; font-size: 1.1rem;">🏆 Exámenes y Simulacros</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="examsChart"></canvas>
+                    </div>
+
+                    <h3 style="margin: 20px 0 10px 0; color: #6c757d; font-size: 1.1rem;">📝 Tests de Práctica</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="testsChart"></canvas>
+                    </div>
+
+                    <div class="history-list-container">
+                        <h3 style="font-size: 0.9rem; color: #888; margin-top: 1rem; border-bottom: 1px solid #eee;">Historial Reciente</h3>
+                        <ul id="grades-list" class="history-list" style="margin-top: 10px;"></ul>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
-
+    
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>
     <script type="module" src="js/calcular-nota.js"></script>
