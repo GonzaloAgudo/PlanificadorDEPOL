@@ -127,12 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         while (pointer < safetyEnd) {
             // Solo dibujamos si el puntero coincide con el día que estamos viendo
-            // (Importante si una sesión cruza la medianoche)
             if (pointer.getDate() === currentDate.getDate()) {
                 const hour = pointer.getHours();
                 const label = `${hour}:00`;
                 const index = labels.indexOf(label);
-                if (index > -1) targetDataset.data[index] += 1;
+                if (index > -1) targetDataset.data[index] += 1; // Sumamos 1 minuto
             }
             pointer.setMinutes(pointer.getMinutes() + 1);
             if (pointer > endDate) break;
@@ -179,12 +178,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function dibujarGrafico(labels, sessions, filtroActividad, filtroTiempo) {
         if (miGrafico) miGrafico.destroy();
 
+        // Referencia al contenedor del canvas (para cambiarle la altura)
+        const chartContainer = canvas.parentElement;
+
         let datasets = [];
         let isStacked = false;
         let unidad = 'horas';
         
-        // Si es día (sea hoy o cualquiera), mostramos minutos distribuidos
-        if (filtroTiempo === 'day' && filtroActividad !== 'conjunto') {
+        if (filtroTiempo === 'day') {
             unidad = 'minutos';
         }
         
@@ -197,7 +198,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(s.tema) temaMap[s.tema] = (temaMap[s.tema] || 0) + s.duracion_minutos;
             });
             
-            const sortedTemas = Object.keys(temaMap).sort((a, b) => temaMap[b] - temaMap[a]); // Ordenar por duración
+            const sortedTemas = Object.keys(temaMap).sort((a, b) => temaMap[b] - temaMap[a]); 
+
+            // --- LÓGICA DE ALTURA DINÁMICA ---
+            // Calculamos: 35px por cada tema + 50px de margen
+            // Si hay 20 temas -> 750px de alto. Si hay 3 -> 155px.
+            const dynamicHeight = (sortedTemas.length * 35) + 50;
+            // Aplicamos la altura al contenedor (importante que sea .chart-container)
+            chartContainer.style.height = `${Math.max(300, dynamicHeight)}px`; 
 
             const data = sortedTemas.map(t => (temaMap[t] / 60)); 
             const colores = sortedTemas.map((_, i) => generarColor(i));
@@ -215,7 +223,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 options: {
                     indexAxis: 'y', 
-                    responsive: true, maintainAspectRatio: false,
+                    responsive: true, 
+                    maintainAspectRatio: false, // CLAVE: Permite que el canvas se estire
                     scales: { x: { beginAtZero: true } },
                     plugins: { legend: { display: false } }
                 }
@@ -223,7 +232,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         } 
         
-        // --- CASO 2: TIEMPO (Conjunto o Individual) ---
+        // --- CASO 2: RESTO DE GRÁFICOS (RESET ALTURA) ---
+        
+        // Si no es el gráfico de temas, volvemos a la altura estándar (300px)
+        chartContainer.style.height = '300px';
+
         if (filtroActividad === 'conjunto') {
             isStacked = true;
             const pivotedData = pivotData(sessions, labels, filtroTiempo);
@@ -231,9 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             datasets = pivotedData;
         } else {
             isStacked = false;
-            // Para single activity también usamos pivotData y filtramos, para aprovechar la lógica de distribución
             const pivotedData = pivotData(sessions, labels, filtroTiempo);
-            // Filtramos solo el dataset que nos interesa
             const ds = pivotedData.find(d => d.label.toLowerCase() === filtroActividad.toLowerCase());
             
             if (ds) {
@@ -248,14 +259,32 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'bar',
             data: { labels: labels, datasets: datasets },
             options: {
-                responsive: true, maintainAspectRatio: false,
+                responsive: true, 
+                maintainAspectRatio: false,
                 scales: {
                     x: { stacked: isStacked },
-                    y: { beginAtZero: true, stacked: isStacked, title: { display: true, text: etiquetaEjeY } }
+                    y: { 
+                        beginAtZero: true, 
+                        stacked: isStacked, 
+                        title: { display: true, text: etiquetaEjeY } 
+                    }
                 },
                 plugins: {
                     legend: { display: (filtroActividad === 'conjunto') },
-                    datalabels: { display: false } 
+                    datalabels: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (unidad === 'minutos') {
+                                    return label + Math.round(context.parsed.y) + ' min';
+                                } else {
+                                    return label + context.parsed.y.toFixed(2) + ' h';
+                                }
+                            }
+                        }
+                    }
                 }
             }
         });
@@ -382,4 +411,4 @@ document.addEventListener('DOMContentLoaded', () => {
             cargarEstadisticas();
         }
     });
-}); 
+});
