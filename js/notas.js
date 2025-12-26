@@ -4,7 +4,7 @@ import {
     doc, updateDoc, deleteDoc, onSnapshot, orderBy, limit, writeBatch 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// Inicializar Quill (Editor de texto)
+// Inicializar Quill
 const quill = new Quill('#editor', {
     theme: 'snow',
     placeholder: 'Escribe tus apuntes aquí...',
@@ -14,7 +14,7 @@ const quill = new Quill('#editor', {
             ['bold', 'italic', 'underline', 'strike'],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
             [{ 'color': [] }, { 'background': [] }],
-            ['image'], // <--- AQUÍ ESTÁ EL CAMBIO: Activa el botón de imagen
+            ['image'], 
             ['clean']
         ]
     }
@@ -30,14 +30,30 @@ const statusMsg = document.getElementById('status-msg');
 const backToListBtn = document.getElementById('back-to-list-btn');
 const notesAppContainer = document.querySelector('.notes-app');
 
-let currentNoteId = null; 
-let sortableInstance = null; // Para controlar la librería de arrastrar
+// --- NUEVO: Botón Flotante para Móvil ---
+const fabSaveBtn = document.createElement('button');
+fabSaveBtn.className = 'fab-save-mobile';
+fabSaveBtn.innerHTML = '💾'; 
+document.body.appendChild(fabSaveBtn); 
+// ----------------------------------------
 
-// --- 1. Cargar Pestañas (Ordenadas por 'orden') ---
+let currentNoteId = null; 
+let sortableInstance = null; 
+let unsavedChanges = false; // Control de cambios sin guardar
+
+// --- 1. PREVENIR RECARGA ACCIDENTAL ---
+window.addEventListener('beforeunload', (e) => {
+    if (unsavedChanges) {
+        // El mensaje estándar lo pone el navegador, pero esto activa el aviso
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+
+// --- 2. Cargar Pestañas ---
 function loadCategories() {
     if (!auth.currentUser) return;
 
-    // IMPORTANTE: Si la consola te pide crear un índice, haz clic en el enlace que te da.
     const q = query(
         collection(db, "bloc_notas"),
         where("user_id", "==", auth.currentUser.uid),
@@ -46,30 +62,27 @@ function loadCategories() {
 
     onSnapshot(q, (snapshot) => {
         categoriesList.innerHTML = "";
-        
-        if(snapshot.empty) {
-            statusMsg.textContent = "Crea tu primer cuaderno (+)";
-        }
+        if(snapshot.empty) statusMsg.textContent = "Crea tu primer cuaderno (+)";
 
         snapshot.forEach((docSnap) => {
             const note = docSnap.data();
             const li = document.createElement('li');
             li.className = `category-item ${docSnap.id === currentNoteId ? 'active' : ''}`;
-            li.setAttribute('data-id', docSnap.id); // Guardamos ID para el reordenamiento
+            li.setAttribute('data-id', docSnap.id); 
             li.innerHTML = `
                 <span class="drag-handle">⋮⋮</span> 
                 <span class="cat-title">${note.titulo}</span>
                 <button class="delete-cat-btn" title="Borrar cuaderno">×</button>
             `;
             
-            // Click para abrir nota
             li.addEventListener('click', (e) => {
                 if (e.target.classList.contains('delete-cat-btn')) return;
-                // Evitar abrir si estamos arrastrando (Sortable lo maneja, pero por seguridad)
+                // Si hay cambios sin guardar, preguntar antes de cambiar de nota
+                if(unsavedChanges && !confirm("Tienes cambios sin guardar. ¿Cambiar de nota igualmente?")) return;
+                
                 openNote(docSnap.id, note);
             });
 
-            // Click para borrar
             li.querySelector('.delete-cat-btn').addEventListener('click', (e) => {
                 e.stopPropagation();
                 deleteNote(docSnap.id, note.titulo);
@@ -78,26 +91,15 @@ function loadCategories() {
             categoriesList.appendChild(li);
         });
 
-        // Inicializar o refrescar la capacidad de arrastrar
         initSortable();
     });
 }
 
-// --- Función para activar el arrastre ---
 function initSortable() {
-    // Si ya existe, no lo recreamos
     if (sortableInstance) return; 
-
     if (typeof Sortable !== 'undefined') {
         sortableInstance = new Sortable(categoriesList, {
-            animation: 150,
-            
-            // --- CONFIGURACIÓN PARA MÓVIL ---
-            delay: 200,             // Mantener pulsado 200ms para activar el arrastre
-            delayOnTouchOnly: true, // En el PC sigue siendo instantáneo
-            touchStartThreshold: 3, // Pequeña tolerancia al movimiento del dedo
-            // -------------------------------
-
+            animation: 150, delay: 200, delayOnTouchOnly: true, touchStartThreshold: 3, 
             onEnd: function (evt) {
                 const itemIds = Array.from(categoriesList.querySelectorAll('.category-item')).map(el => el.dataset.id);
                 saveCategoryOrder(itemIds);
@@ -105,7 +107,7 @@ function initSortable() {
         });
     }
 }
-// --- Guardar el nuevo orden en Firebase (Batch) ---
+
 async function saveCategoryOrder(ids) {
     if (!auth.currentUser) return;
     try {
@@ -115,135 +117,107 @@ async function saveCategoryOrder(ids) {
             batch.update(docRef, { orden: index + 1 });
         });
         await batch.commit();
-        // No mostramos mensaje para no molestar, es un guardado silencioso
-    } catch (error) {
-        console.error("Error reordenando:", error);
-    }
+    } catch (error) { console.error("Error reordenando:", error); }
 }
 
-// --- 2. Crear Nueva Pestaña (Calculando orden) ---
 async function createNewCategory() {
     const titulo = prompt("Nombre de la nueva asignatura/cuaderno:");
     if (!titulo || titulo.trim() === "") return;
 
     try {
-        // 1. Buscar cuál es el orden más alto actual para poner la nueva al final
-        const qOrder = query(
-            collection(db, "bloc_notas"),
-            where("user_id", "==", auth.currentUser.uid),
-            orderBy("orden", "desc"),
-            limit(1)
-        );
+        const qOrder = query(collection(db, "bloc_notas"), where("user_id", "==", auth.currentUser.uid), orderBy("orden", "desc"), limit(1));
         const snapOrder = await getDocs(qOrder);
         const newOrder = snapOrder.empty ? 1 : snapOrder.docs[0].data().orden + 1;
 
-        // 2. Crear el documento
         const docRef = await addDoc(collection(db, "bloc_notas"), {
-            user_id: auth.currentUser.uid,
-            titulo: titulo.trim(),
-            contenido: "", 
-            updatedAt: new Date(),
-            orden: newOrder // Guardamos el orden
+            user_id: auth.currentUser.uid, titulo: titulo.trim(), contenido: "", 
+            updatedAt: new Date(), orden: newOrder 
         });
 
-        // 3. Abrir inmediatamente
-        currentNoteId = docRef.id;
-        noteTitleInput.value = titulo;
-        quill.setText('');
-        quill.enable(true);
-        
+        unsavedChanges = false; // Nueva nota empieza limpia
+        openNote(docRef.id, { titulo: titulo.trim(), contenido: "" });
         statusMsg.textContent = "Cuaderno creado.";
-        saveNoteBtn.style.backgroundColor = ""; 
-    } catch (error) {
-        console.error("Error creando nota:", error);
-        alert("Error al crear. Revisa la consola (posible falta de índice).");
-    }
+    } catch (error) { console.error(error); alert("Error al crear."); }
 }
 
-// --- 3. Abrir una Nota ---
+// --- 3. ABRIR NOTA (Y GESTIONAR BOTÓN MÓVIL) ---
 function openNote(id, data) {
     currentNoteId = id;
-    
+    unsavedChanges = false; // Resetear estado al abrir
+
     document.querySelectorAll('.category-item').forEach(el => el.classList.remove('active'));
-    // Marcar visualmente la seleccionada buscando por ID
     const activeItem = document.querySelector(`.category-item[data-id="${id}"]`);
     if(activeItem) activeItem.classList.add('active');
     
     noteTitleInput.value = data.titulo;
     noteTitleInput.readOnly = false; 
     
-    if (data.contenido) {
-        // Quill detecta automáticamente las imágenes en base64 dentro del HTML
-        quill.root.innerHTML = data.contenido;
-    } else {
-        quill.setText('');
-    }
+    if (data.contenido) quill.root.innerHTML = data.contenido;
+    else quill.setText('');
     
     quill.enable(true);
     statusMsg.textContent = "Nota cargada.";
     saveNoteBtn.style.backgroundColor = "";
     
+    // MODO MÓVIL
     if (window.innerWidth <= 768) {
         notesAppContainer.classList.add('mobile-view-editor');
+        fabSaveBtn.classList.add('visible'); // MOSTRAR BOTÓN FLOTANTE
     }
 }
 
-// --- 4. Guardar Nota (MANUAL) ---
+// --- 4. GUARDAR NOTA ---
 async function saveCurrentNote() {
     if (!currentNoteId || !auth.currentUser) return;
 
-    // Aquí se obtiene todo el HTML, incluidas las imágenes convertidas a texto
     const content = quill.root.innerHTML;
     const title = noteTitleInput.value;
 
     statusMsg.textContent = "Guardando...";
     saveNoteBtn.textContent = "Guardando...";
     
+    // Feedback visual en FAB
+    const originalFabText = fabSaveBtn.innerHTML;
+    fabSaveBtn.innerHTML = '⏳'; 
+
     try {
         await updateDoc(doc(db, "bloc_notas", currentNoteId), {
-            titulo: title,
-            contenido: content,
-            updatedAt: new Date()
+            titulo: title, contenido: content, updatedAt: new Date()
         });
         
         statusMsg.textContent = "Guardado exitoso ✓";
         saveNoteBtn.textContent = "Guardar";
         saveNoteBtn.style.backgroundColor = ""; 
+        unsavedChanges = false; // ¡Guardado! Ya no hay cambios pendientes
         
-        setTimeout(() => statusMsg.textContent = "", 2000);
+        fabSaveBtn.innerHTML = '✅'; 
+        setTimeout(() => {
+            statusMsg.textContent = "";
+            fabSaveBtn.innerHTML = originalFabText; 
+        }, 1500);
+
     } catch (error) {
         console.error(error);
-        
-        // Manejo específico si la imagen es muy grande
-        if (error.code === 'invalid-argument' && error.message.includes('exceeds the maximum size')) {
-            alert("⚠️ La nota es demasiado grande. Probablemente la imagen que has subido pesa mucho. Intenta con una imagen más pequeña o recórtala.");
-            statusMsg.textContent = "Error: Nota muy pesada";
-        } else {
-            statusMsg.textContent = "Error al guardar ❌";
-        }
-        
+        if (error.code === 'invalid-argument') alert("⚠️ Nota demasiado grande (imágenes).");
+        statusMsg.textContent = "Error ❌";
         saveNoteBtn.textContent = "Reintentar";
+        fabSaveBtn.innerHTML = '❌';
+        setTimeout(() => fabSaveBtn.innerHTML = originalFabText, 2000);
     }
 }
 
-// --- 5. Borrar Nota ---
 async function deleteNote(id, title) {
-    if (!confirm(`¿Borrar el cuaderno "${title}" y todo su contenido?`)) return;
-
+    if (!confirm(`¿Borrar el cuaderno "${title}"?`)) return;
     try {
         await deleteDoc(doc(db, "bloc_notas", id));
-        if (currentNoteId === id) {
-            resetEditor();
-        }
+        if (currentNoteId === id) resetEditor();
         alert("Borrado.");
-    } catch (error) {
-        console.error(error);
-        alert("Error al borrar.");
-    }
+    } catch (error) { console.error(error); alert("Error al borrar."); }
 }
 
 function resetEditor() {
     currentNoteId = null;
+    unsavedChanges = false;
     noteTitleInput.value = "";
     noteTitleInput.placeholder = "Selecciona o crea un cuaderno...";
     noteTitleInput.readOnly = true;
@@ -251,44 +225,61 @@ function resetEditor() {
     quill.enable(false); 
     statusMsg.textContent = "";
     saveNoteBtn.style.backgroundColor = "";
+    
+    // Salir del modo móvil
+    notesAppContainer.classList.remove('mobile-view-editor');
+    fabSaveBtn.classList.remove('visible'); // OCULTAR BOTÓN FLOTANTE
 }
 
-// --- Event Listeners ---
+// --- EVENT LISTENERS ---
 
 addCategoryBtn.addEventListener('click', createNewCategory);
 saveNoteBtn.addEventListener('click', saveCurrentNote);
+fabSaveBtn.addEventListener('click', saveCurrentNote); // Conectar FAB
+
 deleteNoteBtn.addEventListener('click', () => {
     if(currentNoteId) deleteNote(currentNoteId, noteTitleInput.value);
 });
+
+// Botón Atrás (Móvil)
 if(backToListBtn) {
     backToListBtn.addEventListener('click', () => {
-        // Quitar la clase para volver a ver la lista
+        // Si hay cambios sin guardar al volver atrás en móvil
+        if(unsavedChanges) {
+            if(confirm("Tienes cambios sin guardar. ¿Deseas guardar antes de salir?")) {
+                saveCurrentNote().then(() => {
+                    notesAppContainer.classList.remove('mobile-view-editor');
+                    fabSaveBtn.classList.remove('visible');
+                });
+                return;
+            } else {
+                // Si dice que no quiere guardar, ¿confirmamos que quiere perderlos?
+                if(!confirm("¿Seguro que quieres salir y PERDER los cambios?")) return;
+            }
+        }
+        
         notesAppContainer.classList.remove('mobile-view-editor');
+        fabSaveBtn.classList.remove('visible');
     });
 }
 
-// Visual: Cambios sin guardar
-quill.on('text-change', (delta, oldDelta, source) => {
+// DETECCIÓN DE CAMBIOS
+function markUnsaved() {
     if (!currentNoteId) return;
-    if (source === 'user') { 
-        statusMsg.textContent = "Cambios sin guardar ⚠️";
-        saveNoteBtn.style.backgroundColor = "#fd7e14"; 
-    }
-});
-
-noteTitleInput.addEventListener('input', () => {
-    if (!currentNoteId) return;
+    unsavedChanges = true;
     statusMsg.textContent = "Cambios sin guardar ⚠️";
     saveNoteBtn.style.backgroundColor = "#fd7e14"; 
+}
+
+quill.on('text-change', (delta, oldDelta, source) => {
+    if (source === 'user') markUnsaved();
 });
+
+noteTitleInput.addEventListener('input', markUnsaved);
 
 // Inicialización
 quill.enable(false); 
 auth.onAuthStateChanged(user => {
-    if (user) {
-        loadCategories();
-    } else {
-        categoriesList.innerHTML = "";
-        resetEditor();
-    }
+    if (user) loadCategories();
+    else { categoriesList.innerHTML = ""; resetEditor(); }
 });
