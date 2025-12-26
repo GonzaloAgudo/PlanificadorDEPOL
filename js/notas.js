@@ -14,6 +14,7 @@ const quill = new Quill('#editor', {
             ['bold', 'italic', 'underline', 'strike'],
             [{ 'list': 'ordered'}, { 'list': 'bullet' }],
             [{ 'color': [] }, { 'background': [] }],
+            ['image'], // <--- AQUÍ ESTÁ EL CAMBIO: Activa el botón de imagen
             ['clean']
         ]
     }
@@ -172,6 +173,7 @@ function openNote(id, data) {
     noteTitleInput.readOnly = false; 
     
     if (data.contenido) {
+        // Quill detecta automáticamente las imágenes en base64 dentro del HTML
         quill.root.innerHTML = data.contenido;
     } else {
         quill.setText('');
@@ -190,6 +192,7 @@ function openNote(id, data) {
 async function saveCurrentNote() {
     if (!currentNoteId || !auth.currentUser) return;
 
+    // Aquí se obtiene todo el HTML, incluidas las imágenes convertidas a texto
     const content = quill.root.innerHTML;
     const title = noteTitleInput.value;
 
@@ -210,7 +213,15 @@ async function saveCurrentNote() {
         setTimeout(() => statusMsg.textContent = "", 2000);
     } catch (error) {
         console.error(error);
-        statusMsg.textContent = "Error al guardar ❌";
+        
+        // Manejo específico si la imagen es muy grande
+        if (error.code === 'invalid-argument' && error.message.includes('exceeds the maximum size')) {
+            alert("⚠️ La nota es demasiado grande. Probablemente la imagen que has subido pesa mucho. Intenta con una imagen más pequeña o recórtala.");
+            statusMsg.textContent = "Error: Nota muy pesada";
+        } else {
+            statusMsg.textContent = "Error al guardar ❌";
+        }
+        
         saveNoteBtn.textContent = "Reintentar";
     }
 }
@@ -253,9 +264,6 @@ if(backToListBtn) {
     backToListBtn.addEventListener('click', () => {
         // Quitar la clase para volver a ver la lista
         notesAppContainer.classList.remove('mobile-view-editor');
-        
-        // Opcional: Guardar al salir si quieres
-        // if (saveNoteBtn.style.backgroundColor) saveCurrentNote();
     });
 }
 
