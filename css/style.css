@@ -2258,75 +2258,205 @@ button.btn-yellow-state:hover {
 .result-box.fail #final-score { color: #c62828; }
 .result-box.fail .score-msg { color: #c62828; }
 
-/* --- ESTILOS VISTA PROGRESO --- */
+/* =========================================
+   NUEVO DISEÑO VISTA PROGRESO (MODERNO)
+   ========================================= */
 
-.hidden { display: none !important; }
-
-.progress-header-nav {
-    display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem;
-    justify-content: center; position: relative;
-}
-.progress-header-nav h2 { margin: 0; color: var(--color-primario); font-size: 1.5rem; }
-.progress-header-nav .nav-arrow {
-    position: absolute; left: 0; font-size: 1.5rem; background: none;
-    border: none; cursor: pointer; color: var(--color-secundario);
+/* --- 1. UTILIDAD IMPRESCINDIBLE (Para ocultar pantallas) --- */
+.hidden {
+    display: none !important;
 }
 
-/* Formulario Mini */
-.add-grade-form {
-    display: flex; gap: 8px; background: #f8f9fa; padding: 10px;
-    border-radius: 10px; flex-wrap: wrap; align-items: center;
-    transition: background-color 0.3s;
+/* --- 2. Cabecera --- */
+.progress-header-modern {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 1.5rem;
 }
 
-/* Cuando estamos editando, cambiamos un poco el color de fondo para avisar */
-.add-grade-form.editing-mode {
-    background-color: #e3f2fd; /* Azulito claro */
-    border: 1px solid #90caf9;
+.progress-header-modern h2 {
+    margin: 0;
+    color: var(--color-primario, #007bff);
+    font-size: 1.6rem;
+    font-weight: 700;
 }
 
-.input-mini {
-    padding: 8px; border: 1px solid #ddd; border-radius: 6px;
-    flex-grow: 1; font-size: 0.9rem; min-width: 80px;
+.nav-arrow-modern {
+    position: absolute;
+    left: 0;
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    color: #999;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+    line-height: 1;
+}
+.nav-arrow-modern:hover { color: var(--color-primario, #007bff); }
+
+
+/* --- 3. Tarjeta y Formulario --- */
+.modern-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    padding: 25px;
+    border: 1px solid rgba(0,0,0,0.04);
 }
 
-/* Botón Guardar (+) */
-.btn-primary-mini {
-    background: var(--color-primario); color: white; border: none;
-    border-radius: 6px; width: 40px; height: 36px; font-size: 1.5rem;
-    line-height: 1; cursor: pointer; flex-shrink: 0;
+.modern-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.input-row { display: flex; gap: 12px; }
+.grow-1 { flex: 1; }
+.grow-2 { flex: 2; }
+.grow-priority { flex: 10; }
+
+/* Inputs Modernos */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%; /* Asegura que ocupe el espacio */
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    font-size: 1.1rem;
+    opacity: 0.6;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.modern-input {
+    width: 100%;
+    padding: 12px 12px 12px 40px; /* Espacio para icono */
+    border: 2px solid transparent;
+    background-color: #f4f7f9;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+    outline: none;
+    color: #333;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+/* Wrapper fecha */
+.date-wrapper { width: 100%; position: relative; }
+.date-input::-webkit-calendar-picker-indicator {
+    background: transparent; bottom: 0; color: transparent; cursor: pointer;
+    height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
+}
+
+.modern-input::placeholder { color: #adb5bd; }
+.modern-input:focus {
+    background-color: white;
+    border-color: var(--color-primario, #007bff);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1);
+}
+
+/* Botones de Acción */
+.action-buttons { display: flex; gap: 8px; }
+
+.btn-modern-save {
+    background: linear-gradient(135deg, var(--color-primario, #007bff), #0056b3);
+    color: white; border: none; border-radius: 12px; padding: 0 20px;
+    font-weight: 600; font-size: 1rem; cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.2);
+    white-space: nowrap;
+}
+.btn-modern-save:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0, 123, 255, 0.3); }
+.btn-modern-save:active { transform: translateY(0); }
+
+.btn-icon { font-size: 1.3rem; line-height: 0; }
+
+.btn-modern-cancel {
+    background: #f1f3f5; color: #dc3545; border: none; border-radius: 12px;
+    width: 46px; font-size: 1.1rem; cursor: pointer; transition: all 0.2s;
     display: flex; align-items: center; justify-content: center;
 }
-.btn-primary-mini:hover { background: var(--color-primario-oscuro); }
+.btn-modern-cancel:hover { background: #ffe6e6; }
 
-/* Botón Cancelar (X) */
-.btn-cancel-mini {
-    background: #efefef; color: #666; border: 1px solid #ccc;
-    border-radius: 6px; width: 40px; height: 36px; font-size: 1.2rem;
-    cursor: pointer; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
+
+/* --- 4. Filtros tipo Píldora (Chips) --- */
+.chart-filters-modern {
+    display: flex; justify-content: center; gap: 12px; margin-bottom: 25px; flex-wrap: wrap;
 }
-.btn-cancel-mini:hover { background: #e0e0e0; color: #333; }
 
-/* Lista */
+.filter-pill {
+    background-color: #f1f3f5; color: #6c757d; padding: 8px 16px;
+    border-radius: 50px; font-size: 0.9rem; font-weight: 600;
+    cursor: pointer; transition: all 0.3s ease; border: 2px solid transparent;
+    user-select: none; display: flex; align-items: center; gap: 6px;
+}
+.filter-pill:hover { background-color: #e9ecef; }
+
+.filter-pill.active {
+    background-color: white;
+    color: var(--color-primario, #007bff);
+    border-color: var(--color-primario, #007bff);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+.filter-pill input { display: none; }
+
+
+/* --- 5. Gráfico y Título Historial --- */
+.graph-wrapper-modern {
+    height: 250px; border-radius: 16px;
+    background: linear-gradient(to bottom, #ffffff, #f8fbff);
+    padding: 10px; border: 1px solid #f0f0f0;
+}
+
+.modern-history h3 {
+    font-size: 0.95rem; color: #adb5bd; text-transform: uppercase;
+    letter-spacing: 1px; margin-top: 2rem; margin-bottom: 1rem;
+    text-align: center; position: relative;
+}
+.modern-history h3::before, .modern-history h3::after {
+    content: ""; display: inline-block; width: 30px; height: 1px;
+    background: #eee; vertical-align: middle; margin: 0 10px;
+}
+
+
+/* --- 6. ESTILOS DE LA LISTA (Faltaban en tu código) --- */
 .grade-item {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem;
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem;
 }
 
 .grade-badge {
-    font-weight: bold; padding: 3px 8px; border-radius: 4px;
-    min-width: 40px; text-align: center; margin-right: 10px;
+    font-weight: bold; padding: 4px 10px; border-radius: 6px;
+    min-width: 45px; text-align: center; margin-right: 12px; font-size: 0.9rem;
 }
 .grade-badge.apto { background-color: #e8f5e9; color: #2e7d32; }
 .grade-badge.no-apto { background-color: #ffebee; color: #c62828; }
 
 .grade-actions { display: flex; gap: 5px; }
 
-/* Botones de acción en la lista */
 .btn-action-grade {
-    background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 0 5px; opacity: 0.6;
+    background: none; border: none; cursor: pointer;
+    font-size: 1.1rem; padding: 4px; opacity: 0.5; transition: opacity 0.2s;
 }
 .btn-action-grade:hover { opacity: 1; transform: scale(1.1); }
-.btn-edit-grade { color: var(--color-primario); }
-.btn-del-grade { color: var(--color-peligro); }
+.btn-edit-grade { color: var(--color-primario, #007bff); }
+.btn-del-grade { color: #dc3545; }
+
+
+/* --- 7. Ajuste para móvil --- */
+@media (max-width: 480px) {
+    .input-row { flex-direction: column; gap: 10px; }
+    .bottom-row { flex-direction: row; }
+    .btn-modern-save { flex-grow: 1; justify-content: center; }
+    .modern-card { padding: 15px; }
+}

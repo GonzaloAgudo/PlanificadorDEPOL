@@ -62,36 +62,61 @@
             </div>
 
             <div id="view-progress" class="hidden">
-                <div class="progress-header-nav">
-                    <button id="btn-back-calc" class="nav-arrow" title="Volver a la calculadora">←</button>
-                    <h2>Tu Evolución</h2>
+                
+                <div class="progress-header-modern">
+                    <button id="btn-back-calc" class="nav-arrow-modern">←</button>
+                    <h2>Evolución</h2> 
                 </div>
 
-                <div class="calc-card">
+                <div class="calc-card modern-card">
                     
-                    <div class="add-grade-form">
-                        <input type="text" id="grade-title" placeholder="Ej: Test T5 o Examen 1" class="input-mini">
-                        <input type="number" id="grade-score" placeholder="Nota" step="0.001" class="input-mini">
-                        <input type="date" id="grade-date" class="input-mini">
+                    <div class="add-grade-form modern-form">
+                        <div class="input-row">
+                            <div class="input-with-icon grow-2">
+                                <span class="input-icon">📝</span>
+                                <input type="text" id="grade-title" placeholder="Título (Ej: Test T5)" class="modern-input">
+                            </div>
+                            <div class="input-with-icon grow-1">
+                                <span class="input-icon">💯</span>
+                                <input type="number" id="grade-score" placeholder="Nota" step="0.001" class="modern-input">
+                            </div>
+                        </div>
                         
-                        <button id="btn-save-grade" class="btn-primary-mini" title="Guardar">+</button>
-                        
-                        <button id="btn-cancel-edit" class="btn-cancel-mini hidden" title="Cancelar edición">✖</button>
+                        <div class="input-row bottom-row">
+                            <div class="input-with-icon grow-priority">
+                                <span class="input-icon">📅</span>
+                                <div class="date-wrapper">
+                                    <input type="date" id="grade-date" class="modern-input date-input">
+                                </div>
+                            </div>
+                            
+                            <div class="action-buttons">
+                                <button id="btn-cancel-edit" class="btn-modern-cancel hidden" title="Cancelar">✖</button>
+                                <button id="btn-save-grade" class="btn-modern-save">
+                                    <span class="btn-icon">+</span> Añadir
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <h3 style="margin: 20px 0 10px 0; color: #2c3e50; font-size: 1.1rem;">🏆 Exámenes y Simulacros</h3>
-                    <div class="chart-container" style="height: 200px;">
-                        <canvas id="examsChart"></canvas>
+                    <div class="chart-filters-modern">
+                        <label class="filter-pill active">
+                            <input type="checkbox" value="examen" checked hidden> 
+                            <span>🏆 Exámenes</span>
+                        </label>
+                        <label class="filter-pill active">
+                            <input type="checkbox" value="test" checked hidden> 
+                            <span>🧠 Tests</span>
+                        </label>
                     </div>
 
-                    <h3 style="margin: 20px 0 10px 0; color: #6c757d; font-size: 1.1rem;">📝 Tests de Práctica</h3>
-                    <div class="chart-container" style="height: 200px;">
-                        <canvas id="testsChart"></canvas>
+                    <div class="chart-container graph-wrapper-modern">
+                        <canvas id="progressChart"></canvas>
                     </div>
 
-                    <div class="history-list-container">
-                        <h3 style="font-size: 0.9rem; color: #888; margin-top: 1rem; border-bottom: 1px solid #eee;">Historial Reciente</h3>
-                        <ul id="grades-list" class="history-list" style="margin-top: 10px;"></ul>
+                    <div class="history-list-container modern-history">
+                        <h3>Historial Reciente</h3>
+                        <ul id="grades-list" class="history-list"></ul>
                     </div>
                 </div>
             </div>
