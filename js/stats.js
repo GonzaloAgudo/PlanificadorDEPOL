@@ -9,63 +9,86 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('statsChart');
     const ctx = canvas.getContext('2d');
     
-    // Navegación nueva
     const btnPrev = document.getElementById('btn-prev-period');
     const btnNext = document.getElementById('btn-next-period');
     const periodDisplay = document.getElementById('period-display');
 
     const activityFilterRadios = document.querySelectorAll('.activity-filter input');
     const topicSubFilter = document.querySelector('.topic-sub-filter');
-    const topicFilterCheckboxes = document.querySelectorAll('.topic-sub-filter input');
 
     // --- ESTADO GLOBAL ---
     let miGrafico; 
-    let currentDate = new Date(); // Puntero de fecha actual
-    let currentRange = 'day';     // 'day', 'week', 'month', 'year'
+    let currentDate = new Date(); 
+    let currentRange = 'day';     
 
+    // COLORES POR DEFECTO
     const TIPO_COLORES = {
-        'estudio': 'rgba(40, 167, 69, 0.7)',       
-        'clase': 'rgba(111, 66, 193, 0.7)',        
+        'estudio': 'rgba(40, 167, 69, 0.7)',        
+        'clase': 'rgba(111, 66, 193, 0.7)',         
         'psicotecnicos': 'rgba(253, 126, 20, 0.7)', 
-        'test': 'rgba(220, 53, 69, 0.7)'           
+        'test': 'rgba(220, 53, 69, 0.7)',           
+        'examen': 'rgba(255, 193, 7, 0.7)',         
+        'opowar': 'rgba(23, 162, 184, 0.7)',        
+        'voltea': 'rgba(32, 201, 151, 0.7)'         
+    };
+
+    // ETIQUETAS LIMPIAS POR DEFECTO
+    const NOMBRES_TIPOS = {
+        'estudio': 'Estudio',
+        'clase': 'Clase',
+        'psicotecnicos': 'Psicotécnicos',
+        'test': 'Test',
+        'examen': 'Examen',
+        'opowar': 'Opowar',
+        'voltea': 'Voltea'
     };
 
     // ==========================================
-    //  UTILIDADES
+    //  UTILIDADES Y LIMPIEZA
     // ==========================================
 
     function formatearMinutos(totalMinutos) {
         const horas = Math.floor(totalMinutos / 60);
-        const minutos = totalMinutos % 60;
+        const minutos = Math.round(totalMinutos % 60);
         return `${horas} h ${minutos} min`;
     }
 
-    function generarColor(index) {
-        const hue = (200 + (index * 40)) % 360;
-        return `hsla(${hue}, 70%, 60%, 0.7)`;
+    // LIMPIAR EMOJIS SIN ROMPER NÚMEROS
+    function removeEmojis(text) {
+        if (!text) return '';
+        // Filtra los rangos Unicode de los emojis pictográficos y caritas
+        return text.replace(/[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u2B50]/gu, '')
+                   .replace(/[\u200D\uFE0F]/g, '') // Elimina caracteres invisibles de unión de emojis
+                   .trim();
     }
 
-    function esTestOExamen(tema) {
-        if (!tema) return false;
-        const t = tema.toLowerCase().trim();
-        return t.startsWith('test') || t.startsWith('examen');
+    // GENERADOR DE COLORES MATEMÁTICO (ÁNGULO ÁUREO)
+    function getColorForType(tipo) {
+        const t = tipo.toLowerCase().trim();
+        if (TIPO_COLORES[t]) return TIPO_COLORES[t];
+        
+        let hash = 0;
+        for (let i = 0; i < t.length; i++) {
+            hash = t.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        // Multiplicar por el ángulo áureo asegura la máxima separación cromática posible
+        const hue = Math.floor((Math.abs(hash) * 137.508) % 360);
+        return `hsla(${hue}, 75%, 55%, 0.8)`; // Color vibrante y bien contrastado
     }
 
-    // Actualiza el texto entre las flechas (Ej: "Octubre 2023")
     function updatePeriodLabel() {
         const options = { year: 'numeric' };
         
         if (currentRange === 'day') {
             options.month = 'long';
             options.day = 'numeric';
-            // Si es hoy, poner "Hoy"
             const today = new Date();
             if (currentDate.toDateString() === today.toDateString()) {
                 periodDisplay.textContent = `Hoy (${currentDate.getDate()})`;
                 return;
             }
         } else if (currentRange === 'week') {
-            // Calcular inicio y fin de semana para mostrar
             const start = getStartOfPeriod(currentDate, 'week');
             const end = new Date(start);
             end.setDate(end.getDate() + 6);
@@ -74,19 +97,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } else if (currentRange === 'month') {
             options.month = 'long';
         }
-        // Year solo muestra year (ya en options)
         
         periodDisplay.textContent = currentDate.toLocaleDateString('es-ES', options);
     }
 
-    // Calcula el inicio del periodo según el puntero actual
     function getStartOfPeriod(date, range) {
         const d = new Date(date);
         if (range === 'day') {
             d.setHours(0,0,0,0);
         } else if (range === 'week') {
             const day = d.getDay();
-            const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Lunes
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
             d.setDate(diff);
             d.setHours(0,0,0,0);
         } else if (range === 'month') {
@@ -99,7 +120,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return d;
     }
 
-    // Avanzar o Retroceder fecha
     function changeDate(offset) {
         if (currentRange === 'day') currentDate.setDate(currentDate.getDate() + offset);
         else if (currentRange === 'week') currentDate.setDate(currentDate.getDate() + (offset * 7));
@@ -114,24 +134,40 @@ document.addEventListener('DOMContentLoaded', () => {
     //  LÓGICA DE DATOS Y GRÁFICOS
     // ==========================================
 
+    function initDataset(datasets, tipo, labelsLength) {
+        if (!datasets[tipo]) {
+            const cleanTipo = removeEmojis(tipo);
+            const finalLabel = NOMBRES_TIPOS[tipo.toLowerCase().trim()] || (cleanTipo.charAt(0).toUpperCase() + cleanTipo.slice(1));
+            
+            datasets[tipo] = { 
+                label: finalLabel, 
+                data: new Array(labelsLength).fill(0), 
+                backgroundColor: getColorForType(tipo), 
+                stack: 'A' 
+            };
+        }
+        return datasets[tipo];
+    }
+
     function distribuirMinutosEnHoras(sesion, datasets, labels) {
-        const endDate = sesion.fecha_sesion.toDate();
+        let endDateStr = sesion.fecha_sesion;
+        let endDate = (endDateStr && endDateStr.toDate) ? endDateStr.toDate() : new Date(endDateStr);
+        
         const durationMins = sesion.duracion_minutos;
         const startDate = new Date(endDate.getTime() - (durationMins * 60000));
         
-        const tipoSesion = datasets[sesion.tipo] ? sesion.tipo : 'estudio';
-        const targetDataset = datasets[tipoSesion];
+        const tipoSesion = sesion.tipo || 'estudio';
+        const targetDataset = initDataset(datasets, tipoSesion, labels.length);
 
         let pointer = new Date(startDate);
         const safetyEnd = new Date(endDate.getTime() + 1000); 
 
         while (pointer < safetyEnd) {
-            // Solo dibujamos si el puntero coincide con el día que estamos viendo
             if (pointer.getDate() === currentDate.getDate()) {
                 const hour = pointer.getHours();
                 const label = `${hour}:00`;
                 const index = labels.indexOf(label);
-                if (index > -1) targetDataset.data[index] += 1; // Sumamos 1 minuto
+                if (index > -1) targetDataset.data[index] += 1;
             }
             pointer.setMinutes(pointer.getMinutes() + 1);
             if (pointer > endDate) break;
@@ -139,19 +175,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function pivotData(sessions, labels, timeUnit) {
-        const datasets = {
-            'estudio': { label: 'Estudio', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['estudio'], stack: 'A' },
-            'clase': { label: 'Clase', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['clase'], stack: 'A' },
-            'psicotecnicos': { label: 'Psicotécnicos', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['psicotecnicos'], stack: 'A' },
-            'test': { label: 'Test', data: new Array(labels.length).fill(0), backgroundColor: TIPO_COLORES['test'], stack: 'A' }
-        };
+        const datasets = {};
+
+        // Inicializar los por defecto para que el orden visual sea siempre el mismo
+        Object.keys(TIPO_COLORES).forEach(tipo => initDataset(datasets, tipo, labels.length));
 
         sessions.forEach(s => {
+            const tipoSesion = s.tipo || 'estudio';
+            
             if (timeUnit === 'day') {
                 distribuirMinutosEnHoras(s, datasets, labels);
             } else {
                 let label;
-                const date = s.fecha_sesion.toDate(); 
+                let dateStr = s.fecha_sesion;
+                let date = (dateStr && dateStr.toDate) ? dateStr.toDate() : new Date(dateStr);
 
                 if (timeUnit === 'week') {
                     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -164,10 +201,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const index = labels.indexOf(label);
-                const tipoSesion = datasets[s.tipo] ? s.tipo : 'estudio';
-
-                if (index > -1 && datasets[tipoSesion]) {
-                    datasets[tipoSesion].data[index] += s.duracion_minutos;
+                if (index > -1) {
+                    const targetDataset = initDataset(datasets, tipoSesion, labels.length);
+                    targetDataset.data[index] += s.duracion_minutos;
                 }
             }
         });
@@ -177,54 +213,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function dibujarGrafico(labels, sessions, filtroActividad, filtroTiempo) {
         if (miGrafico) miGrafico.destroy();
-
-        // Referencia al contenedor del canvas (para cambiarle la altura)
         const chartContainer = canvas.parentElement;
-
         let datasets = [];
         let isStacked = false;
         let unidad = 'horas';
         
-        if (filtroTiempo === 'day') {
-            unidad = 'minutos';
-        }
-        
+        if (filtroTiempo === 'day') unidad = 'minutos';
         const convertirUnidad = (val) => (unidad === 'horas' ? (val / 60) : val);
 
-        // --- CASO 1: TEMAS (Horizontal) ---
         if (filtroActividad === 'temas') {
             const temaMap = {};
             sessions.forEach(s => {
-                if(s.tema) temaMap[s.tema] = (temaMap[s.tema] || 0) + s.duracion_minutos;
+                if(s.tema) {
+                    // Limpiamos los emojis de los temas antes de sumarlos
+                    const cleanTema = removeEmojis(s.tema);
+                    temaMap[cleanTema] = (temaMap[cleanTema] || 0) + s.duracion_minutos;
+                }
             });
             
             const sortedTemas = Object.keys(temaMap).sort((a, b) => temaMap[b] - temaMap[a]); 
-
-            // --- LÓGICA DE ALTURA DINÁMICA ---
-            // Calculamos: 35px por cada tema + 50px de margen
-            // Si hay 20 temas -> 750px de alto. Si hay 3 -> 155px.
             const dynamicHeight = (sortedTemas.length * 35) + 50;
-            // Aplicamos la altura al contenedor (importante que sea .chart-container)
             chartContainer.style.height = `${Math.max(300, dynamicHeight)}px`; 
 
             const data = sortedTemas.map(t => (temaMap[t] / 60)); 
-            const colores = sortedTemas.map((_, i) => generarColor(i));
+            const colores = sortedTemas.map(t => getColorForType(t));
             
             miGrafico = new Chart(ctx, {
                 type: 'bar', 
                 data: { 
                     labels: sortedTemas, 
-                    datasets: [{
-                        label: 'Horas',
-                        data: data,
-                        backgroundColor: colores,
-                        borderWidth: 1
-                    }] 
+                    datasets: [{ label: 'Horas', data: data, backgroundColor: colores, borderWidth: 1 }] 
                 },
                 options: {
                     indexAxis: 'y', 
                     responsive: true, 
-                    maintainAspectRatio: false, // CLAVE: Permite que el canvas se estire
+                    maintainAspectRatio: false, 
                     scales: { x: { beginAtZero: true } },
                     plugins: { legend: { display: false } }
                 }
@@ -232,9 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         } 
         
-        // --- CASO 2: RESTO DE GRÁFICOS (RESET ALTURA) ---
-        
-        // Si no es el gráfico de temas, volvemos a la altura estándar (300px)
         chartContainer.style.height = '300px';
 
         if (filtroActividad === 'conjunto') {
@@ -245,7 +265,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             isStacked = false;
             const pivotedData = pivotData(sessions, labels, filtroTiempo);
-            const ds = pivotedData.find(d => d.label.toLowerCase() === filtroActividad.toLowerCase());
+            
+            const ds = pivotedData.find(d => {
+                if (filtroActividad === 'clase') return d.label.includes('Clase');
+                return d.label.toLowerCase() === removeEmojis(filtroActividad).toLowerCase();
+            });
             
             if (ds) {
                 ds.data = ds.data.map(convertirUnidad);
@@ -263,11 +287,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 maintainAspectRatio: false,
                 scales: {
                     x: { stacked: isStacked },
-                    y: { 
-                        beginAtZero: true, 
-                        stacked: isStacked, 
-                        title: { display: true, text: etiquetaEjeY } 
-                    }
+                    y: { beginAtZero: true, stacked: isStacked, title: { display: true, text: etiquetaEjeY } }
                 },
                 plugins: {
                     legend: { display: (filtroActividad === 'conjunto') },
@@ -293,23 +313,24 @@ document.addEventListener('DOMContentLoaded', () => {
     async function cargarEstadisticas() {
         if (!auth.currentUser) return;
         
-        const filtroActividad = document.querySelector('.activity-filter input:checked').value;
+        const checkedRadio = document.querySelector('.activity-filter input:checked');
+        if(!checkedRadio) return;
+        const filtroActividad = checkedRadio.value;
         
-        // Manejo de UI de subfiltros
         if (filtroActividad === 'temas') {
             topicSubFilter.classList.remove('hidden');
+            topicSubFilter.style.display = 'flex';
         } else {
             topicSubFilter.classList.add('hidden');
+            topicSubFilter.style.display = 'none';
         }
 
-        // Calcular Start y End según la navegación actual
         let startDate = getStartOfPeriod(currentDate, currentRange);
         let endDate = new Date(startDate);
         let labels = [];
 
         if (currentRange === 'day') {
             endDate.setHours(23,59,59,999);
-            // Labels horas 0-23
             if (filtroActividad !== 'temas') for(let i=0; i<24; i++) labels.push(`${i}:00`);
             
         } else if (currentRange === 'week') {
@@ -342,20 +363,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const querySnapshot = await getDocs(q);
             let sessions = [];
             let totalMinutos = 0;
-            const checkedBoxes = Array.from(document.querySelectorAll('.topic-sub-filter input:checked')).map(cb => cb.value);
+            
+            const checkboxes = document.querySelectorAll('.topic-sub-filter input:checked');
+            const checkedBoxes = Array.from(checkboxes).map(cb => cb.value);
 
             querySnapshot.forEach(doc => {
                 const data = doc.data();
                 
-                // Normalización
-                let tipoReal = data.tipo;
-                if (esTestOExamen(data.tema)) tipoReal = 'test';
+                let tipoReal = data.tipo || 'estudio';
+                if (tipoReal === 'seminario') tipoReal = 'clase';
                 data.tipo = tipoReal;
 
-                // Filtrado en memoria
                 let include = false;
                 if (filtroActividad === 'temas') {
-                    if (data.tema && checkedBoxes.includes(tipoReal)) include = true;
+                    include = true; 
                 } else if (filtroActividad === 'conjunto') {
                     include = true;
                 } else {
@@ -381,30 +402,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- EVENT LISTENERS ---
 
-    // 1. Botones de Rango (Día, Semana, Mes, Año)
     filtroBotones.forEach(btn => {
         btn.addEventListener('click', () => {
             filtroBotones.forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            
-            // Al cambiar de modo, reseteamos al día de hoy para no perdernos
             currentRange = btn.dataset.filtro;
             currentDate = new Date(); 
-            
             updatePeriodLabel();
             cargarEstadisticas();
         });
     });
 
-    // 2. Flechas de Navegación
     btnPrev.addEventListener('click', () => changeDate(-1));
     btnNext.addEventListener('click', () => changeDate(1));
 
-    // 3. Filtros de Actividad (Radio buttons)
     activityFilterRadios.forEach(radio => radio.addEventListener('change', cargarEstadisticas));
-    topicFilterCheckboxes.forEach(chk => chk.addEventListener('change', cargarEstadisticas));
 
-    // --- INICIALIZACIÓN ---
+    const topicCheckboxes = document.querySelectorAll('.topic-sub-filter input');
+    topicCheckboxes.forEach(chk => chk.addEventListener('change', cargarEstadisticas));
+
     auth.onAuthStateChanged(user => {
         if (user) {
             updatePeriodLabel();

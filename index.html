@@ -7,67 +7,130 @@
     <link rel="icon" href="assets/logo.png" type="image/png">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body style="display: none;"> <button id="menu-toggle">☰</button>
+<body style="display: none;"> 
+    
+    <button id="menu-toggle">☰</button>
     <nav id="main-nav"></nav>
 
     <main class="content-wrapper index-layout">
         <div class="pomodoro-app">
             
-            <div class="activity-switcher">
-                <button class="activity-btn active" data-activity="estudio">Estudio</button>
-                <button class="activity-btn" data-activity="clase">Clase</button>
-                <button class="activity-btn" data-activity="psicotecnicos">Psicotécnicos</button>
+            <div class="dashboard-header" style="text-align: center; margin-bottom: 20px;">
+                <h1 style="color: var(--color-primario, #007bff); font-size: 1.8rem; margin:0;">Registro de Actividad ⏱️</h1>
             </div>
-            
-            <div class="topic-input-container">
-                <input type="text" id="topic-input" placeholder="¿Qué estás estudiando/viendo?">
-            </div>
-            
-            <div id="pomodoro-ui">
-                <div class="tabs">
-                    <button class="tab-btn active" data-mode="estudio">Estudio</button>
-                    <button class="tab-btn" data-mode="descanso">Descanso</button>
-                </div>
-                <div class="pomodoro-counter">
-                    Pomodoros de hoy: <span id="pomodoro-count-display">0</span>
-                </div>
-                <div class="timer" id="timer-display">30:00</div>
-                <div class="controles">
-                    <button id="btn-iniciar">Iniciar</button>
-                    <button id="btn-reset">Guardar y Reset</button>
-                </div>
-                
-                <button id="btn-pomodoro-manual" class="btn-manual-add">Añadir Tiempo Manual</button>
 
-                <div class="config">
-                    <h3><span id="config-icon">⚙️</span> Configuración</h3>
-                    <div class="config-grid">
-                        <div class="config-column">
-                            <label for="input-estudio">Estudio (min):</label>
-                            <input type="number" id="input-estudio" value="30">
-                            <label for="input-descanso">Descanso (min):</label>
-                            <input type="number" id="input-descanso" value="5">
+            <div class="study-card modern-card" style="background: white; border-radius: 20px; padding: 20px; box-shadow: 0 8px 30px rgba(0,0,0,0.06);">
+                
+                <div class="shared-selectors" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; border-bottom: 1px solid #f0f0f0; padding-bottom: 20px;">
+                    
+                    <div class="input-group-modern">
+                        <label for="select-tema" style="font-weight: 600; color: #495057; font-size: 0.95rem;">Asignatura / Tema</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div class="select-wrapper" style="position: relative; flex-grow: 1;">
+                                <select id="select-tema" class="modern-select" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 1rem; appearance: none;">
+                                    <option value="" disabled selected>Elige un tema...</option>
+                                    <option value="TODOS">📚 TODOS</option>
+                                    <option value="ADD_NEW" style="font-weight: bold; color: #007bff;">✨ + Añadir nuevo tema...</option>
+                                </select>
+                            </div>
+                            <button id="btn-del-tema" title="Borrar tema personalizado" style="background: #ffebee; color: #dc3545; border: 1px solid #ffcdd2; border-radius: 10px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; flex-shrink: 0; transition: 0.2s;">🗑️</button>
                         </div>
-                        <div class="config-column">
-                            <label for="input-descanso-largo">Desc. Largo (min):</label>
-                            <input type="number" id="input-descanso-largo" value="20">
-                            <label for="input-ciclo-pomodoro">Pomos p/ciclo:</label>
-                            <input type="number" id="input-ciclo-pomodoro" value="4">
+                    </div>
+
+                    <div class="input-group-modern">
+                        <label for="select-tipo" style="font-weight: 600; color: #495057; font-size: 0.95rem;">Tipo de Actividad</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div class="select-wrapper" style="position: relative; flex-grow: 1;">
+                                <select id="select-tipo" class="modern-select" style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 1rem; appearance: none;">
+                                    <option value="" disabled selected>Elige la actividad...</option>
+                                    <option value="estudio">📖 Estudio</option>
+                                    <option value="clase">👨‍🏫 Clase</option>
+                                    <option value="seminario">🗣️ Seminario</option>
+                                    <option value="test">📝 Test</option>
+                                    <option value="psicotecnicos">🧩 Psicotécnicos</option>
+                                    <option value="opowar">⚔️ Opowar</option>
+                                    <option value="voltea">🔄 Voltea</option>
+                                    <option value="examen">🏆 Examen</option>
+                                    <option value="ADD_NEW" style="font-weight: bold; color: #007bff;">✨ + Añadir nueva actividad...</option>
+                                </select>
+                            </div>
+                            <button id="btn-del-tipo" title="Borrar actividad personalizada" style="background: #ffebee; color: #dc3545; border: 1px solid #ffcdd2; border-radius: 10px; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; flex-shrink: 0; transition: 0.2s;">🗑️</button>
+                        </div>
+                    </div>
+
+                    <div class="input-group-modern">
+                        <label for="input-descripcion" style="font-weight: 600; color: #495057; font-size: 0.95rem;">Descripción (Opcional)</label>
+                        <input type="text" id="input-descripcion" placeholder="Ej: Simulacro mensual, Acrosport, Fallos..." style="width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #ddd; background: #f8f9fa; font-size: 1rem; box-sizing: border-box; outline: none;">
+                    </div>
+
+                </div>
+
+                <div class="mode-tabs" style="display: flex; background: #f1f3f5; border-radius: 10px; padding: 5px; margin-bottom: 20px;">
+                    <button class="main-tab-btn" data-target="ui-pomodoro" style="flex: 1; padding: 10px; border: none; background: transparent; border-radius: 8px; font-weight: bold; color: #6c757d; cursor: pointer;">🍅 Pomodoro</button>
+                    <button class="main-tab-btn active" data-target="ui-manual" style="flex: 1; padding: 10px; border: none; background: white; border-radius: 8px; font-weight: bold; color: #007bff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); cursor: pointer;">✍️ Manual</button>
+                </div>
+
+                <div id="ui-pomodoro" class="main-tab-content" style="display: none;">
+                    <div id="pomodoro-ui">
+                        <div class="tabs">
+                            <button class="tab-btn active" data-mode="estudio">Estudio</button>
+                            <button class="tab-btn" data-mode="descanso">Descanso</button>
+                        </div>
+                        <div class="pomodoro-counter">
+                            Pomodoros de hoy: <span id="pomodoro-count-display">0</span>
+                        </div>
+                        <div class="timer" id="timer-display" style="font-size: 4rem; margin: 15px 0;">30:00</div>
+                        <div class="controles">
+                            <button id="btn-iniciar" style="padding: 12px 20px; font-size: 1.1rem; border-radius: 10px;">Iniciar</button>
+                            <button id="btn-reset" style="padding: 12px 20px; font-size: 1.1rem; border-radius: 10px;">Guardar y Reset</button>
+                        </div>
+                        
+                        <div class="config" style="margin-top: 25px;">
+                            <h3><span id="config-icon">⚙️</span> Configuración</h3>
+                            <div class="config-grid">
+                                <div class="config-column">
+                                    <label for="input-estudio">Estudio (min):</label>
+                                    <input type="number" id="input-estudio" value="30">
+                                    <label for="input-descanso">Descanso (min):</label>
+                                    <input type="number" id="input-descanso" value="5">
+                                </div>
+                                <div class="config-column">
+                                    <label for="input-descanso-largo">Desc. Largo (min):</label>
+                                    <input type="number" id="input-descanso-largo" value="20">
+                                    <label for="input-ciclo-pomodoro">Pomos p/ciclo:</label>
+                                    <input type="number" id="input-ciclo-pomodoro" value="4">
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div id="stopwatch-ui" style="display: none;">
-                <div class="timer" id="stopwatch-display">00:00:00</div>
-                <div class="controles">
-                    <button id="btn-stopwatch-start">Iniciar</button>
-                    <button id="btn-stopwatch-save">Guardar y Reset</button>
+
+                <div id="ui-manual" class="main-tab-content active" style="display: block;">
+                    <label style="text-align: center; display: block; font-weight: bold; color: #495057; margin-bottom: 10px;">Tiempo invertido</label>
+                    <div class="time-inputs-container" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: #f8f9fa; padding: 20px; border-radius: 16px; margin-bottom: 20px;">
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <input type="number" id="input-horas" inputmode="numeric" min="0" placeholder="00" style="width: 60px; height: 60px; text-align: center; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 1px solid #ddd;">
+                            <span style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">Hrs</span>
+                        </div>
+                        <div style="font-size: 2rem; font-weight: bold; color: #ccc; margin-bottom: 20px;">:</div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <input type="number" id="input-minutos" inputmode="numeric" min="0" max="59" placeholder="00" style="width: 60px; height: 60px; text-align: center; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 1px solid #ddd;">
+                            <span style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">Min</span>
+                        </div>
+                        <div style="font-size: 2rem; font-weight: bold; color: #ccc; margin-bottom: 20px;">:</div>
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <input type="number" id="input-segundos" inputmode="numeric" min="0" max="59" placeholder="00" style="width: 60px; height: 60px; text-align: center; font-size: 1.5rem; font-weight: bold; border-radius: 10px; border: 1px solid #ddd;">
+                            <span style="font-size: 0.8rem; color: #6c757d; margin-top: 5px;">Seg</span>
+                        </div>
+                    </div>
+                    <button id="btn-save-manual" style="width: 100%; padding: 15px; border-radius: 12px; background: #007bff; color: white; font-weight: bold; border: none; font-size: 1.1rem; cursor: pointer; box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2); transition: 0.2s;">
+                        💾 Guardar Tiempo Manual
+                    </button>
                 </div>
-                <button id="btn-stopwatch-manual" class="btn-manual-add">Añadir Tiempo Manual</button>
+
             </div>
 
-            <a href="stats.html" class="stats-link">Ver Estadísticas 📊</a>
+            <a href="stats.html" class="stats-link" style="display: block; text-align: center; margin-top: 20px;">Ver Estadísticas 📊</a>
         </div>
 
         <div class="task-list-container">
@@ -76,8 +139,7 @@
                 <input type="text" id="new-task-input" placeholder="Añadir nueva tarea...">
                 <button id="add-task-btn">➕</button>
             </div>
-            <ul id="task-list">
-                </ul>
+            <ul id="task-list"></ul>
         </div>
     </main>
 

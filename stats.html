@@ -17,38 +17,33 @@
             
             <h1>Mis Estadísticas</h1>
             
-            <div class="activity-filter">
-                <label>
-                    <input type="radio" name="activity-type" value="estudio"> Estudio
-                </label>
-                <label>
-                    <input type="radio" name="activity-type" value="clase"> Clase
-                </label>
-                <label>
-                    <input type="radio" name="activity-type" value="psicotecnicos"> Psicotécnicos
-                </label>
-                <label>
-                    <input type="radio" name="activity-type" value="test"> Test
-                </label>
-                <label class="conjunto-label">
+            <div class="activity-filter" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 15px;">
+                <label><input type="radio" name="activity-type" value="estudio"> Estudio</label>
+                <label><input type="radio" name="activity-type" value="clase"> Clase</label>
+                <label><input type="radio" name="activity-type" value="psicotecnicos"> Psicotécnicos</label>
+                <label><input type="radio" name="activity-type" value="test"> Test</label>
+                <label><input type="radio" name="activity-type" value="examen"> Examen</label>
+                <label><input type="radio" name="activity-type" value="opowar"> Opowar</label>
+                <label><input type="radio" name="activity-type" value="voltea"> Voltea</label>
+                
+                <label class="conjunto-label" style="font-weight: bold; color: var(--color-primario, #007bff);">
                     <input type="radio" name="activity-type" value="conjunto" checked> Conjunto
                 </label>
-                <label class="temas-label">
+                <label class="temas-label" style="font-weight: bold; color: var(--color-primario, #007bff);">
                     <input type="radio" name="activity-type" value="temas"> Temas
                 </label>
             </div>
             
-            <div class="topic-sub-filter hidden">
-                <label>
-                    <input type="checkbox" name="topic-type" value="estudio"> Estudio
-                </label>
-                <label>
-                    <input type="checkbox" name="topic-type" value="clase"> Clase
-                </label>
-                <label>
-                    <input type="checkbox" name="topic-type" value="test"> Tests
-                </label>
+            <div class="topic-sub-filter hidden" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; background: #f8f9fa; padding: 10px; border-radius: 10px;">
+                <label><input type="checkbox" name="topic-type" value="estudio" checked> Estudio</label>
+                <label><input type="checkbox" name="topic-type" value="clase" checked> Clase</label>
+                <label><input type="checkbox" name="topic-type" value="psicotecnicos" checked> Psicos</label>
+                <label><input type="checkbox" name="topic-type" value="test" checked> Test</label>
+                <label><input type="checkbox" name="topic-type" value="examen" checked> Examen</label>
+                <label><input type="checkbox" name="topic-type" value="opowar" checked> Opowar</label>
+                <label><input type="checkbox" name="topic-type" value="voltea" checked> Voltea</label>
             </div>
+
             <div class="filtros">
                 <button class="filtro-btn active" data-filtro="day">Día</button>
                 <button class="filtro-btn" data-filtro="week">Semana</button>
@@ -87,5 +82,5 @@
             });
         })();
     </script>
-    </body>
+</body>
 </html>

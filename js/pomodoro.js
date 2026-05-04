@@ -5,7 +5,7 @@ import { db, auth } from './firebase-config.js';
 import { 
     collection, addDoc, query, where, getDocs, 
     orderBy, limit, doc, updateDoc, deleteDoc, 
-    writeBatch, Timestamp, setDoc, onSnapshot 
+    writeBatch, Timestamp, setDoc, onSnapshot, getDoc, arrayUnion, arrayRemove 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fetchColorRules, applyColorRule } from './colorRules.js';
 
@@ -17,23 +17,22 @@ const inputEstudio = document.getElementById('input-estudio');
 const inputDescanso = document.getElementById('input-descanso');
 const btnIniciar = document.getElementById('btn-iniciar');
 const btnReset = document.getElementById('btn-reset');
-const tabBotones = document.querySelectorAll('.tab-btn');
+const tabBotones = document.querySelectorAll('.tab-btn'); 
 const inputDescansoLargo = document.getElementById('input-descanso-largo');
 const inputCicloPomodoro = document.getElementById('input-ciclo-pomodoro');
 const pomodoroCountDisplay = document.getElementById('pomodoro-count-display');
 const newTaskInput = document.getElementById('new-task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
-const activityBotones = document.querySelectorAll('.activity-btn');
-const pomodoroUI = document.getElementById('pomodoro-ui');
-const stopwatchUI = document.getElementById('stopwatch-ui');
-const stopwatchDisplay = document.getElementById('stopwatch-display');
-const btnStopwatchStart = document.getElementById('btn-stopwatch-start'); 
-const btnStopwatchSave = document.getElementById('btn-stopwatch-save');
-const btnStopwatchManual = document.getElementById('btn-stopwatch-manual');
-const btnPomodoroManual = document.getElementById('btn-pomodoro-manual'); 
-const topicInputContainer = document.querySelector('.topic-input-container');
-const topicInput = document.getElementById('topic-input');
+
+const selectTema = document.getElementById('select-tema');
+const selectTipo = document.getElementById('select-tipo');
+const inputDescripcion = document.getElementById('input-descripcion'); 
+const btnDelTema = document.getElementById('btn-del-tema'); // NUEVO: Borrar Tema
+const btnDelTipo = document.getElementById('btn-del-tipo'); // NUEVO: Borrar Tipo
+const mainTabBtns = document.querySelectorAll('.main-tab-btn');
+const mainTabContents = document.querySelectorAll('.main-tab-content');
+const btnSaveManual = document.getElementById('btn-save-manual');
 
 // ==============================================================
 //  VARIABLES GLOBALES Y ESTADO
@@ -41,31 +40,163 @@ const topicInput = document.getElementById('topic-input');
 let esEstudio = true; 
 let pomodoroCount = 0; 
 let pomodorosHoy = 0; 
-let visualInterval = null;   // Intervalo para el "tick" visual del reloj
-let wakeLock = null;         // Para mantener pantalla encendida
-let unsubscribeTimer = null; // Para detener la escucha de DB al salir
+let visualInterval = null;   
+let wakeLock = null;         
+let unsubscribeTimer = null; 
 
-// ESTADO REMOTO (Sincronizado con Firestore)
 let remoteState = {
-    status: 'stopped', // 'running', 'paused', 'stopped'
-    endTime: 0,        // Timestamp de fin
-    timeLeft: 0,       // Tiempo restante al pausar
-    totalDuration: 0,  // Duración total original
-    mode: 'estudio',   // 'estudio' o 'descanso'
+    status: 'stopped', 
+    endTime: 0,        
+    timeLeft: 0,       
+    totalDuration: 0,  
+    mode: 'estudio',   
     activity: 'estudio',
     topic: ''
 };
 
 const audioAlarma = new Audio('assets/alarma.mp3'); 
 
+// Arrays para controlar qué opciones NO se pueden borrar
+const defaultTemas = ['TODOS', 'ADD_NEW', ''];
+const defaultTipos = ['estudio', 'clase', 'seminario', 'test', 'psicotecnicos', 'opowar', 'voltea', 'examen', 'ADD_NEW', ''];
+
 // ==============================================================
-//  UTILIDADES (WAKELOCK, NOTIFICACIONES, UI)
+//  INICIALIZACIÓN DE TEMAS 1-45 Y PESTAÑAS
 // ==============================================================
 
-// Solicitar permiso de notificaciones al cargar
+// Generar Temas del 1 al 45 automáticamente y añadirlos a la lista de bloqueados para borrar
+for (let i = 1; i <= 45; i++) {
+    const nombreTema = `Tema ${i}`;
+    const opt = new Option(nombreTema, nombreTema);
+    selectTema.add(opt, selectTema.options[selectTema.options.length - 1]);
+    defaultTemas.push(nombreTema);
+}
+
+// Lógica de Pestañas
+mainTabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        mainTabBtns.forEach(b => {
+            b.classList.remove('active');
+            b.style.background = 'transparent';
+            b.style.color = '#6c757d';
+            b.style.boxShadow = 'none';
+        });
+        mainTabContents.forEach(c => c.style.display = 'none');
+        
+        btn.classList.add('active');
+        btn.style.background = 'white';
+        btn.style.color = '#007bff';
+        btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+        document.getElementById(btn.dataset.target).style.display = 'block';
+    });
+});
+
+// ==============================================================
+//  GESTIÓN DE OPCIONES (AÑADIR Y BORRAR)
+// ==============================================================
+async function loadUserPreferences() {
+    if (!auth.currentUser) return;
+    const userPrefsRef = doc(db, "preferencias_usuario", auth.currentUser.uid);
+    const docSnap = await getDoc(userPrefsRef);
+
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        
+        // Cargamos temas personalizados SOLO si no existen ya en los por defecto
+        if (data.temas_custom) {
+            data.temas_custom.forEach(t => {
+                if (!defaultTemas.includes(t)) addOptionToSelect(selectTema, t, t);
+            });
+        }
+        
+        // Cargamos tipos personalizados SOLO si no existen ya en los por defecto
+        if (data.tipos_custom) {
+            data.tipos_custom.forEach(t => {
+                if (!defaultTipos.includes(t)) addOptionToSelect(selectTipo, t, t);
+            });
+        }
+    }
+}
+
+function addOptionToSelect(selectElement, value, text) {
+    const newOption = new Option(text, value);
+    const length = selectElement.options.length;
+    selectElement.add(newOption, selectElement.options[length - 1]);
+}
+
+async function handleAddNew(event, fieldToUpdate) {
+    const selectElement = event.target;
+    
+    if (selectElement.value === 'ADD_NEW') {
+        const newValue = prompt("Introduce el nuevo nombre:");
+        
+        if (newValue && newValue.trim() !== "") {
+            const cleanValue = newValue.trim();
+            
+            // 1. Evitar que se creen duplicados de los que ya vienen por defecto
+            const defaultsArray = (fieldToUpdate === 'temas_custom') ? defaultTemas : defaultTipos;
+            if (defaultsArray.includes(cleanValue)) {
+                alert(`⚠️ "${cleanValue}" ya existe en la lista por defecto.`);
+                selectElement.value = cleanValue; // Lo seleccionamos directamente
+                return;
+            }
+
+            // 2. Si es válido y nuevo, lo añadimos
+            addOptionToSelect(selectElement, cleanValue, cleanValue);
+            selectElement.value = cleanValue;
+
+            try {
+                const userPrefsRef = doc(db, "preferencias_usuario", auth.currentUser.uid);
+                await setDoc(userPrefsRef, {
+                    [fieldToUpdate]: arrayUnion(cleanValue)
+                }, { merge: true });
+            } catch (error) { console.error("Error guardando:", error); }
+            
+        } else {
+            selectElement.selectedIndex = 0; // Si cancela, vuelve a la opción por defecto
+        }
+    }
+}
+
+// Nueva función para borrar opciones
+async function handleDeleteCustom(selectElement, fieldToUpdate, defaultsArray) {
+    const selectedValue = selectElement.value;
+    
+    if (!selectedValue || defaultsArray.includes(selectedValue)) {
+        return alert("⚠️ Esta opción es por defecto y no se puede borrar.\n\nSolo puedes borrar las opciones que tú hayas añadido manualmente.");
+    }
+
+    if (confirm(`¿Estás seguro de que quieres borrar '${selectedValue}' de tu lista personalizada?`)) {
+        try {
+            const userPrefsRef = doc(db, "preferencias_usuario", auth.currentUser.uid);
+            await setDoc(userPrefsRef, {
+                [fieldToUpdate]: arrayRemove(selectedValue)
+            }, { merge: true }); // Merge asegura que no rompemos el documento si está vacío
+            
+            // Quitar del DOM
+            selectElement.remove(selectElement.selectedIndex);
+            selectElement.selectedIndex = 0; // Volver al primer elemento
+            alert("✅ Opción borrada correctamente.");
+        } catch (error) {
+            console.error("Error al borrar:", error);
+            alert("Error al intentar borrar la opción.");
+        }
+    }
+}
+
+// Listeners de los selectores y botones de borrar
+selectTema.addEventListener('change', (e) => handleAddNew(e, 'temas_custom'));
+selectTipo.addEventListener('change', (e) => handleAddNew(e, 'tipos_custom'));
+
+btnDelTema.addEventListener('click', () => handleDeleteCustom(selectTema, 'temas_custom', defaultTemas));
+btnDelTipo.addEventListener('click', () => handleDeleteCustom(selectTipo, 'tipos_custom', defaultTipos));
+
+
+// ==============================================================
+//  UTILIDADES
+// ==============================================================
 if ("Notification" in window) Notification.requestPermission();
 
-// Wake Lock API (Pantalla Encendida)
 async function requestWakeLock() {
     if ('wakeLock' in navigator) {
         try { wakeLock = await navigator.wakeLock.request('screen'); } catch (err) { console.error(err); }
@@ -75,44 +206,20 @@ function releaseWakeLock() {
     if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
 }
 
-// --- FUNCIÓN CORREGIDA: SWITCH ACTIVITY ---
-function switchActivity(newActivity) {
-    // 1. Actualizar visualmente los botones
-    activityBotones.forEach(btn => {
-        if (btn.dataset.activity === newActivity) {
-            btn.classList.add('active');
-        } else {
-            btn.classList.remove('active');
-        }
-    });
-
-    // 2. Mostrar/Ocultar paneles según la actividad
-    if (newActivity === 'estudio') {
-        if(pomodoroUI) pomodoroUI.style.display = 'block';
-        if(stopwatchUI) stopwatchUI.style.display = 'none';
-        if(topicInputContainer) topicInputContainer.style.display = 'block'; 
-    } else { 
-        if(pomodoroUI) pomodoroUI.style.display = 'none';
-        if(stopwatchUI) stopwatchUI.style.display = 'block';
-        
-        // Ocultar input de tema SOLO si es psicotécnicos
-        if(topicInputContainer) {
-            topicInputContainer.style.display = (newActivity === 'psicotecnicos') ? 'none' : 'block'; 
-        }
-    }
-}
-
 function getValidatedTopic() {
-    // Si ya está corriendo remotamente, confiamos en el tema remoto
     if (remoteState.status === 'running') return { valid: true, topic: remoteState.topic };
 
-    const tema = topicInput.value.trim();
-    // Obtener la actividad activa desde el botón visual (más seguro)
-    const activeBtn = document.querySelector('.activity-btn.active');
-    const act = activeBtn ? activeBtn.dataset.activity : 'estudio';
-    
+    const act = selectTipo.value;
+    const tema = selectTema.value;
+
+    if (!act || act === 'ADD_NEW') {
+        alert("Selecciona un Tipo de Actividad válido.");
+        return { valid: false, topic: null };
+    }
+
     if (act === 'psicotecnicos') return { valid: true, topic: null };
-    if (tema === '') {
+    
+    if (!tema || tema === 'ADD_NEW') {
         const userConfirmed = confirm("No has especificado un tema.\n¿Quieres continuar y guardarlo sin tema?");
         return userConfirmed ? { valid: true, topic: null } : { valid: false, topic: null };
     }
@@ -127,7 +234,7 @@ function updateDisplay(seconds) {
 }
 
 // ==============================================================
-//  CORE: SINCRONIZACIÓN CON FIRESTORE
+//  CORE: SINCRONIZACIÓN CON FIRESTORE (Pomodoro)
 // ==============================================================
 
 function iniciarEscuchaFirebase() {
@@ -146,59 +253,58 @@ function iniciarEscuchaFirebase() {
 function actualizarEstadoDesdeRemoto(data) {
     remoteState = { ...remoteState, ...data };
     
-    // 1. Sincronizar UI (Actividad, Modo, Tema)
-    if (data.activity) switchActivity(data.activity);
+    if (data.activity && selectTipo.querySelector(`option[value="${data.activity}"]`)) {
+        selectTipo.value = data.activity;
+    }
+    if (data.topic && selectTema.querySelector(`option[value="${data.topic}"]`)) {
+        selectTema.value = data.topic;
+    }
+
     if (data.mode) {
         esEstudio = (data.mode === 'estudio');
         tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === data.mode));
     }
-    if (data.topic && topicInput.value === '') topicInput.value = data.topic;
 
-    // 2. Gestión del Timer
     clearInterval(visualInterval);
     
     if (data.status === 'running') {
         requestWakeLock();
         btnIniciar.textContent = "Pausar"; 
-        btnIniciar.classList.add('btn-yellow-state'); 
+        btnIniciar.style.background = "#ffc107";
+        btnIniciar.style.color = "#333";
         btnIniciar.onclick = pausarTimerRemoto; 
 
-        // --- LÓGICA ROBUSTA PARA MÓVIL (Check Time) ---
         const checkTime = () => {
             const currentNow = Date.now();
             const currentSecondsLeft = Math.ceil((data.endTime - currentNow) / 1000);
 
             if (currentSecondsLeft <= 0) {
-                // TIEMPO TERMINADO
                 clearInterval(visualInterval);
                 timerDisplay.textContent = "00:00";
-                terminarSesionRemota(); // Guardar y parar
+                terminarSesionRemota();
             } else {
                 updateDisplay(currentSecondsLeft);
             }
         };
-
-        // Ejecutar inmediatamente y luego cada segundo
         checkTime();
         visualInterval = setInterval(checkTime, 1000);
 
     } else if (data.status === 'paused') {
         releaseWakeLock();
         btnIniciar.textContent = "Continuar";
-        btnIniciar.classList.remove('btn-yellow-state');
+        btnIniciar.style.background = "#007bff";
+        btnIniciar.style.color = "white";
         btnIniciar.onclick = iniciarTimerLocal; 
         updateDisplay(data.timeLeft);
 
-    } else { // stopped
+    } else { 
         releaseWakeLock();
         btnIniciar.textContent = "Iniciar";
-        btnIniciar.classList.remove('btn-yellow-state');
+        btnIniciar.style.background = "#007bff";
+        btnIniciar.style.color = "white";
         btnIniciar.onclick = iniciarTimerLocal;
         
-        let defaultTime = 0;
-        if (esEstudio) defaultTime = parseInt(inputEstudio.value) * 60;
-        else defaultTime = parseInt(inputDescanso.value) * 60;
-        
+        let defaultTime = esEstudio ? parseInt(inputEstudio.value) * 60 : parseInt(inputDescanso.value) * 60;
         if (isNaN(defaultTime) || defaultTime <= 0) defaultTime = 25 * 60;
         updateDisplay(defaultTime);
     }
@@ -231,8 +337,7 @@ async function iniciarTimerLocal() {
     }
 
     const endTime = Date.now() + (durationSec * 1000);
-    const currentAct = document.querySelector('.activity-btn.active').dataset.activity;
-    const currentTopic = topicInput.value;
+    const currentAct = selectTipo.value || 'estudio';
 
     try {
         await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
@@ -241,7 +346,7 @@ async function iniciarTimerLocal() {
             totalDuration: durationSec, 
             mode: esEstudio ? 'estudio' : 'descanso',
             activity: currentAct,
-            topic: currentTopic,
+            topic: remoteState.topic || '',
             lastUpdated: Date.now()
         });
         audioAlarma.load();
@@ -250,10 +355,8 @@ async function iniciarTimerLocal() {
 
 async function pausarTimerRemoto() {
     if (!auth.currentUser || remoteState.status !== 'running') return;
-    
     const now = Date.now();
     const timeLeft = Math.ceil((remoteState.endTime - now) / 1000);
-
     await updateDoc(doc(db, "timers_activos", auth.currentUser.uid), {
         status: 'paused',
         timeLeft: Math.max(0, timeLeft)
@@ -264,90 +367,55 @@ async function guardarYResetearRemoto() {
     if (!auth.currentUser) return;
     
     if (remoteState.status === 'running' || remoteState.status === 'paused') {
-        let secondsLeft = 0;
-        if (remoteState.status === 'running') {
-            const now = Date.now();
-            secondsLeft = Math.ceil((remoteState.endTime - now) / 1000);
-        } else {
-            secondsLeft = remoteState.timeLeft;
-        }
-
+        let secondsLeft = remoteState.status === 'running' ? Math.ceil((remoteState.endTime - Date.now()) / 1000) : remoteState.timeLeft;
         const secondsElapsed = Math.max(0, remoteState.totalDuration - secondsLeft);
         const minutosEstudiados = Math.round(secondsElapsed / 60);
 
         if (remoteState.mode === 'estudio' && minutosEstudiados > 0) {
-            const confirmSave = confirm(`Has parado a la mitad. ¿Guardar los ${minutosEstudiados} minutos que llevabas?`);
-            if (confirmSave) {
-                await guardarSesionEnBD(minutosEstudiados, remoteState.activity, remoteState.topic);
+            if (confirm(`Has parado a la mitad. ¿Guardar los ${minutosEstudiados} minutos que llevabas?`)) {
+                const desc = inputDescripcion.value.trim();
+                await guardarSesionEnBD(minutosEstudiados, remoteState.activity, remoteState.topic, desc);
             }
         }
     }
 
     try {
         await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
-            status: 'stopped',
-            mode: 'estudio', 
-            activity: 'estudio',
-            timeLeft: 0,
-            lastUpdated: Date.now()
+            status: 'stopped', mode: 'estudio', activity: selectTipo.value || 'estudio', timeLeft: 0, lastUpdated: Date.now()
         });
-        
-        esEstudio = true;
-        btnIniciar.classList.remove('btn-yellow-state');
-        btnIniciar.textContent = "Iniciar";
-
-        const defaultMinutes = parseInt(inputEstudio.value) || 25;
-        updateDisplay(defaultMinutes * 60);
-        document.title = "Pomodoro Listo";
-        tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === 'estudio'));
-
-    } catch (e) {
-        console.error("Error al resetear timer:", e);
-    }
+        inputDescripcion.value = ''; 
+    } catch (e) { console.error("Error al resetear timer:", e); }
 }
 
 async function terminarSesionRemota() {
-    if (!auth.currentUser) return;
-    if (remoteState.status !== 'running') return;
+    if (!auth.currentUser || remoteState.status !== 'running') return;
 
     audioAlarma.play().catch(e => console.log(e));
-    if (Notification.permission === "granted") {
-        new Notification("Tiempo Terminado", { body: esEstudio ? "¡Descanso!" : "A estudiar" });
-    }
+    if (Notification.permission === "granted") new Notification("Tiempo Terminado", { body: esEstudio ? "¡Descanso!" : "A estudiar" });
 
     if (remoteState.mode === 'estudio') {
         const minutos = Math.round(remoteState.totalDuration / 60);
-        if (minutos > 0) {
-            await guardarSesionEnBD(minutos, remoteState.activity, remoteState.topic);
-        }
+        const desc = inputDescripcion.value.trim();
+        if (minutos > 0) await guardarSesionEnBD(minutos, remoteState.activity, remoteState.topic, desc);
     }
     
-    let nextMode = 'estudio';
-    if (remoteState.mode === 'estudio') {
-        nextMode = 'descanso';
-        pomodoroCount++;
-    }
+    let nextMode = remoteState.mode === 'estudio' ? 'descanso' : 'estudio';
+    if (remoteState.mode === 'estudio') pomodoroCount++;
 
     try {
         await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
-            status: 'stopped',
-            mode: nextMode,
-            activity: remoteState.activity,
-            timeLeft: 0,
-            lastUpdated: Date.now()
+            status: 'stopped', mode: nextMode, activity: remoteState.activity, timeLeft: 0, lastUpdated: Date.now()
         });
-        btnIniciar.classList.remove('btn-yellow-state');
-        btnIniciar.textContent = "Iniciar";
+        inputDescripcion.value = ''; 
     } catch (e) { console.error("Error al terminar sesión:", e); }
 }
 
 // ==============================================================
-//  GUARDADO DE DATOS (BD)
+//  GUARDADO DE DATOS (BD) - POMODORO Y MANUAL
 // ==============================================================
 
-async function guardarSesionEnBD(duracion, tipo, tema = null) { 
-    if (!auth.currentUser) return;
-    if (!duracion || duracion <= 0) return;
+async function guardarSesionEnBD(duracion, tipo, tema = null, descripcion = "") { 
+    if (!auth.currentUser || !duracion || duracion <= 0) return;
 
     try {
         await addDoc(collection(db, "sesiones_estudio"), {
@@ -355,113 +423,45 @@ async function guardarSesionEnBD(duracion, tipo, tema = null) {
             fecha_sesion: Timestamp.now(), 
             duracion_minutos: Number(duracion),
             tipo: tipo,
-            tema: tema || "Sin tema"
+            tema: tema || "Sin tema",
+            descripcion: descripcion 
         });
         
         if (tipo === 'estudio') {
             pomodorosHoy++;
             if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
         }
-    } catch (error) {
-        console.error("Error guardando sesión:", error);
-    }
+    } catch (error) { console.error("Error guardando sesión:", error); }
 }
 
-function addManualTime() {
-    if (remoteState.status === 'running') pausarTimerRemoto();
-    if (typeof pauseStopwatch === 'function') pauseStopwatch();
+// Lógica de Guardado Manual (H:M:S)
+btnSaveManual.addEventListener('click', async () => {
+    const act = selectTipo.value;
+    const tema = selectTema.value;
+    const desc = inputDescripcion.value.trim();
 
-    const activeBtn = document.querySelector('.activity-btn.active');
-    const currentActivity = activeBtn ? activeBtn.dataset.activity : 'estudio';
-    
-    const tema = topicInput.value.trim();
-    if (currentActivity !== 'psicotecnicos' && tema === '') {
+    if (!act || act === 'ADD_NEW') return alert("Selecciona un Tipo de Actividad arriba.");
+    if (act !== 'psicotecnicos' && (!tema || tema === 'ADD_NEW')) {
         if (!confirm("No has puesto tema. ¿Guardar sin tema?")) return;
     }
 
-    const input = prompt(`Añadir tiempo manual a '${currentActivity.toUpperCase()}'.\nIntroduce minutos:`);
-    if (!input) return;
-    const duration = parseInt(input, 10);
-    if (isNaN(duration) || duration <= 0) return alert('Número inválido');
+    const h = parseInt(document.getElementById('input-horas').value) || 0;
+    const m = parseInt(document.getElementById('input-minutos').value) || 0;
+    const s = parseInt(document.getElementById('input-segundos').value) || 0;
 
-    guardarSesionEnBD(duration, currentActivity, tema || null);
-    alert(`Guardados ${duration} min.`);
-}
+    const totalMinutos = (h * 60) + m + (s / 60);
 
-// ==============================================================
-//  CRONÓMETRO (LOCAL - CLASE/PSICOTECNICOS)
-// ==============================================================
-let stopwatchInterval = null;
-let stopwatchStartTime = 0;
-let stopwatchElapsedTime = 0; 
-let stopwatchPaused = true;
+    if (totalMinutos <= 0) return alert('Introduce un tiempo mayor a 0');
 
-function formatStopwatchTime(ms) {
-    const totalSeconds = Math.floor(ms / 1000);
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
-    const s = totalSeconds % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
-function updateStopwatchDisplay() {
-    const now = Date.now();
-    const elapsedTime = now - stopwatchStartTime + stopwatchElapsedTime;
-    stopwatchDisplay.textContent = formatStopwatchTime(elapsedTime);
-    document.title = `${stopwatchDisplay.textContent} - Cronómetro`;
-}
-
-function toggleStopwatch() {
-    if (stopwatchPaused) startStopwatch();
-    else pauseStopwatch();
-}
-
-function startStopwatch() {
-    if (stopwatchPaused) {
-        const validation = getValidatedTopic();
-        if (!validation.valid) return;
-        
-        requestWakeLock();
-        audioAlarma.load(); 
-        stopwatchPaused = false;
-        stopwatchStartTime = Date.now();
-        stopwatchInterval = setInterval(updateStopwatchDisplay, 1000);
-        
-        btnStopwatchStart.textContent = "Pausar"; 
-        btnStopwatchStart.classList.add('btn-yellow-state');
-    }
-}
-
-function pauseStopwatch() {
-    if (!stopwatchPaused) {
-        releaseWakeLock();
-        stopwatchPaused = true;
-        clearInterval(stopwatchInterval);
-        stopwatchElapsedTime += Date.now() - stopwatchStartTime;
-        
-        btnStopwatchStart.textContent = "Continuar"; 
-        btnStopwatchStart.classList.remove('btn-yellow-state');
-    }
-}
-
-function resetStopwatch(save = false) {
-    pauseStopwatch(); 
+    await guardarSesionEnBD(totalMinutos, act, tema === 'ADD_NEW' ? null : tema, desc);
+    alert(`✅ Guardados ${h}h ${m}m ${s}s correctamente.`);
     
-    let totalMinutes = 0;
-    if (stopwatchElapsedTime > 0) totalMinutes = Math.round((stopwatchElapsedTime / 1000) / 60);
-    
-    if (save && totalMinutes > 0) {
-        const act = document.querySelector('.activity-btn.active').dataset.activity;
-        const tema = topicInput.value.trim(); 
-        guardarSesionEnBD(totalMinutes, act, tema || "Sin tema");
-    }
-    
-    stopwatchElapsedTime = 0;
-    stopwatchStartTime = 0;
-    stopwatchDisplay.textContent = "00:00:00";
-    btnStopwatchStart.textContent = "Iniciar";
-    btnStopwatchStart.classList.remove('btn-yellow-state');
-}
+    // Limpiar inputs
+    document.getElementById('input-horas').value = '';
+    document.getElementById('input-minutos').value = '';
+    document.getElementById('input-segundos').value = '';
+    inputDescripcion.value = ''; 
+});
 
 // ==============================================================
 //  LISTA DE TAREAS (CRUD)
@@ -474,7 +474,6 @@ function renderTask(taskDoc) {
     applyColorRule(listItem, task.texto);
     if (task.completada) listItem.classList.add('completed');
     
-    // Icono para arrastrar (handle)
     listItem.innerHTML = `
         <span class="drag-handle">⋮⋮</span>
         <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
@@ -491,13 +490,11 @@ async function loadAndRenderTasks() {
     try {
         await fetchColorRules();
         const todayStr = new Date().toISOString().split('T')[0];
-        
         const tasksQ = query(collection(db, "tareas_semanales"), where("user_id", "==", auth.currentUser.uid), where("fecha_tarea", "==", todayStr), orderBy("orden", "asc"));
         const tasksSnap = await getDocs(tasksQ);
         taskList.innerHTML = ''; 
         tasksSnap.forEach(doc => renderTask(doc));
 
-        // Stats Rápidas
         const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
         const endOfDay = new Date(); endOfDay.setHours(23,59,59,999);
         const sessionsQ = query(collection(db, "sesiones_estudio"), where("user_id", "==", auth.currentUser.uid), where("tipo", "==", "estudio"), where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)), where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay)));
@@ -506,7 +503,6 @@ async function loadAndRenderTasks() {
         pomodorosHoy = sessionsSnap.size;
         if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
         pomodoroCount = pomodorosHoy % (parseInt(inputCicloPomodoro.value) || 4);
-
     } catch (e) { console.error("Error cargando datos:", e); }
 }
 
@@ -522,51 +518,22 @@ async function addTask() {
 async function saveTaskOrder(taskIds) {
     if (!auth.currentUser) return;
     const batch = writeBatch(db);
-    taskIds.forEach((id, index) => {
-        batch.update(doc(db, "tareas_semanales", id), { orden: index + 1 });
-    });
+    taskIds.forEach((id, index) => { batch.update(doc(db, "tareas_semanales", id), { orden: index + 1 }); });
     await batch.commit();
 }
 
 // ==============================================================
-//  LISTENERS DE EVENTOS (BOTONES Y CLICKS)
+//  LISTENERS DE EVENTOS Y TAREAS
 // ==============================================================
 
 btnReset.addEventListener('click', guardarYResetearRemoto); 
-if(btnPomodoroManual) btnPomodoroManual.addEventListener('click', addManualTime);
 
-// Listener Pestañas
 tabBotones.forEach(btn => { 
     btn.addEventListener('click', () => {
-        if(remoteState.status === 'stopped') {
-            actualizarEstadoDesdeRemoto({ status: 'stopped', mode: btn.dataset.mode });
-        }
+        if(remoteState.status === 'stopped') actualizarEstadoDesdeRemoto({ status: 'stopped', mode: btn.dataset.mode });
     }); 
 });
 
-// Listener Actividad (CORREGIDO)
-activityBotones.forEach(btn => btn.addEventListener('click', () => {
-    // Si hay un timer corriendo, pedimos confirmación antes de cambiar
-    if(remoteState.status === 'running') {
-        const confirmar = confirm("Tienes una sesión activa. ¿Deseas detenerla para cambiar de actividad?");
-        if(confirmar) {
-            pausarTimerRemoto(); // O resetear directamente
-            // Forzar estado local para desbloquear UI inmediatamente
-            remoteState.status = 'stopped';
-            switchActivity(btn.dataset.activity);
-        }
-    } else {
-        // Si está parado, cambiamos sin problemas
-        switchActivity(btn.dataset.activity);
-    }
-}));
-
-// Listener Cronómetro
-btnStopwatchStart.addEventListener('click', toggleStopwatch);
-btnStopwatchSave.addEventListener('click', () => resetStopwatch(true));
-if(btnStopwatchManual) btnStopwatchManual.addEventListener('click', addManualTime);
-
-// Listener Tareas
 addTaskBtn.addEventListener('click', addTask);
 newTaskInput.addEventListener('keypress', (e) => { if(e.key==='Enter') addTask(); });
 
@@ -578,12 +545,10 @@ taskList.addEventListener('click', (e) => {
     if (e.target.classList.contains('task-checkbox')) { 
         updateDoc(doc(db, "tareas_semanales", id), { completada: e.target.checked }); 
         item.classList.toggle('completed'); 
-    } 
-    else if (e.target.classList.contains('delete-task-btn')) { 
+    } else if (e.target.classList.contains('delete-task-btn')) { 
         deleteDoc(doc(db, "tareas_semanales", id)); 
         item.remove(); 
-    }
-    else if (e.target.classList.contains('edit-task-btn')) {
+    } else if (e.target.classList.contains('edit-task-btn')) {
         const currentText = item.querySelector('.task-text').textContent;
         const newText = prompt('Editar:', currentText);
         if (newText && newText !== currentText) {
@@ -593,12 +558,9 @@ taskList.addEventListener('click', (e) => {
     }
 });
 
-// Sortable JS para Tareas (Con retraso para móvil)
 if (typeof Sortable !== 'undefined') {
     new Sortable(taskList, {
-        animation: 150, 
-        handle: '.drag-handle', // Solo arrastra desde el icono
-        filter: 'button, input',
+        animation: 150, handle: '.drag-handle', filter: 'button, input',
         onEnd: function (evt) {
             const taskIds = Array.from(taskList.querySelectorAll('li.task-item')).map(i => i.dataset.id);
             saveTaskOrder(taskIds);
@@ -611,6 +573,7 @@ if (typeof Sortable !== 'undefined') {
 // ==============================================================
 auth.onAuthStateChanged(user => {
     if (user) {
+        loadUserPreferences();
         loadAndRenderTasks();
         iniciarEscuchaFirebase();
     } else {

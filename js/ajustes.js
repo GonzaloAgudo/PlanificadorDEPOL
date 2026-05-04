@@ -1,6 +1,6 @@
 import { db, auth } from './firebase-config.js';
 import { 
-    collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, startAfter, Timestamp 
+    collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, startAfter, Timestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -14,8 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const deleteAccountBtn = document.getElementById('btn-delete-account');
 
     // Referencias Reglas
-    const quickPaletteContainer = document.getElementById('quick-palette'); // Nuevo contenedor
-    const customColorPicker = document.getElementById('custom-color-picker'); // Nuevo picker
+    const quickPaletteContainer = document.getElementById('quick-palette'); 
+    const customColorPicker = document.getElementById('custom-color-picker'); 
     const colorHexDisplay = document.getElementById('color-hex-display');
     const rulesList = document.getElementById('rules-list');
     const ruleForm = document.getElementById('rule-form');
@@ -37,52 +37,76 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionDurationInput = document.getElementById('session-duration-input');
     const sessionTypeInput = document.getElementById('session-type-input');
     const sessionTopicInput = document.getElementById('session-topic-input');
+    const sessionDescriptionInput = document.getElementById('session-description-input'); // NUEVO CAMPO
     const cancelSessionBtn = document.getElementById('cancel-session-btn');
 
     let lastVisibleSession = null;
     const SESSIONS_PER_PAGE = 15;
-    
-    // Almacén local de reglas para generar la paleta rápida
     let loadedRules = []; 
 
+    // Colores para las etiquetas del historial (Sincronizado con stats)
+    const badgeColors = {
+        'estudio': '#28a745',
+        'clase': '#6f42c1',
+        'seminario': '#6f42c1',
+        'psicotecnicos': '#fd7e14',
+        'test': '#dc3545',
+        'examen': '#ffc107',
+        'opowar': '#17a2b8',
+        'voltea': '#20c997'
+    };
+
     // ==========================================
-    // 1. UTILIDADES DE COLOR (NUEVO)
+    // CARGAR TIPOS PERSONALIZADOS EN EL SELECT
     // ==========================================
-    
-    // Función para oscurecer un color HEX (para generar el borde)
+    async function loadCustomSessionTypes() {
+        if (!auth.currentUser) return;
+        try {
+            const userPrefsRef = doc(db, "preferencias_usuario", auth.currentUser.uid);
+            const docSnap = await getDoc(userPrefsRef);
+
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                if (data.tipos_custom) {
+                    data.tipos_custom.forEach(tipo => {
+                        if (!Array.from(sessionTypeInput.options).some(opt => opt.value === tipo)) {
+                            const opt = new Option(`✨ ${tipo}`, tipo);
+                            sessionTypeInput.add(opt);
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error("Error cargando tipos personalizados:", error);
+        }
+    }
+
+
+    // ==========================================
+    // 1. UTILIDADES DE COLOR
+    // ==========================================
     function adjustColor(color, amount) {
         return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
     }
 
-    // Al cambiar el picker, actualizamos inputs y borde
     if (customColorPicker) {
         customColorPicker.addEventListener('input', (e) => {
-            const hex = e.target.value;
-            selectColor(hex);
+            selectColor(e.target.value);
         });
     }
 
     function selectColor(hexBg, hexBorder = null) {
-        // 1. Actualizar visualmente el picker y texto
         customColorPicker.value = hexBg;
         colorHexDisplay.textContent = hexBg;
-
-        // 2. Calcular borde si no viene dado (oscurecer 20%)
-        // Si hexBorder es null, lo generamos restando 40 al valor RGB
         const calculatedBorder = hexBorder ? hexBorder : adjustColor(hexBg, -40);
-
-        // 3. Rellenar inputs ocultos
         bgColorInput.value = hexBg;
         borderColorInput.value = calculatedBorder;
         
-        // 4. Feedback visual en paleta rápida (si coincide)
         document.querySelectorAll('.color-swatch').forEach(sw => {
             if (sw.dataset.bg === hexBg) sw.classList.add('selected');
             else sw.classList.remove('selected');
         });
     }
-
-    // Inicializar con un color por defecto
     selectColor('#e6f7e9');
 
 
@@ -130,12 +154,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // 3. LÓGICA DE REGLAS
     // ==========================================
-
     function renderQuickPalette() {
         if(!quickPaletteContainer) return;
         quickPaletteContainer.innerHTML = '';
-        
-        // Extraer colores únicos de las reglas cargadas
         const uniqueColors = new Set();
         const colorsArray = [];
 
@@ -157,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             swatch.className = 'color-swatch';
             swatch.style.backgroundColor = color.bg;
             swatch.style.borderColor = color.border;
-            swatch.dataset.bg = color.bg; // Para identificarlo
+            swatch.dataset.bg = color.bg; 
             
             swatch.addEventListener('click', () => {
                 selectColor(color.bg, color.border);
@@ -186,19 +207,16 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRules() {
         if (!auth.currentUser) return;
         rulesList.innerHTML = 'Cargando...'; 
-        
         const q = query(collection(db, "color_rules"), where("user_id", "==", auth.currentUser.uid), orderBy("keyword"));
         const querySnapshot = await getDocs(q);
         
         rulesList.innerHTML = ''; 
-        loadedRules = []; // Resetear cache local
+        loadedRules = []; 
 
         querySnapshot.forEach(doc => {
-            loadedRules.push(doc.data()); // Guardar datos para la paleta
+            loadedRules.push(doc.data());
             renderRule(doc);
         });
-
-        // Generar la paleta de acceso rápido con lo que acabamos de cargar
         renderQuickPalette();
     }
 
@@ -207,7 +225,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const errorDiv = document.getElementById('rule-error-message');
             if(errorDiv) errorDiv.textContent = '';
-            
             if (!auth.currentUser) return;
 
             const ruleData = {
@@ -228,10 +245,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     await addDoc(collection(db, "color_rules"), ruleData);
                 }
-                loadRules(); // Recargar lista y paleta
+                loadRules(); 
                 resetForm();
             } catch (error) {
-                console.error(error);
                 if(errorDiv) errorDiv.textContent = 'Error al guardar.';
             }
         });
@@ -250,8 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ruleFormTitle.textContent = 'Editar Regla';
         ruleIdInput.value = ruleDoc.id;
         keywordInput.value = rule.keyword;
-        
-        // Usar nuestra nueva función para setear el color en los inputs y el picker
         selectColor(rule.bg_color, rule.border_color);
         
         saveRuleBtn.textContent = 'Actualizar';
@@ -263,7 +277,6 @@ document.addEventListener('DOMContentLoaded', () => {
         ruleFormTitle.textContent = 'Añadir Nueva Regla';
         ruleIdInput.value = '';
         keywordInput.value = '';
-        // Reset color al default
         selectColor('#e6f7e9');
         
         saveRuleBtn.textContent = 'Guardar';
@@ -312,11 +325,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const s = doc.data();
                 const date = s.fecha_sesion.toDate();
                 
-                let tipoVisual = s.tipo;
-                const temaTexto = (s.tema || '').toLowerCase().trim();
-                if (temaTexto.startsWith('test') || temaTexto.startsWith('examen')) {
-                    tipoVisual = 'test';
-                }
+                const tipoVisual = s.tipo || 'estudio';
+                const bgBadge = badgeColors[tipoVisual] || '#6c757d'; 
+
+                // Si hay descripción, la mostramos debajo del tema
+                const descHtml = s.descripcion 
+                    ? `<div style="font-size: 0.85rem; color: #888; margin-top: 4px;">📝 ${s.descripcion}</div>` 
+                    : '';
 
                 const li = document.createElement('li');
                 li.className = 'history-item';
@@ -324,8 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="history-info">
                         <span class="history-date">${date.toLocaleString()}</span>
                         <div class="history-title">
-                            <span class="history-badge ${tipoVisual}">${tipoVisual.toUpperCase()}</span>
+                            <span class="history-badge" style="background-color: ${bgBadge}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">
+                                ${tipoVisual}
+                            </span>
                             ${s.tema || 'Sin tema'}
+                            ${descHtml}
                         </div>
                     </div>
                     <div class="history-duration">${s.duracion_minutos} min</div>
@@ -354,8 +372,16 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionIdInput.value = docSnap.id;
         sessionDateInput.value = localISOTime;
         sessionDurationInput.value = s.duracion_minutos;
-        sessionTypeInput.value = s.tipo;
+        
+        const options = Array.from(sessionTypeInput.options).map(opt => opt.value);
+        if (options.includes(s.tipo)) {
+            sessionTypeInput.value = s.tipo;
+        } else {
+            sessionTypeInput.value = 'estudio'; 
+        }
+        
         sessionTopicInput.value = s.tema || '';
+        sessionDescriptionInput.value = s.descripcion || ''; // Cargamos la descripción al editar
 
         sessionForm.style.display = 'block';
         sessionForm.scrollIntoView({ behavior: 'smooth' });
@@ -372,7 +398,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     fecha_sesion: Timestamp.fromDate(new Date(sessionDateInput.value)),
                     duracion_minutos: parseInt(sessionDurationInput.value),
                     tipo: sessionTypeInput.value,
-                    tema: sessionTopicInput.value.trim()
+                    tema: sessionTopicInput.value.trim(),
+                    descripcion: sessionDescriptionInput.value.trim() // Actualizamos la descripción
                 });
                 alert('Sesión actualizada');
                 sessionForm.style.display = 'none';
@@ -400,6 +427,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar
     auth.onAuthStateChanged(user => {
-        // Esperamos interacción del usuario
+        if (user) {
+            loadCustomSessionTypes();
+        }
     });
 });

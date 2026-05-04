@@ -2460,3 +2460,53 @@ button.btn-yellow-state:hover {
     .btn-modern-save { flex-grow: 1; justify-content: center; }
     .modern-card { padding: 15px; }
 }
+
+/* =========================================
+   DASHBOARD ESTUDIO (POMODORO Y MANUAL)
+   ========================================= */
+
+.study-dashboard {
+    max-width: 600px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+}
+
+.dashboard-header { text-align: center; margin-bottom: 1.5rem; }
+.dashboard-header h2 { color: var(--color-primario, #007bff); margin-bottom: 0.5rem; font-size: 1.8rem; }
+.dashboard-header p { color: #6c757d; font-size: 0.95rem; }
+
+/* Selectores */
+.shared-selectors { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0; }
+.input-group-modern label { font-size: 0.95rem; font-weight: 600; color: #495057; margin-bottom: 8px; display: block; }
+
+.select-wrapper { position: relative; }
+.select-wrapper::after { content: "▼"; font-size: 0.8rem; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #adb5bd; pointer-events: none; }
+.modern-select { width: 100%; appearance: none; background-color: #f8f9fa; border: 2px solid transparent; border-radius: 12px; padding: 14px 15px; font-size: 1rem; color: #333; cursor: pointer; }
+.modern-select:focus { outline: none; border-color: var(--color-primario, #007bff); background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1); }
+.add-new-option { font-weight: bold; color: var(--color-primario, #007bff); background-color: #e3f2fd; }
+
+/* Pestañas */
+.mode-tabs { display: flex; background: #f1f3f5; border-radius: 12px; padding: 5px; margin-bottom: 25px; }
+.tab-btn { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 8px; font-weight: 600; font-size: 1rem; color: #6c757d; cursor: pointer; transition: all 0.2s; }
+.tab-btn.active { background: #ffffff; color: var(--color-primario, #007bff); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+.tab-content { display: none; animation: fadeIn 0.3s ease; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Pomodoro */
+.timer-display { text-align: center; font-size: 4.5rem; font-weight: 800; color: #2c3e50; margin: 20px 0; font-variant-numeric: tabular-nums; }
+.timer-controls { display: flex; justify-content: center; gap: 12px; }
+.btn-timer { padding: 12px 20px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+.btn-play { background: var(--color-primario, #007bff); color: white; box-shadow: 0 4px 15px rgba(0,123,255,0.3); }
+.btn-pause { background: #ffc107; color: #333; }
+.btn-reset { background: #f8f9fa; color: #6c757d; border: 1px solid #dee2e6; }
+
+/* Manual H:M:S */
+.time-label-main { text-align: center; display: block; font-weight: bold; color: #495057; margin-bottom: 10px; }
+.time-inputs-container { display: flex; align-items: center; justify-content: center; gap: 10px; background: #f8f9fa; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
+.time-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.time-box input { width: 65px; height: 65px; text-align: center; font-size: 1.6rem; font-weight: 700; border: 2px solid #e9ecef; border-radius: 12px; background: #ffffff; color: var(--color-primario, #007bff); -moz-appearance: textfield; }
+.time-box input::-webkit-outer-spin-button, .time-box input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.time-box input:focus { outline: none; border-color: var(--color-primario, #007bff); }
+.time-box span { font-size: 0.8rem; color: #6c757d; font-weight: 600; text-transform: uppercase; }
+.time-colon { font-size: 2rem; font-weight: 700; color: #ced4da; margin-bottom: 20px; }
