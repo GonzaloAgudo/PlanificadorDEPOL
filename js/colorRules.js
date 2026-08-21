@@ -30,8 +30,6 @@ export function applyColorRule(element, text) {
     if (rule) {
         // Estilo para lista de tareas (más sutil)
         element.style.borderLeftColor = rule.border_color || rule.bg_color;
-        // Opcional: Si quieres que toda la fila tenga un fondo muy suave
-        // element.style.backgroundColor = rule.bg_color + '33'; // Agrega transparencia hex
     }
 }
 

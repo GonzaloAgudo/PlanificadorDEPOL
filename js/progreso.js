@@ -1,7 +1,7 @@
 import { db, auth } from './firebase-config.js';
-import { 
-    collection, addDoc, query, where, onSnapshot, 
-    doc, updateDoc, deleteDoc, orderBy, limit, getDocs, writeBatch, setDoc, getDoc 
+import {
+    collection, addDoc, query, where, onSnapshot,
+    doc, updateDoc, deleteDoc, orderBy, writeBatch, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // Referencias al DOM

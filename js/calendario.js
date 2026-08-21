@@ -79,10 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         modal.classList.remove('hidden');
-        
-        // --- CAMBIO AQUÍ: ELIMINAMOS EL FOCO AUTOMÁTICO ---
-        // Antes: setTimeout(() => modalTitle.focus(), 100);
-        // Ahora: No hacemos nada. El usuario debe pulsar el input para escribir.
+        // Sin foco automático: el usuario pulsa el input para escribir.
     }
 
     function closeModal() {
@@ -107,16 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (id) {
                 // CASO 1: EDITAR EVENTO EXISTENTE
                 const eventRef = doc(db, "calendario_eventos", id);
-                await updateDoc(eventRef, { 
+                await updateDoc(eventRef, {
                     texto_evento: newTitle,
                     descripcion: newDesc
                 });
-                
-                if (newTitle.toLowerCase() === 'festivo' || (activeCellElement && activeCellElement.classList.contains('is-weekend'))) {
-                    renderCalendar(currentDate); 
-                } else {
-                    renderCalendar(currentDate);
-                }
+
+                renderCalendar(currentDate);
 
             } else {
                 // CASO 2: CREAR NUEVO EVENTO

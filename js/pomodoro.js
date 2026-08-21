@@ -2,10 +2,10 @@
 //  IMPORTACIONES Y CONFIGURACIÓN
 // ==============================================================
 import { db, auth } from './firebase-config.js';
-import { 
-    collection, addDoc, query, where, getDocs, 
-    orderBy, limit, doc, updateDoc, deleteDoc, 
-    writeBatch, Timestamp, setDoc, onSnapshot, getDoc, arrayUnion, arrayRemove 
+import {
+    collection, addDoc, query, where, getDocs,
+    orderBy, doc, updateDoc, deleteDoc,
+    writeBatch, Timestamp, setDoc, onSnapshot, getDoc, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fetchColorRules, applyColorRule } from './colorRules.js';
 

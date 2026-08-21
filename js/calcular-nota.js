@@ -1,7 +1,7 @@
 import { db, auth } from './firebase-config.js';
-import { 
-    collection, addDoc, query, where, getDocs, 
-    deleteDoc, updateDoc, doc, onSnapshot, orderBy 
+import {
+    collection, addDoc, query, where,
+    deleteDoc, updateDoc, doc, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -345,6 +345,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-
-    auth.onAuthStateChanged(user => {});
 });

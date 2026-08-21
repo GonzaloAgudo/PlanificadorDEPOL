@@ -376,7 +376,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let include = false;
                 if (filtroActividad === 'temas') {
-                    include = true; 
+                    if (checkedBoxes.length > 0) {
+                        include = checkedBoxes.includes(tipoReal);
+                    } else {
+                        include = false;
+                    }
                 } else if (filtroActividad === 'conjunto') {
                     include = true;
                 } else {

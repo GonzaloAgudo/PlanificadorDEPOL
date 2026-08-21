@@ -26,8 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const ruleIdInput = document.getElementById('rule-id-input');
     const saveRuleBtn = document.getElementById('save-rule-btn');
     const cancelRuleEditBtn = document.getElementById('cancel-edit-btn');
-    const ruleErrorMsg = document.getElementById('rule-error-message');
-    
+
     // Referencias Historial
     const sessionsList = document.getElementById('sessions-list');
     const loadMoreBtn = document.getElementById('load-more-sessions');

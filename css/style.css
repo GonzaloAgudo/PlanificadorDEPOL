@@ -75,10 +75,12 @@ button:active {
 .form-group { 
     margin-bottom: 1rem; 
 }
-.form-group label { 
-    display: block; 
-    margin-bottom: 0.5rem; 
-    font-weight: 600; 
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--color-secundario);
 }
 .form-group input { 
     width: 100%; 
@@ -250,67 +252,23 @@ button:active {
 }
 
 /* --- 6. PÁGINA: Pomodoro (index.php) --- */
-.activity-switcher { 
+.tabs {
     display: flex; 
     background-color: #e9ecef; 
     border-radius: 10px; 
     margin-bottom: 1rem; 
 }
-.activity-btn { 
-    flex: 1; 
-    padding: 0.75rem; 
-    font-size: 1rem; 
-    font-weight: 600; 
-    border: none; 
-    background-color: transparent; 
-    cursor: pointer; 
-    border-radius: 10px; 
-}
-.activity-btn:not(.active):hover {
-    background-color: #dde2e6; /* Hover para botones inactivos */
-}
-.activity-btn.active { 
-    background-color: var(--color-primario); 
-    color: white; 
-}
-.activity-btn.active[data-activity="estudio"] {
-    background-color: var(--color-primario); 
-}
-.activity-btn.active[data-activity="clase"] {
-    background-color: var(--color-clase); 
-}
-.activity-btn.active[data-activity="psicotecnicos"] {
-    background-color: var(--color-psico); 
-}
-
-.topic-input-container {
-    margin-bottom: 1rem;
-}
-#topic-input {
-    width: 100%;
-    box-sizing: border-box; 
-    padding: 0.75rem;
+.tab-btn {
+    flex: 1;
+    padding: 12px;
     font-size: 1rem;
-    border: 1px solid #ccc;
+    font-weight: 600;
+    border: none;
+    background: transparent;
+    cursor: pointer;
     border-radius: 8px;
-    text-align: center;
-}
-
-.tabs { 
-    display: flex; 
-    background-color: #e9ecef; 
-    border-radius: 10px; 
-    margin-bottom: 1rem; 
-}
-.tab-btn { 
-    flex: 1; 
-    padding: 0.75rem; 
-    font-size: 1rem; 
-    font-weight: 600; 
-    border: none; 
-    background-color: transparent; 
-    cursor: pointer; 
-    border-radius: 10px; 
+    color: #6c757d;
+    transition: all 0.2s;
 }
 .tab-btn:not(.active):hover {
     background-color: rgba(0,0,0,0.05);
@@ -356,53 +314,21 @@ button:active {
 }
 
 /* Botones de Acción Principales (Iniciar/Pausar) */
-#btn-iniciar, #btn-stopwatch-start { 
-    background: var(--color-estudio); 
-    color: white; 
+#btn-iniciar {
+    background: var(--color-estudio);
+    color: white;
 }
-/* Hover solo si NO está en modo pausa (clase amarilla) */
-#btn-iniciar:not(.btn-yellow-state):hover, 
-#btn-stopwatch-start:not(.btn-yellow-state):hover {
+#btn-iniciar:hover {
     background: var(--color-estudio-oscuro);
 }
 
 /* Botones de Guardar/Reset */
-#btn-reset, #btn-stopwatch-save { 
-    background: var(--color-peligro); 
-    color: white; 
-}
-#btn-reset:hover, #btn-stopwatch-save:hover { 
-    background: var(--color-peligro-oscuro);
-}
-
-/* Botones manuales (Gris) */
-#pomodoro-ui .btn-manual-add, #stopwatch-ui .btn-manual-add {
-    font-size: 1rem;
-    padding: 0.6rem 1rem;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    background: var(--color-secundario);
+#btn-reset {
+    background: var(--color-peligro);
     color: white;
-    width: 100%;
-    margin-bottom: 1.5rem; 
-    box-sizing: border-box; 
 }
-#pomodoro-ui .btn-manual-add:hover, #stopwatch-ui .btn-manual-add:hover {
-    background: var(--color-secundario-oscuro);
-}
-
-#stopwatch-ui .timer { 
-    font-size: 4rem; 
-    margin-top: 4rem; 
-    margin-bottom: 2rem; 
-}
-#stopwatch-ui .controles { 
-    margin-top: 2rem; 
-    margin-bottom: 1rem; 
-}
-#stopwatch-ui .btn-manual-add { 
-    margin-bottom: 4rem; 
+#btn-reset:hover {
+    background: var(--color-peligro-oscuro);
 }
 
 /* Configuración Pomodoro */
@@ -452,22 +378,9 @@ button:active {
     font-weight: 600; 
     transition: background-color 0.2s;
 }
-.stats-link:hover { 
-    background-color: var(--color-primario-oscuro); 
+.stats-link:hover {
+    background-color: var(--color-primario-oscuro);
 }
-
-/* ESTADO DE PAUSA (Amarillo) */
-button.btn-yellow-state {
-    background-color: #ffc107 !important; /* Amarillo estándar */
-    color: #212529 !important; /* Texto oscuro */
-    border-color: #ffc107 !important;
-}
-
-button.btn-yellow-state:hover {
-    background-color: #e0a800 !important; /* Amarillo oscuro al pasar ratón */
-    border-color: #d39e00 !important;
-}
-/* -------------------------------------------------------------- */
 
 /* --- 7. COMPONENTE: Tareas (index.php, semana.php) --- */
 .task-list-container h2 { text-align: center; color: var(--color-primario); margin-top: 0; margin-bottom: 1.5rem; }
@@ -547,12 +460,6 @@ button.btn-yellow-state:hover {
 .resumen-stats { font-size: 1.2rem; margin: 1.5rem 0; padding: 1rem; background-color: var(--color-fondo); border-radius: 8px; }
 .resumen-stats strong { color: var(--color-primario-oscuro); }
 .chart-container { position: relative; height: 300px; width: 100%; margin-bottom: 1.5rem; }
-.filtro-dia { border-top: 1px solid #eee; padding-top: 1rem; }
-.filtro-dia.hidden { display: none; } 
-.filtro-dia input[type="date"] { padding: 0.25rem; font-size: 1rem; }
-.filtro-dia button { background: var(--color-primario); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 6px; font-size: 1rem; cursor: pointer; }
-.filtro-dia button:hover { background: var(--color-primario-oscuro); }
-#resultado-stats-dia { margin-top: 1rem; font-weight: 600; }
 /* --- NAVEGACIÓN ESTADÍSTICAS --- */
 .time-navigation {
     display: flex;
@@ -790,7 +697,7 @@ button.btn-yellow-state:hover {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-5px); }
+    from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
 
@@ -866,21 +773,8 @@ button.btn-yellow-state:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.event-text { 
-    flex-grow: 1; 
-}
-.delete-event-btn { 
-    background: none; 
-    border: none; 
-    color: var(--color-peligro); 
-    font-size: 1rem; 
-    font-weight: bold; 
-    cursor: pointer; 
-    opacity: 0.5; 
-    margin-left: 0.25rem; 
-}
-.delete-event-btn:hover { 
-    opacity: 1; 
+.event-text {
+    flex-grow: 1;
 }
 
 /* --- INTERRUPTOR DE CALENDARIOS --- */
@@ -978,12 +872,6 @@ button.btn-yellow-state:hover {
         margin-bottom: 6px;
         white-space: normal; /* Permitir que el texto ocupe varias líneas */
         height: auto;
-    }
-    
-    /* Botón de borrar evento más grande para el dedo */
-    .delete-event-btn {
-        font-size: 1.2rem;
-        padding: 5px 10px;
     }
 }
 
@@ -1224,31 +1112,6 @@ button.btn-yellow-state:hover {
     border-bottom: 2px solid #eee;
     padding-bottom: 0.5rem;
 }
-.color-palette {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem; 
-    margin-bottom: 1rem;
-}
-.color-swatch {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    cursor: pointer;
-    border: 3px solid transparent; 
-    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-}
-.color-swatch:hover {
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-.color-swatch.selected {
-    transform: scale(1.35);
-    border-color: #555; 
-    box-shadow: 0 8px 15px rgba(0,0,0,0.25);
-    z-index: 10; 
-}
 .form-buttons {
     display: flex;
     gap: 1rem;
@@ -1333,11 +1196,6 @@ button.btn-yellow-state:hover {
    ESTILOS AÑADIDOS PARA LAS NUEVAS FUNCIONES DE AJUSTES
    ---------------------------------------------------------- */
    
-/* Pestañas */
-.settings-tabs { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
-.settings-tab-btn { flex: 1; padding: 0.8rem; background: #f8f9fa; border: 1px solid #ddd; border-radius: 8px; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: all 0.2s; }
-.settings-tab-btn.active { background: var(--color-primario); color: white; border-color: var(--color-primario); box-shadow: 0 2px 5px rgba(0,123,255,0.3); }
-
 /* Select e inputs del formulario de edición */
 .settings-card select {
     width: 100%;
@@ -1377,10 +1235,6 @@ button.btn-yellow-state:hover {
     margin-right: 5px;
     color: white;
 }
-.history-badge.estudio { background: var(--color-estudio); }
-.history-badge.clase { background: var(--color-clase); }
-.history-badge.psicotecnicos { background: var(--color-psico); }
-.history-badge.test { background: var(--color-peligro); }
 
 .btn-secondary-outline {
     background: white;
@@ -1412,7 +1266,6 @@ button.btn-yellow-state:hover {
     .calendar-day { min-height: 80px; padding: 0.2rem; }
     .day-number { font-size: 0.7rem; }
     .calendar-event { font-size: 0.7rem; padding: 0.1rem 0.2rem; }
-    .delete-event-btn { font-size: 0.8rem; }
 
     .settings-container { max-width: 100%; }
     .settings-card { border-radius: 0; box-shadow: none; }
@@ -1428,7 +1281,6 @@ button.btn-yellow-state:hover {
     .controles button { flex-basis: 48%; }
     #btn-iniciar { width: 100%; order: -1; margin-bottom: 0.5rem; }
     .filtros .filtro-btn { flex-basis: 48%; }
-    .activity-switcher { flex-wrap: wrap; }
     .activity-filter { flex-direction: column; align-items: stretch; }
     .activity-filter label { text-align: center; }
 }
@@ -1618,7 +1470,6 @@ button.btn-yellow-state:hover {
 }
 
 /* --- BOTÓN FLOTANTE DE GUARDAR (FAB) --- */
-/* --- BOTÓN FLOTANTE DE GUARDAR (FAB) --- */
 .fab-save-mobile {
     position: fixed;
     bottom: 2rem;
@@ -1652,8 +1503,8 @@ button.btn-yellow-state:hover {
 }
 
 @keyframes popIn {
-    from { transform: scale(0); opacity: 0; }
-    to { transform: scale(1); opacity: 1; }
+    from { transform: scale(0); }
+    to { transform: scale(1); }
 }
 
 /* =========================================
@@ -1705,12 +1556,6 @@ button.btn-yellow-state:hover {
     #note-title { font-size: 1.1rem; }
     #editor { font-size: 1rem; }
 }
-
-@keyframes popIn {
-    from { transform: scale(0); }
-    to { transform: scale(1); }
-}
-
 
 /* =========================================
    ESTILO NOTION (PROGRESO)
@@ -2068,11 +1913,12 @@ button.btn-yellow-state:hover {
 /* Los círculos de la paleta */
 .color-swatch {
     width: 100%; /* Se adapta al grid */
-    aspect-ratio: 1 / 1; /* Siempre cuadrados/redondos */
+    height: 40px;
     border-radius: 50%;
     cursor: pointer;
     border: 2px solid rgba(0,0,0,0.05); /* Borde sutil por defecto */
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Efecto Pop */
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     position: relative;
 }
 
@@ -2090,14 +1936,6 @@ button.btn-yellow-state:hover {
         0 0 0 3px var(--color-primario), /* Anillo exterior azul */
         0 8px 15px rgba(0,0,0,0.2);      /* Sombra */
     z-index: 2;
-}
-
-/* Ajuste para el formulario */
-.form-group label {
-    font-size: 0.9rem;
-    color: var(--color-secundario);
-    margin-bottom: 0.5rem;
-    display: block;
 }
 
 /* --- CALCULADORA DE NOTAS --- */
@@ -2132,20 +1970,6 @@ button.btn-yellow-state:hover {
     margin-bottom: 0.5rem;
     color: #555;
     font-size: 0.9rem;
-}
-
-.input-group input {
-    width: 100%;
-    padding: 12px;
-    border: 2px solid #e0e0e0;
-    border-radius: 10px;
-    font-size: 1.1rem;
-    transition: border-color 0.2s;
-    outline: none;
-}
-
-.input-group input:focus {
-    border-color: var(--color-primario);
 }
 
 /* --- AJUSTE DE FILA (Aciertos y Errores) --- */
@@ -2465,48 +2289,9 @@ button.btn-yellow-state:hover {
    DASHBOARD ESTUDIO (POMODORO Y MANUAL)
    ========================================= */
 
-.study-dashboard {
-    max-width: 600px;
-    margin: 1.5rem auto;
-    padding: 0 1rem;
-}
-
-.dashboard-header { text-align: center; margin-bottom: 1.5rem; }
-.dashboard-header h2 { color: var(--color-primario, #007bff); margin-bottom: 0.5rem; font-size: 1.8rem; }
-.dashboard-header p { color: #6c757d; font-size: 0.95rem; }
-
 /* Selectores */
-.shared-selectors { display: flex; flex-direction: column; gap: 15px; margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid #f0f0f0; }
 .input-group-modern label { font-size: 0.95rem; font-weight: 600; color: #495057; margin-bottom: 8px; display: block; }
 
-.select-wrapper { position: relative; }
 .select-wrapper::after { content: "▼"; font-size: 0.8rem; position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: #adb5bd; pointer-events: none; }
 .modern-select { width: 100%; appearance: none; background-color: #f8f9fa; border: 2px solid transparent; border-radius: 12px; padding: 14px 15px; font-size: 1rem; color: #333; cursor: pointer; }
 .modern-select:focus { outline: none; border-color: var(--color-primario, #007bff); background-color: #ffffff; box-shadow: 0 4px 12px rgba(0, 123, 255, 0.1); }
-.add-new-option { font-weight: bold; color: var(--color-primario, #007bff); background-color: #e3f2fd; }
-
-/* Pestañas */
-.mode-tabs { display: flex; background: #f1f3f5; border-radius: 12px; padding: 5px; margin-bottom: 25px; }
-.tab-btn { flex: 1; padding: 12px; border: none; background: transparent; border-radius: 8px; font-weight: 600; font-size: 1rem; color: #6c757d; cursor: pointer; transition: all 0.2s; }
-.tab-btn.active { background: #ffffff; color: var(--color-primario, #007bff); box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-.tab-content { display: none; animation: fadeIn 0.3s ease; }
-.tab-content.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Pomodoro */
-.timer-display { text-align: center; font-size: 4.5rem; font-weight: 800; color: #2c3e50; margin: 20px 0; font-variant-numeric: tabular-nums; }
-.timer-controls { display: flex; justify-content: center; gap: 12px; }
-.btn-timer { padding: 12px 20px; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
-.btn-play { background: var(--color-primario, #007bff); color: white; box-shadow: 0 4px 15px rgba(0,123,255,0.3); }
-.btn-pause { background: #ffc107; color: #333; }
-.btn-reset { background: #f8f9fa; color: #6c757d; border: 1px solid #dee2e6; }
-
-/* Manual H:M:S */
-.time-label-main { text-align: center; display: block; font-weight: bold; color: #495057; margin-bottom: 10px; }
-.time-inputs-container { display: flex; align-items: center; justify-content: center; gap: 10px; background: #f8f9fa; padding: 20px; border-radius: 16px; margin-bottom: 20px; }
-.time-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.time-box input { width: 65px; height: 65px; text-align: center; font-size: 1.6rem; font-weight: 700; border: 2px solid #e9ecef; border-radius: 12px; background: #ffffff; color: var(--color-primario, #007bff); -moz-appearance: textfield; }
-.time-box input::-webkit-outer-spin-button, .time-box input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.time-box input:focus { outline: none; border-color: var(--color-primario, #007bff); }
-.time-box span { font-size: 0.8rem; color: #6c757d; font-weight: 600; text-transform: uppercase; }
-.time-colon { font-size: 2rem; font-weight: 700; color: #ced4da; margin-bottom: 20px; }

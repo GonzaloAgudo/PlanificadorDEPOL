@@ -4,23 +4,16 @@ import {
     signInWithEmailAndPassword 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-console.log("--> auth.js ha cargado correctamente.");
-
 // Lógica de Registro
 const registerForm = document.getElementById('register-form');
 if (registerForm) {
-    console.log("--> Formulario de registro detectado.");
-    
     registerForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        console.log("--> Botón de registro pulsado.");
 
         const email = registerForm.querySelector('#username').value;
         const password = registerForm.querySelector('#password').value;
         const confirmPassword = registerForm.querySelector('#confirm-password').value;
         const errorMessage = document.getElementById('error-message');
-
-        console.log("--> Datos capturados:", email);
 
         if (password !== confirmPassword) {
             console.warn("--> Las contraseñas no coinciden.");
@@ -34,11 +27,8 @@ if (registerForm) {
             return;
         }
 
-        console.log("--> Enviando datos a Firebase...");
-
         createUserWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                console.log("--> ¡ÉXITO! Usuario creado:", userCredential.user);
+            .then(() => {
                 alert('¡Usuario registrado con éxito! Ahora puedes iniciar sesión.');
                 window.location.href = 'login.html';
             })
@@ -63,19 +53,15 @@ if (registerForm) {
 // Lógica de Login
 const loginForm = document.getElementById('login-form');
 if (loginForm) {
-    console.log("--> Formulario de login detectado.");
-
     loginForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        console.log("--> Botón de login pulsado.");
 
         const email = loginForm.querySelector('#username').value;
         const password = loginForm.querySelector('#password').value;
         const errorMessage = document.getElementById('error-message');
 
         signInWithEmailAndPassword(auth, email, password)
-            .then((userCredential) => {
-                console.log("--> Login exitoso.");
+            .then(() => {
                 window.location.href = 'index.html';
             })
             .catch((error) => {

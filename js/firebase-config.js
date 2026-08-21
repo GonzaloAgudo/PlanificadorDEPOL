@@ -3,7 +3,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// --- TU CONFIGURACIÓN (Pega aquí tus claves reales de Firebase) ---
 const firebaseConfig = {
     apiKey: "AIzaSyAqNtbwF2fi_x7R2tYtovwwV7JmaChVv4E",
     authDomain: "planificadordepol.firebaseapp.com",
