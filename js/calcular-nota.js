@@ -3,6 +3,7 @@ import {
     collection, addDoc, query, where,
     deleteDoc, updateDoc, doc, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { TEMARIO_OFICIAL } from './temario-oficial.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inpTitle = document.getElementById('grade-title');
     const inpScore = document.getElementById('grade-score');
     const inpDate = document.getElementById('grade-date');
+    const inpTema = document.getElementById('grade-tema');
     const btnSaveGrade = document.getElementById('btn-save-grade');
     const btnCancelEdit = document.getElementById('btn-cancel-edit');
     const listContainer = document.getElementById('grades-list');
@@ -43,6 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Inicializar fecha
     inpDate.valueAsDate = new Date();
+
+    // Rellenar el selector de tema con los 45 temas oficiales
+    TEMARIO_OFICIAL.forEach(t => {
+        inpTema.add(new Option(t.tema, t.tema));
+    });
 
     // ======================================================
     //  1. LÓGICA CALCULADORA
@@ -147,23 +154,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = inpTitle.value.trim();
         const score = parseFloat(inpScore.value);
         const dateVal = inpDate.value;
+        const tema = inpTema.value;
 
         if (!title || isNaN(score) || !dateVal) return alert("Rellena todos los campos");
 
         try {
             if (editingId) {
                 await updateDoc(doc(db, "notas_historial", editingId), {
-                    titulo: title, nota: score, fecha: dateVal
+                    titulo: title, nota: score, fecha: dateVal, tema: tema
                 });
                 resetForm();
             } else {
                 await addDoc(collection(db, "notas_historial"), {
                     user_id: auth.currentUser.uid,
-                    titulo: title, nota: score, fecha: dateVal,
+                    titulo: title, nota: score, fecha: dateVal, tema: tema,
                     timestamp: new Date()
                 });
                 inpTitle.value = '';
                 inpScore.value = '';
+                inpTema.value = '';
             }
         } catch (error) {
             console.error(error);
@@ -177,6 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editingId = null;
         inpTitle.value = '';
         inpScore.value = '';
+        inpTema.value = '';
         inpDate.valueAsDate = new Date();
         btnSaveGrade.innerHTML = '<span class="btn-icon">+</span> Añadir'; // Icono recuperado
         btnCancelEdit.classList.add('hidden');
@@ -188,7 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
         inpTitle.value = data.titulo;
         inpScore.value = data.nota;
         inpDate.value = data.fecha;
-        
+        inpTema.value = data.tema || '';
+
         btnSaveGrade.innerHTML = '<span class="btn-icon">💾</span> Guardar';
         btnCancelEdit.classList.remove('hidden');
         formContainer.classList.add('editing-mode');
@@ -237,12 +248,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const isExam = data.titulo.toLowerCase().includes('examen');
         const icon = isExam ? '🏆' : '📝';
+        const temaHtml = data.tema
+            ? `<span style="font-size:0.75rem; color:#adb5bd;"> · ${data.tema}</span>`
+            : '';
 
         li.innerHTML = `
             <div style="display:flex; align-items:center;">
                 <span class="grade-badge ${badgeClass}">${data.nota.toFixed(2)}</span>
                 <div>
-                    <strong>${icon} ${data.titulo}</strong>
+                    <strong>${icon} ${data.titulo}</strong>${temaHtml}
                     <div style="font-size:0.8rem; color:#888;">${dateStr}</div>
                 </div>
             </div>

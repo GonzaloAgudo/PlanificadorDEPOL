@@ -1591,6 +1591,135 @@ button:active {
     color: #37352f;
 }
 
+/* --- RECOMENDACIONES DE ESTUDIO --- */
+.reco-panel {
+    background: linear-gradient(to bottom, #fff9f0, #ffffff);
+    border: 1px solid #f5e6c8;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.reco-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.reco-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #37352f;
+}
+
+.reco-explicacion {
+    margin: 0.5rem 0 1.25rem 0;
+    font-size: 0.85rem;
+    color: #888;
+}
+
+.reco-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+}
+
+.reco-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 1rem;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+}
+
+.reco-card-rank {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--color-primario);
+    color: white;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reco-card-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #37352f;
+    margin-bottom: 0.2rem;
+}
+
+.reco-card-sub {
+    font-size: 0.75rem;
+    color: #adb5bd;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 0.5rem;
+}
+
+.reco-card-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.reco-stat {
+    font-size: 0.75rem;
+    background: #f4f7f9;
+    color: #495057;
+    padding: 0.2rem 0.5rem;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* --- MODAL: RANKING COMPLETO --- */
+.ranking-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+.ranking-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.25rem;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.85rem;
+}
+
+.ranking-item:last-child { border-bottom: none; }
+
+.ranking-pos {
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--color-secundario);
+}
+
+.ranking-nombre {
+    flex-grow: 1;
+    color: #37352f;
+}
+
+.ranking-peso, .ranking-tiempo, .ranking-nota {
+    flex-shrink: 0;
+    color: #888;
+    white-space: nowrap;
+}
+
 /* Cabeceras Fijas (Sticky) - VERSIÓN COLORIDA */
 #progress-table th {
     position: sticky;
@@ -1751,6 +1880,9 @@ button:active {
 @media (max-width: 900px) {
     .table-responsive { overflow-x: auto; padding-bottom: 1rem; }
     .progress-layout { padding: 1rem; padding-top: 5rem; }
+    .reco-cards-grid { grid-template-columns: 1fr; }
+    .ranking-item { flex-wrap: wrap; }
+    .ranking-nombre { flex-basis: 100%; order: -1; margin-bottom: 0.2rem; }
 }
 
 /* =========================================

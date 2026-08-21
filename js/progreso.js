@@ -3,6 +3,8 @@ import {
     collection, addDoc, query, where, onSnapshot,
     doc, updateDoc, deleteDoc, orderBy, writeBatch, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { calcularRecomendaciones } from './recomendaciones.js';
+import { formatNombreTema } from './temario-oficial.js';
 
 // Referencias al DOM
 const tableHead = document.getElementById('table-header-row');
@@ -10,6 +12,15 @@ const tableBody = document.getElementById('progress-body');
 const addRowBtn = document.getElementById('add-row-btn');
 const addColBtn = document.getElementById('add-col-btn');
 const loadingMsg = document.getElementById('loading-msg');
+
+// Referencias al DOM - Recomendaciones
+const recoCards = document.getElementById('reco-cards');
+const btnVerRanking = document.getElementById('btn-ver-ranking');
+const rankingModal = document.getElementById('ranking-modal');
+const rankingList = document.getElementById('ranking-list');
+const btnCerrarRanking = document.getElementById('btn-cerrar-ranking');
+
+const TOP_RECOMENDADOS = 6;
 
 // Estado local
 let dynamicColumns = []; 
@@ -291,14 +302,88 @@ function renderTable() {
     // NOTA: No inicializamos SortableJS para que funcione el scroll en tablet
 }
 
+// =======================================================
+// 4. RECOMENDACIONES DE ESTUDIO
+// =======================================================
+
+function formatMinutos(mins) {
+    if (!mins) return '0 min';
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    return h > 0 ? `${h}h ${m}m` : `${m} min`;
+}
+
+function renderRecoCard(t, index) {
+    const notaHtml = t.notaMedia !== null
+        ? `📊 ${t.notaMedia.toFixed(1)}`
+        : `❔ Sin evaluar`;
+
+    return `
+        <div class="reco-card">
+            <div class="reco-card-rank">#${index + 1}</div>
+            <div class="reco-card-body">
+                <div class="reco-card-title">Tema ${t.numero} · ${formatNombreTema(t.nombre)}</div>
+                <div class="reco-card-sub">${t.bloque}</div>
+                <div class="reco-card-stats">
+                    <span class="reco-stat" title="Media de preguntas en el examen oficial 2020-2025">⭐ ${t.media.toFixed(1)} preg/examen</span>
+                    <span class="reco-stat">⏱️ ${formatMinutos(t.minutos)}</span>
+                    <span class="reco-stat">${notaHtml}</span>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderRankingRow(t, index) {
+    return `
+        <li class="ranking-item">
+            <span class="ranking-pos">${index + 1}</span>
+            <span class="ranking-nombre">Tema ${t.numero}. ${formatNombreTema(t.nombre)}</span>
+            <span class="ranking-peso" title="Preguntas/examen de media">⭐ ${t.media.toFixed(1)}</span>
+            <span class="ranking-tiempo">⏱️ ${formatMinutos(t.minutos)}</span>
+            <span class="ranking-nota">${t.notaMedia !== null ? '📊 ' + t.notaMedia.toFixed(1) : '❔ —'}</span>
+        </li>
+    `;
+}
+
+async function loadRecomendaciones() {
+    if (!auth.currentUser) return;
+    try {
+        const ranking = await calcularRecomendaciones(db, auth.currentUser.uid);
+
+        if (recoCards) {
+            recoCards.innerHTML = ranking.slice(0, TOP_RECOMENDADOS).map(renderRecoCard).join('');
+        }
+        if (rankingList) {
+            rankingList.innerHTML = ranking.map(renderRankingRow).join('');
+        }
+    } catch (error) {
+        console.error("Error calculando recomendaciones:", error);
+        if (recoCards) recoCards.innerHTML = '<p class="empty-msg">No se pudieron calcular las recomendaciones.</p>';
+    }
+}
+
+if (btnVerRanking && rankingModal) {
+    btnVerRanking.addEventListener('click', () => rankingModal.classList.remove('hidden'));
+}
+if (btnCerrarRanking && rankingModal) {
+    btnCerrarRanking.addEventListener('click', () => rankingModal.classList.add('hidden'));
+}
+if (rankingModal) {
+    rankingModal.addEventListener('click', (e) => {
+        if (e.target === rankingModal) rankingModal.classList.add('hidden');
+    });
+}
+
 // --- INIT ---
 if(addRowBtn) addRowBtn.addEventListener('click', addRow);
 if(addColBtn) addColBtn.addEventListener('click', addColumn);
 
 auth.onAuthStateChanged(user => {
     if (user) {
-        loadConfig(); 
-        loadData();   
+        loadConfig();
+        loadData();
+        loadRecomendaciones();
     } else {
         window.location.href = 'login.html';
     }

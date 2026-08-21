@@ -19,6 +19,20 @@
                 <button id="add-col-btn" class="btn-secondary-outline" title="Añadir Columna de Checkbox">+ Columna</button>
             </div>
 
+            <div class="reco-panel">
+                <div class="reco-header">
+                    <h2>🎯 Recomendado reforzar</h2>
+                    <button id="btn-ver-ranking" class="btn-secondary-outline">Ver ranking completo</button>
+                </div>
+                <p class="reco-explicacion">
+                    Combina el peso real de cada tema en el examen oficial (2020-2025)
+                    con tu tiempo de estudio y tus notas de tests/exámenes por tema.
+                </p>
+                <div id="reco-cards" class="reco-cards-grid">
+                    <p class="empty-msg">Calculando recomendaciones...</p>
+                </div>
+            </div>
+
             <div class="table-responsive">
                 <table id="progress-table">
                     <thead>
@@ -34,6 +48,16 @@
             <div id="loading-msg">Cargando tu Notion personal...</div>
         </div>
     </main>
+
+    <div id="ranking-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width:640px;">
+            <h2>Ranking completo (45 temas)</h2>
+            <ul id="ranking-list" class="ranking-list"></ul>
+            <div class="modal-buttons" style="justify-content: flex-end;">
+                <button id="btn-cerrar-ranking" class="btn-secondary">Cerrar</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>
