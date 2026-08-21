@@ -5,6 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { TEMARIO_OFICIAL } from './temario-oficial.js';
 import { icon } from './icons.js';
+import { toast, confirmDialog } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -150,14 +151,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // GUARDAR (CREAR/EDITAR)
     btnSaveGrade.addEventListener('click', async () => {
-        if (!auth.currentUser) return alert("Debes iniciar sesión");
+        if (!auth.currentUser) return toast('Debes iniciar sesión.', { type: 'error' });
 
         const title = inpTitle.value.trim();
         const score = parseFloat(inpScore.value);
         const dateVal = inpDate.value;
         const tema = inpTema.value;
 
-        if (!title || isNaN(score) || !dateVal) return alert("Rellena todos los campos");
+        if (!title || isNaN(score) || !dateVal) return toast('Rellena el título, la nota y la fecha.', { type: 'warning' });
 
         try {
             if (editingId) {
@@ -177,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error(error);
-            alert("Error al guardar");
+            toast('No se pudo guardar la nota.', { type: 'error' });
         }
     });
 
@@ -268,9 +269,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         li.querySelector('.btn-edit-grade').addEventListener('click', () => startEdit(data));
         li.querySelector('.btn-del-grade').addEventListener('click', async () => {
-            if(confirm("¿Borrar registro?")) {
+            const ok = await confirmDialog({
+                title: 'Borrar nota',
+                message: `Se eliminará <strong>${data.titulo}</strong> del historial.`,
+                confirmText: 'Borrar',
+                danger: true
+            });
+            if (ok) {
                 if (editingId === data.id) resetForm();
                 await deleteDoc(doc(db, "notas_historial", data.id));
+                toast('Nota borrada.');
             }
         });
 

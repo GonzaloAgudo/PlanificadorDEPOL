@@ -2,6 +2,7 @@
 import { auth } from './firebase-config.js';
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { icon } from './icons.js';
+import { confirmDialog } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const mainNav = document.getElementById('main-nav');
@@ -9,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!mainNav) return;
 
     const menuItems = [
-        { name: 'Sesión de estudio', link: 'index.html', icon: 'timer' },
+        { name: 'Inicio', link: 'index.html', icon: 'home' },
+        { name: 'Sesión de estudio', link: 'sesion.html', icon: 'timer' },
         { name: 'Estadísticas', link: 'stats.html', icon: 'chart' },
         { name: 'Planificador semanal', link: 'semana.html', icon: 'board' },
         { name: 'Calendario', link: 'calendario.html', icon: 'calendar' },
@@ -78,13 +80,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const logoutLink = mainNav.querySelector('.logout-link');
     if (logoutLink) {
-        logoutLink.addEventListener('click', (e) => {
+        logoutLink.addEventListener('click', async (e) => {
             e.preventDefault();
-            if (confirm('¿Seguro que quieres cerrar sesión?')) {
-                signOut(auth)
-                    .then(() => { window.location.href = 'login.html'; })
-                    .catch((error) => { console.error('Error al cerrar sesión:', error); });
-            }
+            const ok = await confirmDialog({
+                title: 'Cerrar sesión',
+                message: 'Volverás a la pantalla de acceso.',
+                confirmText: 'Cerrar sesión'
+            });
+            if (!ok) return;
+            signOut(auth)
+                .then(() => { window.location.href = 'login.html'; })
+                .catch((error) => { console.error('Error al cerrar sesión:', error); });
         });
     }
 });

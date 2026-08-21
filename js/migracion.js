@@ -1,6 +1,7 @@
 import { db, auth } from './firebase-config.js';
 import { collection, doc, writeBatch, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { onAuthStateChanged, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { toast } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const collectionInput = document.getElementById('collection-name');
@@ -32,8 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const email = document.getElementById('mig-email').value;
         const password = document.getElementById('mig-pass').value;
         signInWithEmailAndPassword(auth, email, password)
-            .then(user => alert(`¡Logueado como ${user.user.email}!`))
-            .catch(e => alert(`Error login: ${e.message}`));
+            .then(user => toast(`Sesión iniciada como ${user.user.email}`, { type: 'success' }))
+            .catch(e => toast(`No se pudo iniciar sesión: ${e.message}`, { type: 'error' }));
     });
 
     let currentUser = null;
@@ -58,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const jsonText = jsonInput.value.trim();
 
         if (!collectionName || !jsonText || !currentUser) {
-            alert('Faltan datos o no estás logueado.');
+            toast('Faltan datos o no has iniciado sesión.', { type: 'warning' });
             return;
         }
 

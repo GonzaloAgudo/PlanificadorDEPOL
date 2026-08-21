@@ -9,6 +9,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fetchColorRules, applyColorRule } from './colorRules.js';
 import { icon } from './icons.js';
+import { toast, confirmDialog, promptDialog } from './ui.js';
 
 // ==============================================================
 //  REFERENCIAS AL DOM
@@ -122,15 +123,21 @@ async function handleAddNew(event, fieldToUpdate) {
     const selectElement = event.target;
     
     if (selectElement.value === 'ADD_NEW') {
-        const newValue = prompt("Introduce el nuevo nombre:");
-        
-        if (newValue && newValue.trim() !== "") {
-            const cleanValue = newValue.trim();
-            
+        const esTema = fieldToUpdate === 'temas_custom';
+        const newValue = await promptDialog({
+            title: esTema ? 'Nuevo tema' : 'Nueva actividad',
+            label: 'Nombre',
+            placeholder: esTema ? 'Ej.: Legislación complementaria' : 'Ej.: Tutoría',
+            confirmText: 'Añadir'
+        });
+
+        if (newValue) {
+            const cleanValue = newValue;
+
             // 1. Evitar que se creen duplicados de los que ya vienen por defecto
-            const defaultsArray = (fieldToUpdate === 'temas_custom') ? defaultTemas : defaultTipos;
+            const defaultsArray = esTema ? defaultTemas : defaultTipos;
             if (defaultsArray.includes(cleanValue)) {
-                alert(`"${cleanValue}" ya existe en la lista por defecto.`);
+                toast(`"${cleanValue}" ya existe en la lista.`, { type: 'warning' });
                 selectElement.value = cleanValue; // Lo seleccionamos directamente
                 return;
             }
@@ -157,24 +164,31 @@ async function handleDeleteCustom(selectElement, fieldToUpdate, defaultsArray) {
     const selectedValue = selectElement.value;
     
     if (!selectedValue || defaultsArray.includes(selectedValue)) {
-        return alert("Esta opción viene por defecto y no se puede borrar.\n\nSolo puedes borrar las opciones que hayas añadido tú.");
+        toast('Esa opción viene por defecto y no se puede borrar. Solo puedes borrar las que hayas añadido tú.', { type: 'warning' });
+        return;
     }
 
-    if (confirm(`¿Estás seguro de que quieres borrar '${selectedValue}' de tu lista personalizada?`)) {
-        try {
-            const userPrefsRef = doc(db, "preferencias_usuario", auth.currentUser.uid);
-            await setDoc(userPrefsRef, {
-                [fieldToUpdate]: arrayRemove(selectedValue)
-            }, { merge: true }); // Merge asegura que no rompemos el documento si está vacío
-            
-            // Quitar del DOM
-            selectElement.remove(selectElement.selectedIndex);
-            selectElement.selectedIndex = 0; // Volver al primer elemento
-            alert("Opción borrada correctamente.");
-        } catch (error) {
-            console.error("Error al borrar:", error);
-            alert("Error al intentar borrar la opción.");
-        }
+    const ok = await confirmDialog({
+        title: 'Borrar de tu lista',
+        message: `Se quitará <strong>${selectedValue}</strong> de tu lista personalizada. Las sesiones ya guardadas con esa opción no se modifican.`,
+        confirmText: 'Borrar',
+        danger: true
+    });
+    if (!ok) return;
+
+    try {
+        const userPrefsRef = doc(db, "preferencias_usuario", auth.currentUser.uid);
+        await setDoc(userPrefsRef, {
+            [fieldToUpdate]: arrayRemove(selectedValue)
+        }, { merge: true }); // Merge asegura que no rompemos el documento si está vacío
+
+        // Quitar del DOM
+        selectElement.remove(selectElement.selectedIndex);
+        selectElement.selectedIndex = 0; // Volver al primer elemento
+        toast('Opción borrada.', { type: 'success' });
+    } catch (error) {
+        console.error("Error al borrar:", error);
+        toast('No se pudo borrar la opción.', { type: 'error' });
     }
 }
 
@@ -200,21 +214,25 @@ function releaseWakeLock() {
     if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
 }
 
-function getValidatedTopic() {
+async function getValidatedTopic() {
     if (remoteState.status === 'running') return { valid: true, topic: remoteState.topic };
 
     const act = selectTipo.value;
     const tema = selectTema.value;
 
     if (!act || act === 'ADD_NEW') {
-        alert("Selecciona un Tipo de Actividad válido.");
+        toast('Selecciona antes un tipo de actividad.', { type: 'warning' });
         return { valid: false, topic: null };
     }
 
     if (act === 'psicotecnicos') return { valid: true, topic: null };
-    
+
     if (!tema || tema === 'ADD_NEW') {
-        const userConfirmed = confirm("No has especificado un tema.\n¿Quieres continuar y guardarlo sin tema?");
+        const userConfirmed = await confirmDialog({
+            title: 'Sesión sin tema',
+            message: 'No has indicado ningún tema. ¿Quieres registrarla igualmente como “Sin tema”?',
+            confirmText: 'Continuar sin tema'
+        });
         return userConfirmed ? { valid: true, topic: null } : { valid: false, topic: null };
     }
     return { valid: true, topic: tema };
@@ -306,14 +324,14 @@ function actualizarEstadoDesdeRemoto(data) {
 // ==============================================================
 
 async function iniciarTimerLocal() {
-    if (!auth.currentUser) return alert("Debes iniciar sesión");
-    
+    if (!auth.currentUser) return toast('Debes iniciar sesión.', { type: 'error' });
+
     let durationSec = 0;
     if (remoteState.status === 'paused') {
         durationSec = remoteState.timeLeft;
     } else {
         if (esEstudio) {
-            const validation = getValidatedTopic();
+            const validation = await getValidatedTopic();
             if (!validation.valid) return;
             remoteState.topic = validation.topic; 
             durationSec = parseInt(inputEstudio.value) * 60;
@@ -363,7 +381,13 @@ async function guardarYResetearRemoto() {
         const minutosEstudiados = Math.round(secondsElapsed / 60);
 
         if (remoteState.mode === 'estudio' && minutosEstudiados > 0) {
-            if (confirm(`Has parado a la mitad. ¿Guardar los ${minutosEstudiados} minutos que llevabas?`)) {
+            const guardar = await confirmDialog({
+                title: 'Sesión sin terminar',
+                message: `Llevas <strong>${minutosEstudiados} minutos</strong> de esta sesión. ¿Quieres registrarlos antes de reiniciar?`,
+                confirmText: 'Registrar tiempo',
+                cancelText: 'Descartar'
+            });
+            if (guardar) {
                 const desc = inputDescripcion.value.trim();
                 await guardarSesionEnBD(minutosEstudiados, remoteState.activity, remoteState.topic, desc);
             }
@@ -431,9 +455,14 @@ btnSaveManual.addEventListener('click', async () => {
     const tema = selectTema.value;
     const desc = inputDescripcion.value.trim();
 
-    if (!act || act === 'ADD_NEW') return alert("Selecciona un Tipo de Actividad arriba.");
+    if (!act || act === 'ADD_NEW') return toast('Selecciona antes un tipo de actividad.', { type: 'warning' });
     if (act !== 'psicotecnicos' && (!tema || tema === 'ADD_NEW')) {
-        if (!confirm("No has puesto tema. ¿Guardar sin tema?")) return;
+        const seguir = await confirmDialog({
+            title: 'Sesión sin tema',
+            message: 'No has indicado ningún tema. ¿Quieres registrarla igualmente como “Sin tema”?',
+            confirmText: 'Continuar sin tema'
+        });
+        if (!seguir) return;
     }
 
     const h = parseInt(document.getElementById('input-horas').value) || 0;
@@ -442,11 +471,12 @@ btnSaveManual.addEventListener('click', async () => {
 
     const totalMinutos = (h * 60) + m + (s / 60);
 
-    if (totalMinutos <= 0) return alert('Introduce un tiempo mayor a 0');
+    if (totalMinutos <= 0) return toast('Introduce un tiempo mayor que cero.', { type: 'warning' });
 
     await guardarSesionEnBD(totalMinutos, act, tema === 'ADD_NEW' ? null : tema, desc);
-    alert(`Guardados ${h} h ${m} min ${s} s correctamente.`);
-    
+    const partes = [h ? `${h} h` : '', m ? `${m} min` : '', s ? `${s} s` : ''].filter(Boolean).join(' ');
+    toast(`Registrado: ${partes}.`, { type: 'success' });
+
     // Limpiar inputs
     document.getElementById('input-horas').value = '';
     document.getElementById('input-minutos').value = '';
@@ -528,20 +558,26 @@ tabBotones.forEach(btn => {
 addTaskBtn.addEventListener('click', addTask);
 newTaskInput.addEventListener('keypress', (e) => { if(e.key==='Enter') addTask(); });
 
-taskList.addEventListener('click', (e) => {
+taskList.addEventListener('click', async (e) => {
     const item = e.target.closest('li.task-item');
-    if (!item) return; 
+    if (!item) return;
     const id = item.dataset.id;
-    
-    if (e.target.classList.contains('task-checkbox')) { 
-        updateDoc(doc(db, "tareas_semanales", id), { completada: e.target.checked }); 
-        item.classList.toggle('completed'); 
-    } else if (e.target.classList.contains('delete-task-btn')) { 
-        deleteDoc(doc(db, "tareas_semanales", id)); 
-        item.remove(); 
+
+    if (e.target.classList.contains('task-checkbox')) {
+        updateDoc(doc(db, "tareas_semanales", id), { completada: e.target.checked });
+        item.classList.toggle('completed');
+    } else if (e.target.classList.contains('delete-task-btn')) {
+        deleteDoc(doc(db, "tareas_semanales", id));
+        item.remove();
+        toast('Tarea borrada.');
     } else if (e.target.classList.contains('edit-task-btn')) {
         const currentText = item.querySelector('.task-text').textContent;
-        const newText = prompt('Editar:', currentText);
+        const newText = await promptDialog({
+            title: 'Editar tarea',
+            label: 'Descripción',
+            value: currentText,
+            confirmText: 'Guardar'
+        });
         if (newText && newText !== currentText) {
             updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
             item.querySelector('.task-text').textContent = newText;

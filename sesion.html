@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión de estudio · Planificador CNP</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="display: none;">
+
+    <button id="menu-toggle" aria-label="Abrir menú de navegación">
+        <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="main-nav" aria-label="Navegación principal"></nav>
+
+    <main class="content-wrapper">
+        <div class="page-inner">
+
+            <header class="page-header">
+                <div>
+                    <h1 class="page-header__title">Sesión de estudio</h1>
+                    <p class="page-header__sub">Registra el tiempo dedicado a cada tema y tipo de actividad.</p>
+                </div>
+                <div class="page-header__actions">
+                    <a href="stats.html" class="btn btn--secondary">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="15"/></svg>
+                        Ver estadísticas
+                    </a>
+                </div>
+            </header>
+
+            <div class="index-layout">
+
+                <section class="card">
+                    <div class="card__header">
+                        <h2 class="card__title">Registro de actividad</h2>
+                    </div>
+                    <div class="card__body">
+
+                        <div class="session-selectors">
+                            <div class="input-group-modern">
+                                <label for="select-tema">Asignatura o tema</label>
+                                <div class="selector-row">
+                                    <div class="input-with-icon">
+                                        <span class="input-icon">
+                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 4h6a3 3 0 0 1 3 3v13a2.5 2.5 0 0 0-2.5-2.5H2z"/><path d="M22 4h-6a3 3 0 0 0-3 3v13a2.5 2.5 0 0 1 2.5-2.5H22z"/></svg>
+                                        </span>
+                                        <select id="select-tema" class="modern-select">
+                                            <option value="" disabled selected>Selecciona un tema</option>
+                                            <option value="TODOS">Todos los temas</option>
+                                            <option value="ADD_NEW">Añadir nuevo tema…</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" id="btn-del-tema" class="btn-icon btn-icon--bordered btn-icon--danger" title="Borrar tema personalizado" aria-label="Borrar tema personalizado">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="input-group-modern">
+                                <label for="select-tipo">Tipo de actividad</label>
+                                <div class="selector-row">
+                                    <div class="input-with-icon">
+                                        <span class="input-icon">
+                                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 7 6 9 10 5"/><polyline points="4 16 6 18 10 14"/><line x1="13" y1="7" x2="20" y2="7"/><line x1="13" y1="17" x2="20" y2="17"/></svg>
+                                        </span>
+                                        <select id="select-tipo" class="modern-select">
+                                            <option value="" disabled selected>Selecciona la actividad</option>
+                                            <option value="estudio">Estudio</option>
+                                            <option value="clase">Clase</option>
+                                            <option value="seminario">Seminario</option>
+                                            <option value="test">Test</option>
+                                            <option value="psicotecnicos">Psicotécnicos</option>
+                                            <option value="opowar">Opowar</option>
+                                            <option value="voltea">Voltea</option>
+                                            <option value="examen">Examen</option>
+                                            <option value="ADD_NEW">Añadir nueva actividad…</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" id="btn-del-tipo" class="btn-icon btn-icon--bordered btn-icon--danger" title="Borrar actividad personalizada" aria-label="Borrar actividad personalizada">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="input-group-modern">
+                                <label for="input-descripcion">Descripción <span class="u-subtle">(opcional)</span></label>
+                                <input type="text" id="input-descripcion" class="modern-input" placeholder="Simulacro mensual, repaso de fallos…">
+                            </div>
+                        </div>
+
+                        <div class="mode-tabs" role="tablist">
+                            <button class="main-tab-btn" data-target="ui-pomodoro" role="tab">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
+                                Temporizador
+                            </button>
+                            <button class="main-tab-btn active" data-target="ui-manual" role="tab">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                                Registro manual
+                            </button>
+                        </div>
+
+                        <div id="ui-pomodoro" class="main-tab-content hidden">
+                            <div class="tabs">
+                                <button class="tab-btn active" data-mode="estudio">Estudio</button>
+                                <button class="tab-btn" data-mode="descanso">Descanso</button>
+                            </div>
+
+                            <div class="timer-panel">
+                                <div class="pomodoro-counter">
+                                    Pomodoros de hoy <span id="pomodoro-count-display">0</span>
+                                </div>
+                                <div class="timer" id="timer-display">30:00</div>
+                                <div class="controles">
+                                    <button id="btn-iniciar" class="btn btn--primary btn--lg">Iniciar</button>
+                                    <button id="btn-reset" class="btn btn--secondary btn--lg">Guardar y reiniciar</button>
+                                </div>
+                            </div>
+
+                            <div class="config">
+                                <h3 id="config-icon">Configuración del ciclo</h3>
+                                <div class="config-grid">
+                                    <div class="config-column">
+                                        <div class="config-field">
+                                            <label for="input-estudio">Estudio</label>
+                                            <input type="number" id="input-estudio" value="30" min="1">
+                                        </div>
+                                        <div class="config-field">
+                                            <label for="input-descanso">Descanso</label>
+                                            <input type="number" id="input-descanso" value="5" min="1">
+                                        </div>
+                                    </div>
+                                    <div class="config-column">
+                                        <div class="config-field">
+                                            <label for="input-descanso-largo">Descanso largo</label>
+                                            <input type="number" id="input-descanso-largo" value="20" min="1">
+                                        </div>
+                                        <div class="config-field">
+                                            <label for="input-ciclo-pomodoro">Pomos por ciclo</label>
+                                            <input type="number" id="input-ciclo-pomodoro" value="4" min="1">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div id="ui-manual" class="main-tab-content">
+                            <p class="section-label">Tiempo invertido</p>
+                            <div class="time-inputs">
+                                <div class="time-unit">
+                                    <input type="number" id="input-horas" inputmode="numeric" min="0" placeholder="00" aria-label="Horas">
+                                    <span>Horas</span>
+                                </div>
+                                <div class="time-separator">:</div>
+                                <div class="time-unit">
+                                    <input type="number" id="input-minutos" inputmode="numeric" min="0" max="59" placeholder="00" aria-label="Minutos">
+                                    <span>Minutos</span>
+                                </div>
+                                <div class="time-separator">:</div>
+                                <div class="time-unit">
+                                    <input type="number" id="input-segundos" inputmode="numeric" min="0" max="59" placeholder="00" aria-label="Segundos">
+                                    <span>Segundos</span>
+                                </div>
+                            </div>
+                            <button id="btn-save-manual" class="btn btn--primary btn--lg btn--block">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                                Guardar tiempo
+                            </button>
+                        </div>
+
+                    </div>
+                </section>
+
+                <section class="card">
+                    <div class="card__header">
+                        <h2 class="card__title">Tareas de hoy</h2>
+                    </div>
+                    <div class="card__body">
+                        <div class="task-input-group">
+                            <input type="text" id="new-task-input" placeholder="Añadir nueva tarea…">
+                            <button id="add-task-btn" aria-label="Añadir tarea">
+                                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                            </button>
+                        </div>
+                        <ul id="task-list"></ul>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/nav.js"></script>
+    <script type="module" src="js/colorRules.js"></script>
+    <script type="module" src="js/pomodoro.js"></script>
+</body>
+</html>

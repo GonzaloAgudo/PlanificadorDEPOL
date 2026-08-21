@@ -4,6 +4,7 @@ import {
     doc, updateDoc, deleteDoc, onSnapshot, orderBy, limit, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { icon } from './icons.js';
+import { toast, confirmDialog, promptDialog } from './ui.js';
 
 // Inicializar Quill
 const quill = new Quill('#editor', {
@@ -78,11 +79,19 @@ function loadCategories() {
                 <button class="delete-cat-btn" title="Borrar cuaderno" aria-label="Borrar cuaderno">${icon('trash', 'icon--sm')}</button>
             `;
             
-            li.addEventListener('click', (e) => {
+            li.addEventListener('click', async (e) => {
                 if (e.target.classList.contains('delete-cat-btn')) return;
                 // Si hay cambios sin guardar, preguntar antes de cambiar de nota
-                if(unsavedChanges && !confirm("Tienes cambios sin guardar. ¿Cambiar de nota igualmente?")) return;
-                
+                if (unsavedChanges) {
+                    const seguir = await confirmDialog({
+                        title: 'Cambios sin guardar',
+                        message: 'Si cambias de cuaderno ahora perderás lo que has escrito.',
+                        confirmText: 'Cambiar igualmente',
+                        danger: true
+                    });
+                    if (!seguir) return;
+                }
+
                 openNote(docSnap.id, note);
             });
 
@@ -124,8 +133,13 @@ async function saveCategoryOrder(ids) {
 }
 
 async function createNewCategory() {
-    const titulo = prompt("Nombre de la nueva asignatura/cuaderno:");
-    if (!titulo || titulo.trim() === "") return;
+    const titulo = await promptDialog({
+        title: 'Nuevo cuaderno',
+        label: 'Nombre',
+        placeholder: 'Ej.: Derecho Penal',
+        confirmText: 'Crear'
+    });
+    if (!titulo) return;
 
     try {
         const qOrder = query(collection(db, "bloc_notas"), where("user_id", "==", auth.currentUser.uid), orderBy("orden", "desc"), limit(1));
@@ -140,7 +154,7 @@ async function createNewCategory() {
         unsavedChanges = false; // Nueva nota empieza limpia
         openNote(docRef.id, { titulo: titulo.trim(), contenido: "" });
         statusMsg.textContent = "Cuaderno creado.";
-    } catch (error) { console.error(error); alert("Error al crear."); }
+    } catch (error) { console.error(error); toast('No se pudo crear el cuaderno.', { type: 'error' }); }
 }
 
 // --- 3. ABRIR NOTA (Y GESTIONAR BOTÓN MÓVIL) ---
@@ -199,7 +213,7 @@ async function saveCurrentNote() {
 
     } catch (error) {
         console.error(error);
-        if (error.code === 'invalid-argument') alert("La nota es demasiado grande (imágenes).");
+        if (error.code === 'invalid-argument') toast('La nota es demasiado grande. Prueba a reducir las imágenes.', { type: 'error' });
         statusMsg.textContent = "No se pudo guardar";
         saveNoteBtn.innerHTML = `${icon('warning', 'icon--sm')}Reintentar`;
         fabSaveBtn.innerHTML = icon('warning', 'icon--lg');
@@ -210,12 +224,18 @@ async function saveCurrentNote() {
 }
 
 async function deleteNote(id, title) {
-    if (!confirm(`¿Borrar el cuaderno "${title}"?`)) return;
+    const ok = await confirmDialog({
+        title: 'Borrar cuaderno',
+        message: `Se eliminará <strong>${title}</strong> y todo su contenido. Esta acción no se puede deshacer.`,
+        confirmText: 'Borrar',
+        danger: true
+    });
+    if (!ok) return;
     try {
         await deleteDoc(doc(db, "bloc_notas", id));
         if (currentNoteId === id) resetEditor();
-        alert("Borrado.");
-    } catch (error) { console.error(error); alert("Error al borrar."); }
+        toast('Cuaderno borrado.', { type: 'success' });
+    } catch (error) { console.error(error); toast('No se pudo borrar el cuaderno.', { type: 'error' }); }
 }
 
 function resetEditor() {
@@ -246,21 +266,18 @@ deleteNoteBtn.addEventListener('click', () => {
 
 // Botón Atrás (Móvil)
 if(backToListBtn) {
-    backToListBtn.addEventListener('click', () => {
+    backToListBtn.addEventListener('click', async () => {
         // Si hay cambios sin guardar al volver atrás en móvil
-        if(unsavedChanges) {
-            if(confirm("Tienes cambios sin guardar. ¿Deseas guardar antes de salir?")) {
-                saveCurrentNote().then(() => {
-                    notesAppContainer.classList.remove('mobile-view-editor');
-                    fabSaveBtn.classList.remove('visible');
-                });
-                return;
-            } else {
-                // Si dice que no quiere guardar, ¿confirmamos que quiere perderlos?
-                if(!confirm("¿Seguro que quieres salir y PERDER los cambios?")) return;
-            }
+        if (unsavedChanges) {
+            const guardar = await confirmDialog({
+                title: 'Cambios sin guardar',
+                message: 'Tienes cambios sin guardar en esta nota.',
+                confirmText: 'Guardar y salir',
+                cancelText: 'Salir sin guardar'
+            });
+            if (guardar) await saveCurrentNote();
         }
-        
+
         notesAppContainer.classList.remove('mobile-view-editor');
         fabSaveBtn.classList.remove('visible');
     });

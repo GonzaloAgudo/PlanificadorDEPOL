@@ -1,16 +1,19 @@
-// Importa la autenticación y la función de 'escucha'
+// Controla el acceso a las páginas internas: sin sesión iniciada se va a
+// login, y con el correo sin verificar, a la pantalla de verificación.
 import { auth } from './firebase-config.js';
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { necesitaVerificar } from './auth-guard-utils.js';
 
-// Escucha los cambios de estado de autenticación
 onAuthStateChanged(auth, (user) => {
-    if (user) {
-        // El usuario ha iniciado sesión.
-        // Opcional: podemos mostrar el contenido principal si estaba oculto
-        document.body.style.display = 'block'; 
-    } else {
-        // El usuario no ha iniciado sesión.
-        // Redirigir a login.html
-        window.location.href = 'login.html';
+    if (!user) {
+        window.location.replace('login.html');
+        return;
     }
+
+    if (necesitaVerificar(user)) {
+        window.location.replace('verificar.html');
+        return;
+    }
+
+    document.body.style.display = 'block';
 });

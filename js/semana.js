@@ -8,6 +8,7 @@ import {
 // Importamos las reglas de color
 import { fetchColorRules, applyColorRule } from './colorRules.js';
 import { icon } from './icons.js';
+import { toast, promptDialog } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -230,12 +231,17 @@ document.addEventListener('DOMContentLoaded', () => {
             renderTask({ id: docRef.id, data: () => newTask });
         } catch (error) { 
             console.error("Error al añadir tarea:", error);
-            alert('Error al añadir tarea.'); 
+            toast('No se pudo añadir la tarea.', { type: 'error' });
         }
     }
     
     async function editTask(id, currentText, taskElement) {
-        const newText = prompt('Editar tarea:', currentText);
+        const newText = await promptDialog({
+            title: 'Editar tarea',
+            label: 'Descripción',
+            value: currentText,
+            confirmText: 'Guardar'
+        });
         if (newText && newText !== currentText) {
             try {
                 await updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
@@ -355,7 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (error) {
                 console.error("Error moviendo tarea:", error);
-                alert("Error al mover. Recargando...");
+                toast('No se pudo mover la tarea. Recargando…', { type: 'error' });
                 location.reload();
             }
         }

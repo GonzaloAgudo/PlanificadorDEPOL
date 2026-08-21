@@ -6,6 +6,7 @@ import {
 import { calcularRecomendaciones } from './recomendaciones.js';
 import { formatNombreTema } from './temario-oficial.js';
 import { icon } from './icons.js';
+import { toast, confirmDialog, promptDialog } from './ui.js';
 
 // Referencias al DOM
 const tableHead = document.getElementById('table-header-row');
@@ -59,7 +60,12 @@ async function loadConfig() {
 }
 
 async function addColumn() {
-    const name = prompt("Nombre de la nueva columna (ej. 'Repaso Oral'):");
+    const name = await promptDialog({
+        title: 'Nueva columna de seguimiento',
+        label: 'Nombre',
+        placeholder: 'Ej.: Repaso oral',
+        confirmText: 'Crear'
+    });
     if (!name) return;
 
     const newCol = { id: 'c_' + Date.now(), name: name };
@@ -74,7 +80,12 @@ async function addColumn() {
 
 async function renameColumn(colId) {
     const col = dynamicColumns.find(c => c.id === colId);
-    const newName = prompt("Nuevo nombre para la columna:", col.name);
+    const newName = await promptDialog({
+        title: 'Renombrar columna',
+        label: 'Nombre',
+        value: col.name,
+        confirmText: 'Guardar'
+    });
     if (newName && newName !== col.name) {
         col.name = newName;
         await saveColumnsConfig();
@@ -82,7 +93,14 @@ async function renameColumn(colId) {
 }
 
 async function deleteColumn(colId) {
-    if(!confirm("¿Borrar esta columna y sus datos?")) return;
+    const col = dynamicColumns.find(c => c.id === colId);
+    const ok = await confirmDialog({
+        title: 'Borrar columna',
+        message: `Se eliminará la columna <strong>${col ? col.name : ''}</strong> y las marcas de todos los temas en ella.`,
+        confirmText: 'Borrar',
+        danger: true
+    });
+    if (!ok) return;
     dynamicColumns = dynamicColumns.filter(c => c.id !== colId);
     
     await saveColumnsConfig();
@@ -179,7 +197,14 @@ async function updateCheck(id, colId, isChecked) {
 }
 
 async function deleteRow(id) {
-    if(confirm("¿Eliminar tema?")) await deleteDoc(doc(db, "progreso_temario", id));
+    const fila = rowsData.find(r => r.id === id);
+    const ok = await confirmDialog({
+        title: 'Eliminar tema',
+        message: `Se eliminará <strong>${fila ? fila.tema : 'este tema'}</strong> del seguimiento.`,
+        confirmText: 'Eliminar',
+        danger: true
+    });
+    if (ok) await deleteDoc(doc(db, "progreso_temario", id));
 }
 
 // =======================================================

@@ -4,6 +4,7 @@ import {
     doc, deleteDoc, updateDoc 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fetchColorRules, applyEventColorRule } from './colorRules.js';
+import { toast, confirmDialog } from './ui.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -98,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newTitle = modalTitle.value.trim();
         const newDesc = modalDesc.value.trim();
         
-        if (!newTitle) return alert("El título es obligatorio");
+        if (!newTitle) return toast('El título es obligatorio.', { type: 'warning' });
 
         try {
             if (id) {
@@ -131,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (e) {
             console.error(e);
-            alert("Error al guardar");
+            toast('No se pudo guardar el evento.', { type: 'error' });
         }
     });
 
@@ -140,7 +141,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const id = modalId.value;
         if (!id) return;
         
-        if (confirm("¿Seguro que quieres borrar este evento?")) {
+        const ok = await confirmDialog({
+            title: 'Borrar evento',
+            message: `Se eliminará <strong>${modalTitle.value.trim() || 'este evento'}</strong> del calendario.`,
+            confirmText: 'Borrar',
+            danger: true
+        });
+        if (ok) {
             try {
                 const oldTitle = modalTitle.value;
                 if (oldTitle.toLowerCase() === 'festivo' && activeCellElement) {
@@ -153,7 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 closeModal();
             } catch (e) {
                 console.error(e);
-                alert("Error al borrar");
+                toast('No se pudo borrar el evento.', { type: 'error' });
             }
         }
     });

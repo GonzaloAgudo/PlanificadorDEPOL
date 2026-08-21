@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verifica tu correo · Planificador CNP</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="display: none;">
+    <div class="auth-layout">
+
+        <aside class="auth-aside">
+            <div class="auth-aside__brand">
+                <img src="assets/logo.png" alt="">
+                <span>
+                    <span class="auth-aside__name">Planificador</span>
+                    <span class="auth-aside__sub">Oposición CNP</span>
+                </span>
+            </div>
+
+            <div class="auth-aside__pitch">
+                <h1>Un último paso.</h1>
+                <p>Verificar tu correo nos asegura de que la dirección es tuya y de que podrás recuperar el acceso si algún día olvidas la contraseña.</p>
+            </div>
+
+            <p class="auth-aside__foot">Proyecto de fin de grado</p>
+        </aside>
+
+        <main class="auth-main">
+            <div class="auth-card verify-card">
+                <span class="verify-card__icon">
+                    <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 6 12 13 2 6"/></svg>
+                </span>
+
+                <h2>Verifica tu correo</h2>
+                <p class="login-intro">Te hemos enviado un enlace de verificación a esta dirección. Ábrelo y vuelve aquí.</p>
+
+                <strong class="verify-card__mail" id="verify-email">…</strong>
+
+                <div class="verify-actions">
+                    <button type="button" id="btn-check" class="btn btn--primary btn--lg btn--block">Ya he verificado</button>
+                    <button type="button" id="btn-resend" class="btn btn--secondary btn--block">Reenviar correo</button>
+                </div>
+
+                <p class="verify-hint">
+                    Si no lo encuentras, revisa la carpeta de spam o correo no deseado.
+                </p>
+
+                <p class="login-alt">
+                    <a href="#" id="btn-logout">Salir y usar otra cuenta</a>
+                </p>
+            </div>
+        </main>
+
+    </div>
+    <script type="module" src="js/verificar.js"></script>
+</body>
+</html>

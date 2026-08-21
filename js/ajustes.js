@@ -1,9 +1,15 @@
 import { db, auth } from './firebase-config.js';
-import { 
-    collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, startAfter, Timestamp 
+import {
+    collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
+    orderBy, limit, startAfter, Timestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+    deleteUser, reauthenticateWithCredential, reauthenticateWithPopup,
+    EmailAuthProvider, GoogleAuthProvider
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { icon } from './icons.js';
+import { toast, confirmDialog, formDialog } from './ui.js';
+import { borrarDatosDeUsuario } from './borrar-datos.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -135,20 +141,87 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    if (deleteAccountBtn) {
-        deleteAccountBtn.addEventListener('click', async () => {
-            if (!confirm("¿Eliminar la cuenta? Se perderán todos los datos de forma permanente.")) return;
-            const user = auth.currentUser;
-            if (user) {
-                try {
-                    await deleteUser(user);
-                    alert("Cuenta eliminada.");
-                    window.location.href = "login.html";
-                } catch (error) {
-                    alert("Error. Inicia sesión de nuevo e inténtalo.");
-                }
-            }
+    /**
+     * Eliminar la cuenta. Para que no pueda ocurrir por accidente exige
+     * teclear la dirección de correo completa y volver a autenticarse, y
+     * antes de borrar el usuario elimina sus datos de Firestore (si no,
+     * quedarían huérfanos para siempre).
+     */
+    async function eliminarCuenta() {
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const email = user.email || '';
+        const usaContrasena = user.providerData.some(p => p.providerId === 'password');
+        const usaGoogle = user.providerData.some(p => p.providerId === 'google.com');
+
+        const campos = [{
+            name: 'confirmacion',
+            label: 'Escribe tu correo para confirmar',
+            type: 'text',
+            placeholder: email,
+            autocomplete: 'off'
+        }];
+        if (usaContrasena) {
+            campos.push({
+                name: 'password',
+                label: 'Tu contraseña actual',
+                type: 'password',
+                autocomplete: 'current-password'
+            });
+        }
+
+        const datos = await formDialog({
+            title: 'Eliminar cuenta',
+            message: 'Esta acción es <strong>permanente y no se puede deshacer</strong>. ' +
+                     'Se borrarán tus sesiones de estudio, tareas, eventos, apuntes, ' +
+                     'notas y el seguimiento del temario.' +
+                     (usaGoogle && !usaContrasena ? '<br><br>Al continuar se abrirá una ventana de Google para confirmar tu identidad.' : ''),
+            fields: campos,
+            confirmText: 'Eliminar cuenta',
+            danger: true,
+            validate: (v) =>
+                v.confirmacion.trim().toLowerCase() === email.toLowerCase() &&
+                (!usaContrasena || v.password.length > 0)
         });
+        if (!datos) return;
+
+        // 1. Volver a autenticar: Firebase lo exige si la sesión no es reciente
+        try {
+            if (usaContrasena) {
+                const cred = EmailAuthProvider.credential(email, datos.password);
+                await reauthenticateWithCredential(user, cred);
+            } else if (usaGoogle) {
+                await reauthenticateWithPopup(user, new GoogleAuthProvider());
+            }
+        } catch (error) {
+            console.error('Error al reautenticar:', error);
+            if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                toast('La contraseña no es correcta.', { type: 'error' });
+            } else if (error.code === 'auth/popup-closed-by-user') {
+                toast('Se canceló la confirmación con Google.', { type: 'warning' });
+            } else {
+                toast('No se pudo verificar tu identidad. Inténtalo de nuevo.', { type: 'error' });
+            }
+            return;
+        }
+
+        // 2. Borrar los datos y, por último, el usuario
+        const aviso = toast('Eliminando tus datos…', { type: 'info', duration: 0 });
+        try {
+            await borrarDatosDeUsuario(user.uid);
+            await deleteUser(user);
+            aviso();
+            window.location.href = 'login.html';
+        } catch (error) {
+            aviso();
+            console.error('Error al eliminar la cuenta:', error);
+            toast('No se pudo completar el borrado. Inténtalo de nuevo.', { type: 'error' });
+        }
+    }
+
+    if (deleteAccountBtn) {
+        deleteAccountBtn.addEventListener('click', eliminarCuenta);
     }
 
     // ==========================================
@@ -254,11 +327,18 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function deleteRule(id) {
-        if (!confirm('¿Borrar regla?')) return;
+        const ok = await confirmDialog({
+            title: 'Borrar regla',
+            message: 'Las tareas y eventos dejarán de colorearse con esta regla.',
+            confirmText: 'Borrar',
+            danger: true
+        });
+        if (!ok) return;
         try {
             await deleteDoc(doc(db, "color_rules", id));
             loadRules();
-        } catch (e) { alert('Error al borrar.'); }
+            toast('Regla borrada.', { type: 'success' });
+        } catch (e) { toast('No se pudo borrar la regla.', { type: 'error' }); }
     }
 
     function populateRuleForm(ruleDoc) {
@@ -399,22 +479,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     tema: sessionTopicInput.value.trim(),
                     descripcion: sessionDescriptionInput.value.trim() // Actualizamos la descripción
                 });
-                alert('Sesión actualizada');
+                toast('Sesión actualizada.', { type: 'success' });
                 sessionForm.style.display = 'none';
                 loadHistory(false); 
             } catch(e) {
                 console.error(e);
-                alert('Error al actualizar');
+                toast('No se pudo actualizar la sesión.', { type: 'error' });
             }
         });
     }
 
     async function deleteSession(id) {
-        if(!confirm("¿Borrar esta sesión para siempre?")) return;
+        const ok = await confirmDialog({
+            title: 'Borrar sesión',
+            message: 'Se eliminará esta sesión del historial y dejará de contar en tus estadísticas.',
+            confirmText: 'Borrar',
+            danger: true
+        });
+        if (!ok) return;
         try {
             await deleteDoc(doc(db, "sesiones_estudio", id));
             loadHistory(false);
-        } catch(e) { alert('Error al borrar'); }
+            toast('Sesión borrada.', { type: 'success' });
+        } catch(e) { toast('No se pudo borrar la sesión.', { type: 'error' }); }
     }
 
     if(cancelSessionBtn) {
