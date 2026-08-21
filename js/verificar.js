@@ -1,14 +1,16 @@
 import { auth } from './firebase-config.js';
 import {
-    onAuthStateChanged, sendEmailVerification, signOut, reload
+    onAuthStateChanged, sendEmailVerification, signOut, reload,
+    verifyBeforeUpdateEmail, reauthenticateWithCredential, EmailAuthProvider
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { toast } from './ui.js';
+import { toast, formDialog } from './ui.js';
 import { necesitaVerificar } from './auth-guard-utils.js';
 
 const emailEl = document.getElementById('verify-email');
 const btnResend = document.getElementById('btn-resend');
 const btnCheck = document.getElementById('btn-check');
 const btnLogout = document.getElementById('btn-logout');
+const btnCambiarCorreo = document.getElementById('btn-cambiar-correo');
 
 // Espera de cortesía entre reenvíos, para no agotar la cuota de Firebase
 const ESPERA_REENVIO = 60;
@@ -116,6 +118,85 @@ if (btnCheck) {
             btnCheck.disabled = false;
             btnCheck.textContent = textoOriginal;
         }
+    });
+}
+
+/**
+ * Cambiar la dirección de correo de la cuenta.
+ *
+ * Sin esto, quien se equivoque al teclear su correo al registrarse (o quien
+ * usara una dirección que ya no controla) se queda bloqueado para siempre:
+ * no puede verificar, y sin verificar no puede entrar.
+ *
+ * Se usa verifyBeforeUpdateEmail: manda el enlace a la dirección NUEVA y solo
+ * aplica el cambio cuando se abre, así que al terminar la cuenta queda además
+ * verificada. El identificador interno no cambia, de modo que se conservan
+ * todas las sesiones, tareas, apuntes y notas ya guardados.
+ */
+async function cambiarCorreo() {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const usaContrasena = user.providerData.some(p => p.providerId === 'password');
+    if (!usaContrasena) {
+        toast('Esta cuenta accede con Google, así que su correo se gestiona desde tu cuenta de Google.', { type: 'info', duration: 7000 });
+        return;
+    }
+
+    const datos = await formDialog({
+        title: 'Cambiar el correo de la cuenta',
+        message: 'Enviaremos el enlace de confirmación a la <strong>dirección nueva</strong>. ' +
+                 'Conservarás todos tus datos: solo cambia la dirección con la que accedes.',
+        fields: [
+            { name: 'email', label: 'Nueva dirección de correo', type: 'email', placeholder: 'tucorreo@ejemplo.com', autocomplete: 'email' },
+            { name: 'password', label: 'Tu contraseña actual', type: 'password', autocomplete: 'current-password' }
+        ],
+        confirmText: 'Enviar confirmación',
+        validate: (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.email.trim()) && v.password.length > 0
+    });
+    if (!datos) return;
+
+    const nuevoEmail = datos.email.trim();
+    if (nuevoEmail.toLowerCase() === (user.email || '').toLowerCase()) {
+        toast('Esa es la dirección que ya tiene la cuenta.', { type: 'warning' });
+        return;
+    }
+
+    try {
+        // Firebase exige sesión reciente para cambiar el correo
+        const cred = EmailAuthProvider.credential(user.email, datos.password);
+        await reauthenticateWithCredential(user, cred);
+    } catch (error) {
+        console.error('Error al reautenticar:', error.code);
+        toast(
+            error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential'
+                ? 'La contraseña no es correcta.'
+                : 'No se pudo verificar tu identidad. Inténtalo de nuevo.',
+            { type: 'error' }
+        );
+        return;
+    }
+
+    try {
+        await verifyBeforeUpdateEmail(user, nuevoEmail);
+        toast(`Enlace enviado a ${nuevoEmail}. Ábrelo para completar el cambio y luego entra con la dirección nueva.`,
+              { type: 'success', duration: 0 });
+    } catch (error) {
+        console.error('Error al cambiar el correo:', error.code);
+        if (error.code === 'auth/email-already-in-use') {
+            toast('Ya existe otra cuenta con esa dirección.', { type: 'error' });
+        } else if (error.code === 'auth/invalid-email') {
+            toast('Esa dirección de correo no es válida.', { type: 'error' });
+        } else {
+            toast('No se pudo enviar la confirmación. Inténtalo más tarde.', { type: 'error' });
+        }
+    }
+}
+
+if (btnCambiarCorreo) {
+    btnCambiarCorreo.addEventListener('click', (e) => {
+        e.preventDefault();
+        cambiarCorreo();
     });
 }
 
