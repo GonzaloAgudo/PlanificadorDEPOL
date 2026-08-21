@@ -21,16 +21,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentDate = new Date(); 
     let currentRange = 'day';     
 
-    // COLORES POR DEFECTO
+    // Paleta de categorías (coincide con las variables --c-cat-* del CSS)
     const TIPO_COLORES = {
-        'estudio': 'rgba(40, 167, 69, 0.7)',        
-        'clase': 'rgba(111, 66, 193, 0.7)',         
-        'psicotecnicos': 'rgba(253, 126, 20, 0.7)', 
-        'test': 'rgba(220, 53, 69, 0.7)',           
-        'examen': 'rgba(255, 193, 7, 0.7)',         
-        'opowar': 'rgba(23, 162, 184, 0.7)',        
-        'voltea': 'rgba(32, 201, 151, 0.7)'         
+        'estudio': '#1c4e80',
+        'clase': '#58487f',
+        'psicotecnicos': '#9a6a2f',
+        'test': '#9b2c2c',
+        'examen': '#1f6f4a',
+        'opowar': '#2b6b73',
+        'voltea': '#6b5a2b'
     };
+
+    // Colores de la retícula y las etiquetas, en la línea sobria del resto
+    const C_GRID = '#eceef1';
+    const C_TICK = '#5b6673';
 
     // ETIQUETAS LIMPIAS POR DEFECTO
     const NOMBRES_TIPOS = {
@@ -74,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Multiplicar por el ángulo áureo asegura la máxima separación cromática posible
         const hue = Math.floor((Math.abs(hash) * 137.508) % 360);
-        return `hsla(${hue}, 75%, 55%, 0.8)`; // Color vibrante y bien contrastado
+        return `hsl(${hue}, 30%, 42%)`; // Tono apagado, en línea con la paleta fija
     }
 
     function updatePeriodLabel() {
@@ -245,10 +249,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     datasets: [{ label: 'Horas', data: data, backgroundColor: colores, borderWidth: 1 }] 
                 },
                 options: {
-                    indexAxis: 'y', 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    scales: { x: { beginAtZero: true } },
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            grid: { color: C_GRID },
+                            border: { display: false },
+                            ticks: { color: C_TICK }
+                        },
+                        y: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { color: C_TICK }
+                        }
+                    },
                     plugins: { legend: { display: false } }
                 }
             });
@@ -286,11 +302,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true, 
                 maintainAspectRatio: false,
                 scales: {
-                    x: { stacked: isStacked },
-                    y: { beginAtZero: true, stacked: isStacked, title: { display: true, text: etiquetaEjeY } }
+                    x: {
+                        stacked: isStacked,
+                        grid: { display: false },
+                        border: { color: C_GRID },
+                        ticks: { color: C_TICK }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        stacked: isStacked,
+                        title: { display: true, text: etiquetaEjeY, color: C_TICK },
+                        grid: { color: C_GRID },
+                        border: { display: false },
+                        ticks: { color: C_TICK }
+                    }
                 },
                 plugins: {
-                    legend: { display: (filtroActividad === 'conjunto') },
+                    legend: {
+                        display: (filtroActividad === 'conjunto'),
+                        labels: { color: C_TICK, boxWidth: 12, boxHeight: 12, usePointStyle: false }
+                    },
                     datalabels: { display: false },
                     tooltip: {
                         callbacks: {

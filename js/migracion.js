@@ -8,17 +8,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const migrateBtn = document.getElementById('migrate-btn');
     const statusEl = document.getElementById('status');
 
-    // Formulario de login rápido
+    // Formulario de acceso rápido, por si la sesión no está iniciada
     const loginContainer = document.createElement('div');
     loginContainer.innerHTML = `
-        <div id="quick-login" style="margin-bottom: 20px; padding: 10px; background: #eee; border-radius: 8px;">
-            <h3>Si no estás logueado, entra aquí rápido:</h3>
-            <input type="email" id="mig-email" placeholder="Email" style="margin-right: 5px;">
-            <input type="password" id="mig-pass" placeholder="Contraseña" style="margin-right: 5px;">
-            <button id="mig-login-btn">Entrar</button>
+        <div id="quick-login" class="card" style="margin-bottom: 24px;">
+            <div class="card__body">
+                <p class="section-label">Acceso rápido</p>
+                <div class="field-row">
+                    <input type="email" id="mig-email" class="input" placeholder="Correo electrónico">
+                    <input type="password" id="mig-pass" class="input" placeholder="Contraseña">
+                    <button id="mig-login-btn" class="btn btn--secondary">Entrar</button>
+                </div>
+            </div>
         </div>
     `;
-    document.querySelector('main').insertBefore(loginContainer, document.querySelector('h1').nextSibling);
+
+    const mainEl = document.querySelector('main');
+    const header = mainEl.querySelector('.page-header');
+    if (header) header.insertAdjacentElement('afterend', loginContainer);
+    else mainEl.prepend(loginContainer);
 
     document.getElementById('mig-login-btn').addEventListener('click', () => {
         const email = document.getElementById('mig-email').value;
@@ -33,13 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     onAuthStateChanged(auth, (user) => {
         if (user) {
             currentUser = user;
-            statusEl.textContent = `✅ Logueado como: ${user.email} (UID: ${user.uid})`;
-            statusEl.style.color = 'green';
+            statusEl.textContent = `Sesión iniciada como ${user.email} (UID: ${user.uid})`;
+            statusEl.style.color = '#1f6f4a';
             migrateBtn.disabled = false;
             document.getElementById('quick-login').style.display = 'none';
         } else {
-            statusEl.textContent = '❌ NO ESTÁS LOGUEADO. Usa el formulario de arriba.';
-            statusEl.style.color = 'red';
+            statusEl.textContent = 'Sin sesión iniciada. Usa el formulario de acceso rápido.';
+            statusEl.style.color = '#9b2c2c';
             migrateBtn.disabled = true;
             document.getElementById('quick-login').style.display = 'block';
         }
@@ -75,16 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
         } catch (e) {
-            statusEl.textContent = '❌ Error JSON: ' + e.message;
+            statusEl.textContent = 'Error al leer el JSON: ' + e.message;
             return;
         }
         
         if (!data || data.length === 0) {
-             statusEl.textContent = '❌ El JSON está vacío o no se encontraron datos válidos dentro.';
+             statusEl.textContent = 'El JSON está vacío o no contiene datos válidos.';
              return;
         }
 
-        statusEl.textContent = `⏳ Preparando ${data.length} documentos...`;
+        statusEl.textContent = `Preparando ${data.length} documentos…`;
         migrateBtn.disabled = true;
 
         try {
@@ -127,18 +135,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            statusEl.textContent = `🚀 Enviando ${batches.length} lotes a Firebase...`;
+            statusEl.textContent = `Enviando ${batches.length} lotes a Firestore…`;
             
             await Promise.all(batches);
 
-            statusEl.textContent = `✅ ¡ÉXITO! ${data.length} documentos migrados a '${collectionName}'.`;
-            statusEl.style.color = 'green';
+            statusEl.textContent = `Listo: ${data.length} documentos migrados a '${collectionName}'.`;
+            statusEl.style.color = '#1f6f4a';
             jsonInput.value = '';
             
         } catch (e) {
             console.error(e);
-            statusEl.textContent = '❌ ERROR DE FIREBASE: ' + e.message;
-            statusEl.style.color = 'red';
+            statusEl.textContent = 'Error de Firestore: ' + e.message;
+            statusEl.style.color = '#9b2c2c';
         }
         
         migrateBtn.disabled = false;

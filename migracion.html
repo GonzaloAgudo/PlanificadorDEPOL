@@ -3,40 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Migración de Datos</title>
+    <title>Migración de datos · Planificador CNP</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <style>
-        body { background-color: #f0f0f0; }
-        main { max-width: 800px; margin: 5rem auto; padding: 2rem; background: #fff; border-radius: 16px; box-shadow: var(--sombra); }
-        h1 { color: var(--color-primario); }
-        textarea { width: 100%; min-height: 200px; font-family: monospace; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { font-weight: 600; display: block; margin-bottom: 0.5rem; }
-        .form-group input { font-size: 1rem; padding: 0.5rem; border-radius: 8px; border: 1px solid #ccc; }
-        button { background: var(--color-estudio); color: white; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; }
-        #status { margin-top: 1rem; font-weight: bold; }
+        main {
+            max-width: 820px;
+            margin: 0 auto;
+            padding: var(--sp-10) var(--sp-5);
+        }
+        #json-data { min-height: 220px; font-family: var(--f-mono); font-size: 0.8125rem; }
+        #status { margin-top: var(--sp-4); font-weight: 500; font-size: 0.875rem; }
     </style>
 </head>
 <body>
     <main>
-        <h1>Herramienta de Migración de MySQL a Firestore</h1>
-        <p><b>Importante:</b> Asegúrate de haber usado "Buscar y Reemplazar" en tu JSON para actualizar los `user_id`.</p>
-        
-        <div class="form-group">
-            <label for="collection-name">Nombre de la Colección en Firebase:</label>
-            <input type="text" id="collection-name" placeholder="Ej: sesiones_estudio, tareas_semanales, ...">
+        <header class="page-header">
+            <div>
+                <h1 class="page-header__title">Migración de datos</h1>
+                <p class="page-header__sub">Herramienta interna para importar datos de MySQL a Firestore.</p>
+            </div>
+        </header>
+
+        <div class="card">
+            <div class="card__body">
+                <p class="u-muted u-small">
+                    Antes de importar, comprueba que el JSON tiene los <code>user_id</code> actualizados.
+                </p>
+
+                <div class="form-group">
+                    <label for="collection-name">Colección de destino en Firestore</label>
+                    <input type="text" id="collection-name" placeholder="sesiones_estudio, tareas_semanales…">
+                </div>
+
+                <div class="form-group">
+                    <label for="json-data">Contenido del archivo .json</label>
+                    <textarea id="json-data"></textarea>
+                </div>
+
+                <button id="migrate-btn" class="btn btn--primary">Migrar datos</button>
+                <p id="status"></p>
+            </div>
         </div>
-        
-        <div class="form-group">
-            <label for="json-data">Pega el contenido de tu archivo .json aquí:</label>
-            <textarea id="json-data"></textarea>
-        </div>
-        
-        <button id="migrate-btn">Migrar Datos</button>
-        <p id="status"></p>
     </main>
 
-    <!-- Cargamos los módulos necesarios -->
     <script type="module" src="js/firebase-config.js"></script>
     <script type="module" src="js/migracion.js"></script>
 </body>

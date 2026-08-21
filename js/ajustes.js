@@ -3,6 +3,7 @@ import {
     collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, orderBy, limit, startAfter, Timestamp 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { deleteUser } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { icon } from './icons.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -45,14 +46,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Colores para las etiquetas del historial (Sincronizado con stats)
     const badgeColors = {
-        'estudio': '#28a745',
-        'clase': '#6f42c1',
-        'seminario': '#6f42c1',
-        'psicotecnicos': '#fd7e14',
-        'test': '#dc3545',
-        'examen': '#ffc107',
-        'opowar': '#17a2b8',
-        'voltea': '#20c997'
+        'estudio': '#1c4e80',
+        'clase': '#58487f',
+        'seminario': '#58487f',
+        'psicotecnicos': '#9a6a2f',
+        'test': '#9b2c2c',
+        'examen': '#1f6f4a',
+        'opowar': '#2b6b73',
+        'voltea': '#6b5a2b'
     };
 
     // ==========================================
@@ -69,7 +70,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.tipos_custom) {
                     data.tipos_custom.forEach(tipo => {
                         if (!Array.from(sessionTypeInput.options).some(opt => opt.value === tipo)) {
-                            const opt = new Option(`✨ ${tipo}`, tipo);
+                            const opt = new Option(tipo, tipo);
                             sessionTypeInput.add(opt);
                         }
                     });
@@ -136,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (deleteAccountBtn) {
         deleteAccountBtn.addEventListener('click', async () => {
-            if (!confirm("⚠️ ¿Eliminar cuenta y perder todos los datos?")) return;
+            if (!confirm("¿Eliminar la cuenta? Se perderán todos los datos de forma permanente.")) return;
             const user = auth.currentUser;
             if (user) {
                 try {
@@ -194,8 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="rule-swatch" style="background-color: ${rule.bg_color}; border-color: ${rule.border_color};"></span>
             <span class="rule-keyword">${rule.keyword}</span>
             <div class="rule-actions">
-                <button class="edit-btn">✏️</button>
-                <button class="delete-btn">🗑️</button>
+                <button class="edit-btn" title="Editar" aria-label="Editar regla">${icon('edit', 'icon--sm')}</button>
+                <button class="delete-btn" title="Borrar" aria-label="Borrar regla">${icon('trash', 'icon--sm')}</button>
             </div>
         `;
         li.querySelector('.edit-btn').addEventListener('click', () => populateRuleForm(ruleDoc));
@@ -312,24 +313,24 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const snapshot = await getDocs(q);
             if (snapshot.empty) {
-                if(!isNextPage) sessionsList.innerHTML = '<p style="padding:1rem; text-align:center; color:#888;">No hay sesiones.</p>';
-                loadMoreBtn.style.display = 'none';
+                if(!isNextPage) sessionsList.innerHTML = '<p class="empty-msg">Todavía no hay sesiones registradas.</p>';
+                loadMoreBtn.classList.add('hidden');
                 return;
             }
 
             lastVisibleSession = snapshot.docs[snapshot.docs.length - 1];
-            loadMoreBtn.style.display = snapshot.size < SESSIONS_PER_PAGE ? 'none' : 'block';
+            loadMoreBtn.classList.toggle('hidden', snapshot.size < SESSIONS_PER_PAGE);
 
             snapshot.forEach(doc => {
                 const s = doc.data();
                 const date = s.fecha_sesion.toDate();
-                
+
                 const tipoVisual = s.tipo || 'estudio';
-                const bgBadge = badgeColors[tipoVisual] || '#6c757d'; 
+                const bgBadge = badgeColors[tipoVisual] || '#5b6673';
 
                 // Si hay descripción, la mostramos debajo del tema
-                const descHtml = s.descripcion 
-                    ? `<div style="font-size: 0.85rem; color: #888; margin-top: 4px;">📝 ${s.descripcion}</div>` 
+                const descHtml = s.descripcion
+                    ? `<div class="history-desc">${s.descripcion}</div>`
                     : '';
 
                 const li = document.createElement('li');
@@ -338,17 +339,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="history-info">
                         <span class="history-date">${date.toLocaleString()}</span>
                         <div class="history-title">
-                            <span class="history-badge" style="background-color: ${bgBadge}; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase;">
-                                ${tipoVisual}
-                            </span>
-                            ${s.tema || 'Sin tema'}
-                            ${descHtml}
+                            <span class="history-badge" style="background-color: ${bgBadge};">${tipoVisual}</span>
+                            <span>${s.tema || 'Sin tema'}</span>
                         </div>
+                        ${descHtml}
                     </div>
                     <div class="history-duration">${s.duracion_minutos} min</div>
                     <div class="rule-actions">
-                        <button class="edit-btn">✏️</button>
-                        <button class="delete-btn">🗑️</button>
+                        <button class="edit-btn" title="Editar" aria-label="Editar sesión">${icon('edit', 'icon--sm')}</button>
+                        <button class="delete-btn" title="Borrar" aria-label="Borrar sesión">${icon('trash', 'icon--sm')}</button>
                     </div>
                 `;
                 li.querySelector('.edit-btn').addEventListener('click', () => editSession(doc));

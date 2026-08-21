@@ -3,47 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mis Apuntes</title>
+    <title>Apuntes · Planificador CNP</title>
     <link rel="icon" href="assets/logo.png" type="image/png">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body style="display: none;">
 
-    <button id="menu-toggle">☰</button>
-    <nav id="main-nav"></nav>
+    <button id="menu-toggle" aria-label="Abrir menú de navegación">
+        <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="main-nav" aria-label="Navegación principal"></nav>
 
     <main class="content-wrapper notes-layout">
         <div class="notes-app">
-            
-            <div class="notes-sidebar">
-                <div class="sidebar-header">
-                    <h3>Mis Cuadernos</h3>
-                    <button id="add-category-btn" title="Nueva Pestaña">＋</button>
-                </div>
-                <ul id="categories-list">
-                    </ul>
-            </div>
 
-            <div class="notes-editor-container">
+            <aside class="notes-sidebar">
+                <div class="sidebar-header">
+                    <h3>Cuadernos</h3>
+                    <button id="add-category-btn" title="Nuevo cuaderno" aria-label="Nuevo cuaderno">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                </div>
+                <ul id="categories-list"></ul>
+            </aside>
+
+            <section class="notes-editor-container">
                 <div class="editor-header">
-                    <button id="back-to-list-btn" class="btn-back-mobile" style="display: none;">←</button> 
-                    
-                    <input type="text" id="note-title" placeholder="Título de la nota..." readonly>
-                    
+                    <button id="back-to-list-btn" class="btn-back-mobile" aria-label="Volver a la lista">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><line x1="12" y1="19" x2="5" y2="12"/><line x1="12" y1="5" x2="5" y2="12"/></svg>
+                    </button>
+
+                    <input type="text" id="note-title" placeholder="Título de la nota…" readonly>
+
                     <div class="editor-actions">
-                        <button id="save-note-btn" class="btn-save">Guardar</button>
-                        <button id="delete-note-btn" class="btn-delete" title="Borrar nota actual">🗑️</button>
+                        <button id="save-note-btn" class="btn btn--primary btn--sm btn-save">
+                            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                            Guardar
+                        </button>
+                        <button id="delete-note-btn" class="btn-icon btn-icon--danger" title="Borrar nota" aria-label="Borrar nota">
+                            <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </button>
                     </div>
                 </div>
-                
+
                 <div id="editor"></div>
-                
-                <div id="status-msg" class="status-message">Selecciona o crea un cuaderno</div>
-            </div>
+
+                <div id="status-msg">Selecciona o crea un cuaderno</div>
+            </section>
 
         </div>
-        </main>
+    </main>
 
     <script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>

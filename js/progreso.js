@@ -5,6 +5,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { calcularRecomendaciones } from './recomendaciones.js';
 import { formatNombreTema } from './temario-oficial.js';
+import { icon } from './icons.js';
 
 // Referencias al DOM
 const tableHead = document.getElementById('table-header-row');
@@ -27,12 +28,12 @@ let dynamicColumns = [];
 let rowsData = [];       
 
 const STATUS_OPTIONS = {
-    'sin_empezar': { label: 'Sin empezar', color: '#e0e0e0', text: '#37352f' },
-    'leido': { label: 'Leído', color: '#e3f2fd', text: '#0d47a1' },
-    'leido_subrayado': { label: 'Leído y subr.', color: '#ffebee', text: '#c62828' },
-    'estudiado': { label: 'Estudiado', color: '#f3e5f5', text: '#6a1b9a' },
-    'repasado': { label: 'Repasado', color: '#fff8e1', text: '#f57f17' },
-    'listo': { label: 'Listo', color: '#e8f5e9', text: '#1b5e20' }
+    'sin_empezar': { label: 'Sin empezar', color: '#eef0f3', text: '#5b6673' },
+    'leido': { label: 'Leído', color: '#e8eef6', text: '#1c4e80' },
+    'leido_subrayado': { label: 'Leído y subr.', color: '#e4eef0', text: '#2b6b73' },
+    'estudiado': { label: 'Estudiado', color: '#ece9f3', text: '#58487f' },
+    'repasado': { label: 'Repasado', color: '#f6efe2', text: '#8a5a10' },
+    'listo': { label: 'Listo', color: '#e9f3ee', text: '#1f6f4a' }
 };
 
 // =======================================================
@@ -240,7 +241,7 @@ function renderTable() {
 
         // Barra de dominio
         const dom = row.dominio || 0;
-        let barColor = dom === 100 ? '#4caf50' : '#2196f3'; 
+        let barColor = dom === 100 ? '#1f6f4a' : '#1c4e80';
 
         // Construcción de la fila
         let rowHTML = `
@@ -264,12 +265,14 @@ function renderTable() {
             `;
         });
 
-        // --- CAMBIO CLAVE: TEXTAREA EXPANDIBLE ---
+        // Comentario: una línea que se expande al enfocarlo
         rowHTML += `
             <td class="td-comentario">
-                <textarea class="input-comentario" rows="1" placeholder="..." data-id="${row.id}">${row.comentarios || ''}</textarea>
+                <textarea class="input-comentario" rows="1" placeholder="Añadir nota…" data-id="${row.id}">${row.comentarios || ''}</textarea>
             </td>
-            <td class="td-center"><button class="btn-icon-del">🗑️</button></td>
+            <td class="td-center">
+                <button class="btn-icon-del" title="Eliminar tema" aria-label="Eliminar tema">${icon('trash', 'icon--sm')}</button>
+            </td>
         `;
 
         tr.innerHTML = rowHTML;
@@ -314,20 +317,24 @@ function formatMinutos(mins) {
 }
 
 function renderRecoCard(t, index) {
-    const notaHtml = t.notaMedia !== null
-        ? `📊 ${t.notaMedia.toFixed(1)}`
-        : `❔ Sin evaluar`;
+    const nota = t.notaMedia !== null
+        ? `${icon('document', 'icon--sm')}<b>${t.notaMedia.toFixed(1)}</b> de nota`
+        : `${icon('help', 'icon--sm')}Sin evaluar`;
 
     return `
         <div class="reco-card">
-            <div class="reco-card-rank">#${index + 1}</div>
+            <div class="reco-card-rank">${index + 1}</div>
             <div class="reco-card-body">
                 <div class="reco-card-title">Tema ${t.numero} · ${formatNombreTema(t.nombre)}</div>
                 <div class="reco-card-sub">${t.bloque}</div>
                 <div class="reco-card-stats">
-                    <span class="reco-stat" title="Media de preguntas en el examen oficial 2020-2025">⭐ ${t.media.toFixed(1)} preg/examen</span>
-                    <span class="reco-stat">⏱️ ${formatMinutos(t.minutos)}</span>
-                    <span class="reco-stat">${notaHtml}</span>
+                    <span class="reco-stat" title="Media de preguntas en el examen oficial 2020-2025">
+                        ${icon('award', 'icon--sm')}<b>${t.media.toFixed(1)}</b> preg./examen
+                    </span>
+                    <span class="reco-stat" title="Tiempo de estudio acumulado">
+                        ${icon('clock', 'icon--sm')}<b>${formatMinutos(t.minutos)}</b>
+                    </span>
+                    <span class="reco-stat" title="Nota media de tus tests y exámenes">${nota}</span>
                 </div>
             </div>
         </div>
@@ -335,13 +342,14 @@ function renderRecoCard(t, index) {
 }
 
 function renderRankingRow(t, index) {
+    const nota = t.notaMedia !== null ? t.notaMedia.toFixed(1) : '—';
     return `
         <li class="ranking-item">
             <span class="ranking-pos">${index + 1}</span>
             <span class="ranking-nombre">Tema ${t.numero}. ${formatNombreTema(t.nombre)}</span>
-            <span class="ranking-peso" title="Preguntas/examen de media">⭐ ${t.media.toFixed(1)}</span>
-            <span class="ranking-tiempo">⏱️ ${formatMinutos(t.minutos)}</span>
-            <span class="ranking-nota">${t.notaMedia !== null ? '📊 ' + t.notaMedia.toFixed(1) : '❔ —'}</span>
+            <span class="ranking-peso" title="Preguntas por examen de media">${icon('award', 'icon--sm')}${t.media.toFixed(1)}</span>
+            <span class="ranking-tiempo" title="Tiempo estudiado">${icon('clock', 'icon--sm')}${formatMinutos(t.minutos)}</span>
+            <span class="ranking-nota" title="Nota media">${icon('document', 'icon--sm')}${nota}</span>
         </li>
     `;
 }

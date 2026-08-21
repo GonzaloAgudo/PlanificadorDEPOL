@@ -3,84 +3,91 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Estadísticas</title> 
+    <title>Estadísticas · Planificador CNP</title>
     <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body style="display: none;">
 
-    <button id="menu-toggle">☰</button>
-    <nav id="main-nav"></nav>
+    <button id="menu-toggle" aria-label="Abrir menú de navegación">
+        <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="main-nav" aria-label="Navegación principal"></nav>
 
     <main class="content-wrapper stats-layout">
-        <div class="stats-app">
-            
-            <h1>Mis Estadísticas</h1>
-            
-            <div class="activity-filter" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 15px;">
-                <label><input type="radio" name="activity-type" value="estudio"> Estudio</label>
-                <label><input type="radio" name="activity-type" value="clase"> Clase</label>
-                <label><input type="radio" name="activity-type" value="psicotecnicos"> Psicotécnicos</label>
-                <label><input type="radio" name="activity-type" value="test"> Test</label>
-                <label><input type="radio" name="activity-type" value="examen"> Examen</label>
-                <label><input type="radio" name="activity-type" value="opowar"> Opowar</label>
-                <label><input type="radio" name="activity-type" value="voltea"> Voltea</label>
-                
-                <label class="conjunto-label" style="font-weight: bold; color: var(--color-primario, #007bff);">
-                    <input type="radio" name="activity-type" value="conjunto" checked> Conjunto
-                </label>
-                <label class="temas-label" style="font-weight: bold; color: var(--color-primario, #007bff);">
-                    <input type="radio" name="activity-type" value="temas"> Temas
-                </label>
-            </div>
-            
-            <div class="topic-sub-filter hidden" style="display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 20px; background: #f8f9fa; padding: 10px; border-radius: 10px;">
-                <label><input type="checkbox" name="topic-type" value="estudio" checked> Estudio</label>
-                <label><input type="checkbox" name="topic-type" value="clase" checked> Clase</label>
-                <label><input type="checkbox" name="topic-type" value="psicotecnicos" checked> Psicos</label>
-                <label><input type="checkbox" name="topic-type" value="test" checked> Test</label>
-                <label><input type="checkbox" name="topic-type" value="examen" checked> Examen</label>
-                <label><input type="checkbox" name="topic-type" value="opowar" checked> Opowar</label>
-                <label><input type="checkbox" name="topic-type" value="voltea" checked> Voltea</label>
-            </div>
+        <div class="page-inner">
 
-            <div class="filtros">
-                <button class="filtro-btn active" data-filtro="day">Día</button>
-                <button class="filtro-btn" data-filtro="week">Semana</button>
-                <button class="filtro-btn" data-filtro="month">Mes</button>
-                <button class="filtro-btn" data-filtro="year">Año</button>
-            </div>
+            <header class="page-header">
+                <div>
+                    <h1 class="page-header__title">Estadísticas</h1>
+                    <p class="page-header__sub">Tiempo de estudio registrado por actividad y periodo.</p>
+                </div>
+            </header>
 
-            <div class="time-navigation">
-                <button id="btn-prev-period" class="nav-arrow">&lt;</button>
-                <span id="period-display">Hoy</span>
-                <button id="btn-next-period" class="nav-arrow">&gt;</button>
-            </div>
+            <section class="card">
+                <div class="card__body">
 
-            <div class="resumen-stats" id="resumen-texto">
-                Cargando datos...
-            </div>
-            <div class="chart-container" id="chart-container">
-                <canvas id="statsChart"></canvas>
-            </div>
+                    <p class="section-label">Actividad</p>
+                    <div class="activity-filter">
+                        <label><input type="radio" name="activity-type" value="estudio"> Estudio</label>
+                        <label><input type="radio" name="activity-type" value="clase"> Clase</label>
+                        <label><input type="radio" name="activity-type" value="psicotecnicos"> Psicotécnicos</label>
+                        <label><input type="radio" name="activity-type" value="test"> Test</label>
+                        <label><input type="radio" name="activity-type" value="examen"> Examen</label>
+                        <label><input type="radio" name="activity-type" value="opowar"> Opowar</label>
+                        <label><input type="radio" name="activity-type" value="voltea"> Voltea</label>
+                        <label class="conjunto-label"><input type="radio" name="activity-type" value="conjunto" checked> Conjunto</label>
+                        <label class="temas-label"><input type="radio" name="activity-type" value="temas"> Por temas</label>
+                    </div>
+
+                    <div class="topic-sub-filter hidden">
+                        <label><input type="checkbox" name="topic-type" value="estudio" checked> Estudio</label>
+                        <label><input type="checkbox" name="topic-type" value="clase" checked> Clase</label>
+                        <label><input type="checkbox" name="topic-type" value="psicotecnicos" checked> Psicotécnicos</label>
+                        <label><input type="checkbox" name="topic-type" value="test" checked> Test</label>
+                        <label><input type="checkbox" name="topic-type" value="examen" checked> Examen</label>
+                        <label><input type="checkbox" name="topic-type" value="opowar" checked> Opowar</label>
+                        <label><input type="checkbox" name="topic-type" value="voltea" checked> Voltea</label>
+                    </div>
+
+                    <p class="section-label">Periodo</p>
+                    <div class="filtros">
+                        <button class="filtro-btn active" data-filtro="day">Día</button>
+                        <button class="filtro-btn" data-filtro="week">Semana</button>
+                        <button class="filtro-btn" data-filtro="month">Mes</button>
+                        <button class="filtro-btn" data-filtro="year">Año</button>
+                    </div>
+
+                    <div class="time-navigation">
+                        <button id="btn-prev-period" class="nav-arrow" aria-label="Periodo anterior">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                        </button>
+                        <span id="period-display">Hoy</span>
+                        <button id="btn-next-period" class="nav-arrow" aria-label="Periodo siguiente">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                        </button>
+                    </div>
+
+                    <div class="resumen-stats" id="resumen-texto">Cargando datos…</div>
+
+                    <div class="chart-container" id="chart-container">
+                        <canvas id="statsChart"></canvas>
+                    </div>
+
+                </div>
+            </section>
 
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
-    
+
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>
-    <script type="module" src="js/stats.js"></script> 
-
-    <script>
-        (function() {
-            history.pushState(null, null, location.href);
-            window.addEventListener('popstate', function () {
-                window.location.replace('index.html');
-            });
-        })();
-    </script>
+    <script type="module" src="js/stats.js"></script>
 </body>
 </html>

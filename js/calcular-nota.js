@@ -4,6 +4,7 @@ import {
     deleteDoc, updateDoc, doc, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { TEMARIO_OFICIAL } from './temario-oficial.js';
+import { icon } from './icons.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     
@@ -97,10 +98,10 @@ document.addEventListener('DOMContentLoaded', () => {
         resultBox.classList.remove('pass', 'fail');
         if (nota >= 5) {
             resultBox.classList.add('pass');
-            scoreMsgEl.textContent = "¡APTO! 🎉";
+            scoreMsgEl.textContent = "Apto";
         } else {
             resultBox.classList.add('fail');
-            scoreMsgEl.textContent = "NO APTO 💀";
+            scoreMsgEl.textContent = "No apto";
         }
     }
 
@@ -188,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inpScore.value = '';
         inpTema.value = '';
         inpDate.valueAsDate = new Date();
-        btnSaveGrade.innerHTML = '<span class="btn-icon">+</span> Añadir'; // Icono recuperado
+        btnSaveGrade.innerHTML = `${icon('plus')}Añadir`;
         btnCancelEdit.classList.add('hidden');
         formContainer.classList.remove('editing-mode');
     }
@@ -200,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inpDate.value = data.fecha;
         inpTema.value = data.tema || '';
 
-        btnSaveGrade.innerHTML = '<span class="btn-icon">💾</span> Guardar';
+        btnSaveGrade.innerHTML = `${icon('save')}Guardar cambios`;
         btnCancelEdit.classList.remove('hidden');
         formContainer.classList.add('editing-mode');
         formContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -240,29 +241,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderListItem(data) {
         const li = document.createElement('li');
         li.className = 'grade-item';
-        
+
         const dateObj = new Date(data.fecha);
         const dateStr = dateObj.toLocaleDateString();
         const isApto = data.nota >= 5;
         const badgeClass = isApto ? 'apto' : 'no-apto';
-        
+
         const isExam = data.titulo.toLowerCase().includes('examen');
-        const icon = isExam ? '🏆' : '📝';
-        const temaHtml = data.tema
-            ? `<span style="font-size:0.75rem; color:#adb5bd;"> · ${data.tema}</span>`
-            : '';
+        const tipoIcon = isExam ? icon('award', 'icon--sm') : icon('document', 'icon--sm');
+        const meta = [dateStr, data.tema].filter(Boolean).join(' · ');
 
         li.innerHTML = `
-            <div style="display:flex; align-items:center;">
+            <div class="grade-main">
                 <span class="grade-badge ${badgeClass}">${data.nota.toFixed(2)}</span>
                 <div>
-                    <strong>${icon} ${data.titulo}</strong>${temaHtml}
-                    <div style="font-size:0.8rem; color:#888;">${dateStr}</div>
+                    <strong>${data.titulo}</strong>
+                    <div class="grade-meta">${meta}</div>
                 </div>
             </div>
             <div class="grade-actions">
-                <button class="btn-action-grade btn-edit-grade" title="Editar">✏️</button>
-                <button class="btn-action-grade btn-del-grade" title="Borrar">🗑️</button>
+                <span class="u-subtle" title="${isExam ? 'Examen' : 'Test'}">${tipoIcon}</span>
+                <button class="btn-action-grade btn-edit-grade" title="Editar" aria-label="Editar">${icon('edit', 'icon--sm')}</button>
+                <button class="btn-action-grade btn-del-grade" title="Borrar" aria-label="Borrar">${icon('trash', 'icon--sm')}</button>
             </div>
         `;
 
@@ -315,22 +315,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 datasets: [{
                     label: 'Nota',
                     data: dataPoints,
-                    borderColor: '#007bff',
-                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                    borderWidth: 3,
-                    pointBackgroundColor: (context) => {
-                        const val = context.raw;
-                        // Diferenciamos visualmente examen de test en el punto
+                    borderColor: '#1c4e80',
+                    backgroundColor: 'rgba(28, 78, 128, 0.08)',
+                    borderWidth: 2,
+                    // El color indica aprobado/suspenso; el tamaño, examen frente a test
+                    pointBackgroundColor: (context) => (context.raw >= 5 ? '#1f6f4a' : '#9b2c2c'),
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 1.5,
+                    pointRadius: (context) => {
                         const item = dataArray[context.dataIndex];
                         const isExam = item && item.titulo.toLowerCase().includes('examen');
-                        
-                        // Si es examen: Dorado si aprueba, Rojo oscuro si suspende
-                        // Si es test: Verde si aprueba, Rojo normal si suspende
-                        if (isExam) return val >= 5 ? '#ffc107' : '#c62828';
-                        return val >= 5 ? '#28a745' : '#dc3545';
+                        return isExam ? 7 : 4.5;
                     },
-                    pointRadius: 5,
-                    pointHoverRadius: 7,
+                    pointHoverRadius: 8,
                     fill: true,
                     tension: 0.3
                 }]
@@ -342,9 +339,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     y: {
                         beginAtZero: true,
                         max: 10,
-                        grid: { color: '#f0f0f0' }
+                        grid: { color: '#eceef1' },
+                        border: { display: false },
+                        ticks: { color: '#5b6673' }
                     },
-                    x: { grid: { display: false } }
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#5b6673' }
+                    }
                 },
                 plugins: {
                     legend: { display: false },

@@ -3,27 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendario</title>
+    <title>Calendario · Planificador CNP</title>
     <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body style="display: none;">
 
-    <button id="menu-toggle">☰</button>
-    <nav id="main-nav"></nav>
+    <button id="menu-toggle" aria-label="Abrir menú de navegación">
+        <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="main-nav" aria-label="Navegación principal"></nav>
 
-    <main class="content-wrapper calendario-layout">
-        <div class="calendar-container">
-            
-            <div class="calendar-mode-switcher">
-                <button class="mode-btn active" data-mode="clases">📚 Clases</button>
-                <button class="mode-btn" data-mode="entrenamientos">🏋️ Entrenamientos</button>
-            </div>
+    <main class="content-wrapper">
+        <div class="page-inner page-inner--wide">
+
+            <header class="page-header">
+                <div>
+                    <h1 class="page-header__title">Calendario</h1>
+                    <p class="page-header__sub">Clases, entrenamientos y días festivos.</p>
+                </div>
+                <div class="page-header__actions">
+                    <div class="calendar-mode-switcher">
+                        <button class="mode-btn active" data-mode="clases">Clases</button>
+                        <button class="mode-btn" data-mode="entrenamientos">Entrenamientos</button>
+                    </div>
+                </div>
+            </header>
+
             <div class="calendar-header">
-                <button id="prev-month-btn" class="nav-arrow">&lt;</button>
-                <h1 id="month-year-title">Cargando...</h1>
-                <button id="next-month-btn" class="nav-arrow">&gt;</button>
+                <button id="prev-month-btn" class="nav-arrow" aria-label="Mes anterior">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                </button>
+                <h1 id="month-year-title">Cargando…</h1>
+                <button id="next-month-btn" class="nav-arrow" aria-label="Mes siguiente">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
             </div>
+
             <div class="calendar-grid-header">
                 <div>Lunes</div>
                 <div>Martes</div>
@@ -33,33 +52,41 @@
                 <div>Sábado</div>
                 <div>Domingo</div>
             </div>
-            <div class="calendar-grid-body" id="calendar-body">
-                </div>
-        </div>
+            <div class="calendar-grid-body" id="calendar-body"></div>
 
-        <div id="event-modal" class="modal-overlay hidden">
+        </div>
+    </main>
+
+    <div id="event-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h2>Detalles del Evento</h2>
-            
+            <h2>Detalles del evento</h2>
+
             <div class="modal-form">
-                <label>Título del evento</label>
-                <input type="text" id="modal-title" placeholder="Ej: Clase T33">
-                
-                <label>Descripción / Hora</label>
-                <textarea id="modal-desc" rows="3" placeholder="Ej: 10:00 - 12:00. Llevar apuntes nuevos."></textarea>
-                
-                <input type="hidden" id="modal-event-id"> </div>
+                <div class="field">
+                    <label class="field__label" for="modal-title">Título</label>
+                    <input type="text" id="modal-title" class="input" placeholder="Clase del tema 33">
+                </div>
+
+                <div class="field">
+                    <label class="field__label" for="modal-desc">Descripción u horario</label>
+                    <textarea id="modal-desc" class="input" rows="3" placeholder="10:00 – 12:00. Llevar apuntes nuevos."></textarea>
+                </div>
+
+                <input type="hidden" id="modal-event-id">
+            </div>
 
             <div class="modal-buttons">
-                <button id="btn-modal-delete" class="btn-danger">🗑️ Borrar</button>
+                <button id="btn-modal-delete" class="btn btn--danger-quiet">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    Borrar
+                </button>
                 <div class="right-btns">
-                    <button id="btn-modal-cancel" class="btn-secondary">Cancelar</button>
-                    <button id="btn-modal-save" class="btn-primary">💾 Guardar</button>
+                    <button id="btn-modal-cancel" class="btn btn--secondary">Cancelar</button>
+                    <button id="btn-modal-save" class="btn btn--primary">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
-    </main>
 
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>

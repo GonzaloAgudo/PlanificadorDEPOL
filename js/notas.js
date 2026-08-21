@@ -1,8 +1,9 @@
 import { db, auth } from './firebase-config.js';
-import { 
-    collection, addDoc, query, where, getDocs, 
-    doc, updateDoc, deleteDoc, onSnapshot, orderBy, limit, writeBatch 
+import {
+    collection, addDoc, query, where, getDocs,
+    doc, updateDoc, deleteDoc, onSnapshot, orderBy, limit, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { icon } from './icons.js';
 
 // Inicializar Quill
 const quill = new Quill('#editor', {
@@ -30,12 +31,14 @@ const statusMsg = document.getElementById('status-msg');
 const backToListBtn = document.getElementById('back-to-list-btn');
 const notesAppContainer = document.querySelector('.notes-app');
 
-// --- NUEVO: Botón Flotante para Móvil ---
+// Botón flotante de guardado, solo visible en móvil
+const FAB_ICON_IDLE = icon('save', 'icon--lg');
 const fabSaveBtn = document.createElement('button');
 fabSaveBtn.className = 'fab-save-mobile';
-fabSaveBtn.innerHTML = '💾'; 
-document.body.appendChild(fabSaveBtn); 
-// ----------------------------------------
+fabSaveBtn.title = 'Guardar nota';
+fabSaveBtn.setAttribute('aria-label', 'Guardar nota');
+fabSaveBtn.innerHTML = FAB_ICON_IDLE;
+document.body.appendChild(fabSaveBtn);
 
 let currentNoteId = null; 
 let sortableInstance = null; 
@@ -70,9 +73,9 @@ function loadCategories() {
             li.className = `category-item ${docSnap.id === currentNoteId ? 'active' : ''}`;
             li.setAttribute('data-id', docSnap.id); 
             li.innerHTML = `
-                <span class="drag-handle">⋮⋮</span> 
+                <span class="drag-handle" aria-hidden="true">${icon('grip', 'icon--sm')}</span>
                 <span class="cat-title">${note.titulo}</span>
-                <button class="delete-cat-btn" title="Borrar cuaderno">×</button>
+                <button class="delete-cat-btn" title="Borrar cuaderno" aria-label="Borrar cuaderno">${icon('trash', 'icon--sm')}</button>
             `;
             
             li.addEventListener('click', (e) => {
@@ -157,7 +160,7 @@ function openNote(id, data) {
     
     quill.enable(true);
     statusMsg.textContent = "Nota cargada.";
-    saveNoteBtn.style.backgroundColor = "";
+    saveNoteBtn.classList.remove('is-dirty');
     
     // MODO MÓVIL
     if (window.innerWidth <= 768) {
@@ -173,36 +176,36 @@ async function saveCurrentNote() {
     const content = quill.root.innerHTML;
     const title = noteTitleInput.value;
 
-    statusMsg.textContent = "Guardando...";
-    saveNoteBtn.textContent = "Guardando...";
-    
-    // Feedback visual en FAB
-    const originalFabText = fabSaveBtn.innerHTML;
-    fabSaveBtn.innerHTML = '⏳'; 
+    statusMsg.textContent = "Guardando…";
+    saveNoteBtn.innerHTML = `${icon('save', 'icon--sm')}Guardando…`;
+    saveNoteBtn.disabled = true;
 
     try {
         await updateDoc(doc(db, "bloc_notas", currentNoteId), {
             titulo: title, contenido: content, updatedAt: new Date()
         });
-        
-        statusMsg.textContent = "Guardado exitoso ✓";
-        saveNoteBtn.textContent = "Guardar";
-        saveNoteBtn.style.backgroundColor = ""; 
-        unsavedChanges = false; // ¡Guardado! Ya no hay cambios pendientes
-        
-        fabSaveBtn.innerHTML = '✅'; 
+
+        statusMsg.textContent = "Guardado";
+        saveNoteBtn.innerHTML = `${icon('check', 'icon--sm')}Guardado`;
+        saveNoteBtn.classList.remove('is-dirty');
+        unsavedChanges = false; // Ya no hay cambios pendientes
+
+        fabSaveBtn.innerHTML = icon('check', 'icon--lg');
         setTimeout(() => {
             statusMsg.textContent = "";
-            fabSaveBtn.innerHTML = originalFabText; 
+            saveNoteBtn.innerHTML = `${icon('save', 'icon--sm')}Guardar`;
+            fabSaveBtn.innerHTML = FAB_ICON_IDLE;
         }, 1500);
 
     } catch (error) {
         console.error(error);
-        if (error.code === 'invalid-argument') alert("⚠️ Nota demasiado grande (imágenes).");
-        statusMsg.textContent = "Error ❌";
-        saveNoteBtn.textContent = "Reintentar";
-        fabSaveBtn.innerHTML = '❌';
-        setTimeout(() => fabSaveBtn.innerHTML = originalFabText, 2000);
+        if (error.code === 'invalid-argument') alert("La nota es demasiado grande (imágenes).");
+        statusMsg.textContent = "No se pudo guardar";
+        saveNoteBtn.innerHTML = `${icon('warning', 'icon--sm')}Reintentar`;
+        fabSaveBtn.innerHTML = icon('warning', 'icon--lg');
+        setTimeout(() => { fabSaveBtn.innerHTML = FAB_ICON_IDLE; }, 2000);
+    } finally {
+        saveNoteBtn.disabled = false;
     }
 }
 
@@ -224,7 +227,7 @@ function resetEditor() {
     quill.setText('');
     quill.enable(false); 
     statusMsg.textContent = "";
-    saveNoteBtn.style.backgroundColor = "";
+    saveNoteBtn.classList.remove('is-dirty');
     
     // Salir del modo móvil
     notesAppContainer.classList.remove('mobile-view-editor');
@@ -267,8 +270,8 @@ if(backToListBtn) {
 function markUnsaved() {
     if (!currentNoteId) return;
     unsavedChanges = true;
-    statusMsg.textContent = "Cambios sin guardar ⚠️";
-    saveNoteBtn.style.backgroundColor = "#fd7e14"; 
+    statusMsg.textContent = "Cambios sin guardar";
+    saveNoteBtn.classList.add('is-dirty'); 
 }
 
 quill.on('text-change', (delta, oldDelta, source) => {

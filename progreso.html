@@ -3,58 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Progreso</title>
+    <title>Progreso del temario · Planificador CNP</title>
     <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body style="display: none;">
 
-    <button id="menu-toggle">☰</button>
-    <nav id="main-nav"></nav>
+    <button id="menu-toggle" aria-label="Abrir menú de navegación">
+        <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="main-nav" aria-label="Navegación principal"></nav>
 
-    <main class="content-wrapper progress-layout">
-        <div class="progress-container">
-            <div class="progress-header">
-                <h1>Seguimiento de Temario</h1>
-                <button id="add-col-btn" class="btn-secondary-outline" title="Añadir Columna de Checkbox">+ Columna</button>
-            </div>
+    <main class="content-wrapper">
+        <div class="page-inner page-inner--wide">
 
-            <div class="reco-panel">
+            <header class="page-header">
+                <div>
+                    <h1 class="page-header__title">Progreso del temario</h1>
+                    <p class="page-header__sub">Seguimiento de los 45 temas de la oposición.</p>
+                </div>
+                <div class="page-header__actions">
+                    <button id="add-col-btn" class="btn btn--secondary" title="Añadir columna de seguimiento">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        Nueva columna
+                    </button>
+                </div>
+            </header>
+
+            <section class="reco-panel">
                 <div class="reco-header">
-                    <h2>🎯 Recomendado reforzar</h2>
-                    <button id="btn-ver-ranking" class="btn-secondary-outline">Ver ranking completo</button>
+                    <h2>
+                        <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>
+                        Recomendado reforzar
+                    </h2>
+                    <button id="btn-ver-ranking" class="btn btn--secondary btn--sm">Ver ranking completo</button>
                 </div>
                 <p class="reco-explicacion">
-                    Combina el peso real de cada tema en el examen oficial (2020-2025)
-                    con tu tiempo de estudio y tus notas de tests/exámenes por tema.
+                    Prioridad calculada a partir del peso de cada tema en las convocatorias
+                    oficiales de 2020 a 2025, tu tiempo de estudio acumulado y tu nota media
+                    en los tests y exámenes de ese tema.
                 </p>
                 <div id="reco-cards" class="reco-cards-grid">
-                    <p class="empty-msg">Calculando recomendaciones...</p>
+                    <p class="empty-msg">Calculando recomendaciones…</p>
                 </div>
-            </div>
+            </section>
 
+            <p class="section-label">Seguimiento por tema</p>
             <div class="table-responsive">
                 <table id="progress-table">
                     <thead>
-                        <tr id="table-header-row">
-                            </tr>
+                        <tr id="table-header-row"></tr>
                     </thead>
-                    <tbody id="progress-body">
-                        </tbody>
+                    <tbody id="progress-body"></tbody>
                 </table>
             </div>
-            
-            <button id="add-row-btn" class="btn-ghost">+ Nuevo Tema</button>
-            <div id="loading-msg">Cargando tu Notion personal...</div>
+
+            <div id="loading-msg" class="empty-msg">Cargando el temario…</div>
+
+            <button id="add-row-btn" class="btn btn--ghost">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Añadir tema
+            </button>
+
         </div>
     </main>
 
     <div id="ranking-modal" class="modal-overlay hidden">
-        <div class="modal-content" style="max-width:640px;">
-            <h2>Ranking completo (45 temas)</h2>
+        <div class="modal-content modal-content--wide">
+            <h2>Ranking completo · 45 temas</h2>
             <ul id="ranking-list" class="ranking-list"></ul>
-            <div class="modal-buttons" style="justify-content: flex-end;">
-                <button id="btn-cerrar-ranking" class="btn-secondary">Cerrar</button>
+            <div class="modal-buttons">
+                <div class="right-btns">
+                    <button id="btn-cerrar-ranking" class="btn btn--secondary">Cerrar</button>
+                </div>
             </div>
         </div>
     </div>

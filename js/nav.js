@@ -1,88 +1,89 @@
-// Importa la autenticación y la función de 'signOut'
+// Construye la barra lateral de navegación común a todas las páginas.
 import { auth } from './firebase-config.js';
 import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { icon } from './icons.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const mainNav = document.getElementById('main-nav');
-    
-    // 1. GENERAR EL HTML DEL MENÚ AUTOMÁTICAMENTE
-    // Definimos las páginas y sus enlaces
+    const menuToggle = document.getElementById('menu-toggle');
+    if (!mainNav) return;
+
     const menuItems = [
-        { name: 'Pomodoro', link: 'index.html' },
-        { name: 'Estadísticas', link: 'stats.html' },
-        { name: 'Planificador Semanal', link: 'semana.html' },
-        { name: 'Calendario', link: 'calendario.html' },
-        { name: 'Progreso', link: 'progreso.html' },
-        { name: "Calcular Nota", link: "calcular-nota.html", icon: "🧮" },
-        { name: 'Bloc de Notas', link: 'notas.html' },
-        { name: 'Ajustes', link: 'ajustes.html' }
+        { name: 'Sesión de estudio', link: 'index.html', icon: 'timer' },
+        { name: 'Estadísticas', link: 'stats.html', icon: 'chart' },
+        { name: 'Planificador semanal', link: 'semana.html', icon: 'board' },
+        { name: 'Calendario', link: 'calendario.html', icon: 'calendar' },
+        { name: 'Progreso del temario', link: 'progreso.html', icon: 'checklist' },
+        { name: 'Calculadora de nota', link: 'calcular-nota.html', icon: 'calculator' },
+        { name: 'Apuntes', link: 'notas.html', icon: 'notebook' },
+        { name: 'Ajustes', link: 'ajustes.html', icon: 'settings' }
     ];
 
-    // Detectar en qué página estamos para poner la clase "active"
     const currentPage = window.location.pathname.split('/').pop() || 'index.html';
 
-    let menuHTML = '<ul>';
-    
-    menuItems.forEach(item => {
-        const isActive = currentPage === item.link ? 'class="active"' : '';
-        menuHTML += `<li><a href="${item.link}" ${isActive}>${item.name}</a></li>`;
-    });
+    const links = menuItems.map(item => {
+        const isActive = currentPage === item.link ? ' class="active"' : '';
+        const current = currentPage === item.link ? ' aria-current="page"' : '';
+        return `<li><a href="${item.link}"${isActive}${current}>${icon(item.icon)}<span>${item.name}</span></a></li>`;
+    }).join('');
 
-    // Añadimos el botón de cerrar sesión al final
-    menuHTML += `<li><a href="#" class="logout-link">Cerrar Sesión</a></li>`;
-    menuHTML += '</ul>';
+    mainNav.innerHTML = `
+        <div class="nav-brand">
+            <img src="assets/logo.png" alt="">
+            <span>
+                <span class="nav-brand__name">Planificador</span>
+                <span class="nav-brand__sub">Oposición CNP</span>
+            </span>
+        </div>
+        <div class="nav-scroll">
+            <p class="nav-section">Navegación</p>
+            <ul>${links}</ul>
+        </div>
+        <div class="nav-footer">
+            <a href="#" class="logout-link">${icon('logout')}<span>Cerrar sesión</span></a>
+        </div>
+    `;
 
-    // Inyectamos el HTML en el nav
-    if (mainNav) mainNav.innerHTML = menuHTML;
-
-
-    // 2. LÓGICA DE INTERACCIÓN (Hover, Click, etc.)
-    const menuToggle = document.getElementById('menu-toggle');
-    const logoutLink = document.querySelector('.logout-link'); // Ahora sí existe en el DOM
-    
-    let leaveTimer; 
-    let isPinned = false; 
+    // Velo que cubre el contenido cuando el menú se abre en pantallas pequeñas
+    const scrim = document.createElement('div');
+    scrim.className = 'nav-scrim';
+    document.body.appendChild(scrim);
 
     const openMenu = () => {
-        clearTimeout(leaveTimer); 
         mainNav.classList.add('active');
+        scrim.classList.add('active');
     };
-
     const closeMenu = () => {
-        leaveTimer = setTimeout(() => {
-            if (!isPinned) { 
-                mainNav.classList.remove('active');
-            }
-        }, 300); 
+        mainNav.classList.remove('active');
+        scrim.classList.remove('active');
     };
 
-    // Eventos de Hover
     if (menuToggle) {
-        menuToggle.addEventListener('mouseenter', openMenu);
-        menuToggle.addEventListener('mouseleave', closeMenu);
-        // Evento de Clic (Pin)
         menuToggle.addEventListener('click', () => {
-            isPinned = !isPinned;
-            if (isPinned) mainNav.classList.add('active');
-            else mainNav.classList.remove('active');
+            if (mainNav.classList.contains('active')) closeMenu();
+            else openMenu();
         });
     }
 
-    if (mainNav) {
-        mainNav.addEventListener('mouseenter', openMenu);
-        mainNav.addEventListener('mouseleave', closeMenu);
-    }
-    
-    // 3. LÓGICA DE LOGOUT
+    scrim.addEventListener('click', closeMenu);
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeMenu();
+    });
+
+    // Al navegar a otra sección desde el móvil, el menú se cierra solo
+    mainNav.querySelectorAll('a[href]:not(.logout-link)').forEach(a => {
+        a.addEventListener('click', closeMenu);
+    });
+
+    const logoutLink = mainNav.querySelector('.logout-link');
     if (logoutLink) {
         logoutLink.addEventListener('click', (e) => {
-            e.preventDefault(); 
+            e.preventDefault();
             if (confirm('¿Seguro que quieres cerrar sesión?')) {
-                signOut(auth).then(() => {
-                    window.location.href = 'login.html';
-                }).catch((error) => {
-                    console.error('Error al cerrar sesión:', error);
-                });
+                signOut(auth)
+                    .then(() => { window.location.href = 'login.html'; })
+                    .catch((error) => { console.error('Error al cerrar sesión:', error); });
             }
         });
     }

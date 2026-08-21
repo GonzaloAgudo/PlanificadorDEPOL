@@ -7,6 +7,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 // Importamos las reglas de color
 import { fetchColorRules, applyColorRule } from './colorRules.js';
+import { icon } from './icons.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -157,18 +158,18 @@ document.addEventListener('DOMContentLoaded', () => {
             listItem.classList.add('completed');
         }
 
-        // HTML Actualizado: Checkbox + Texto + Menú Desplegable
+        // Checkbox + texto + menú desplegable de acciones
         listItem.innerHTML = `
             <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
             <span class="task-text">${task.texto}</span>
-            
+
             <div class="task-actions-container">
-                <button class="task-menu-btn">⋮</button>
-                
+                <button class="task-menu-btn" title="Acciones" aria-label="Acciones de la tarea">${icon('more', 'icon--sm')}</button>
+
                 <div class="task-dropdown">
-                    <button class="move-task-btn">➡️ Mover a mañana</button>
-                    <button class="edit-task-btn">✏️ Editar</button>
-                    <button class="delete-task-btn">🗑️ Borrar</button>
+                    <button class="move-task-btn">${icon('moveNext', 'icon--sm')}Mover a mañana</button>
+                    <button class="edit-task-btn">${icon('edit', 'icon--sm')}Editar</button>
+                    <button class="delete-task-btn">${icon('trash', 'icon--sm')}Borrar</button>
                 </div>
             </div>
         `;
@@ -293,9 +294,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.tagName === 'BUTTON' && e.target.closest('.task-input-group')) {
             const dayColumn = e.target.closest('.day-column');
             const date = dayColumn.dataset.date;
-            const input = dayColumn.querySelector('input');
+            // El campo de texto, no la primera casilla de una tarea ya listada
+            const input = dayColumn.querySelector('.task-input-group input');
             addTask(input.value, date);
-            input.value = ''; 
+            input.value = '';
             return;
         }
 

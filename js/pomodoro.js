@@ -8,6 +8,7 @@ import {
     writeBatch, Timestamp, setDoc, onSnapshot, getDoc, arrayUnion, arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { fetchColorRules, applyColorRule } from './colorRules.js';
+import { icon } from './icons.js';
 
 // ==============================================================
 //  REFERENCIAS AL DOM
@@ -72,22 +73,15 @@ for (let i = 1; i <= 45; i++) {
     defaultTemas.push(nombreTema);
 }
 
-// Lógica de Pestañas
+// Lógica de Pestañas (Temporizador / Registro manual)
 mainTabBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        mainTabBtns.forEach(b => {
-            b.classList.remove('active');
-            b.style.background = 'transparent';
-            b.style.color = '#6c757d';
-            b.style.boxShadow = 'none';
-        });
-        mainTabContents.forEach(c => c.style.display = 'none');
-        
+        mainTabBtns.forEach(b => b.classList.remove('active'));
+        mainTabContents.forEach(c => c.classList.add('hidden'));
+
         btn.classList.add('active');
-        btn.style.background = 'white';
-        btn.style.color = '#007bff';
-        btn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
-        document.getElementById(btn.dataset.target).style.display = 'block';
+        const target = document.getElementById(btn.dataset.target);
+        if (target) target.classList.remove('hidden');
     });
 });
 
@@ -136,7 +130,7 @@ async function handleAddNew(event, fieldToUpdate) {
             // 1. Evitar que se creen duplicados de los que ya vienen por defecto
             const defaultsArray = (fieldToUpdate === 'temas_custom') ? defaultTemas : defaultTipos;
             if (defaultsArray.includes(cleanValue)) {
-                alert(`⚠️ "${cleanValue}" ya existe en la lista por defecto.`);
+                alert(`"${cleanValue}" ya existe en la lista por defecto.`);
                 selectElement.value = cleanValue; // Lo seleccionamos directamente
                 return;
             }
@@ -163,7 +157,7 @@ async function handleDeleteCustom(selectElement, fieldToUpdate, defaultsArray) {
     const selectedValue = selectElement.value;
     
     if (!selectedValue || defaultsArray.includes(selectedValue)) {
-        return alert("⚠️ Esta opción es por defecto y no se puede borrar.\n\nSolo puedes borrar las opciones que tú hayas añadido manualmente.");
+        return alert("Esta opción viene por defecto y no se puede borrar.\n\nSolo puedes borrar las opciones que hayas añadido tú.");
     }
 
     if (confirm(`¿Estás seguro de que quieres borrar '${selectedValue}' de tu lista personalizada?`)) {
@@ -176,7 +170,7 @@ async function handleDeleteCustom(selectElement, fieldToUpdate, defaultsArray) {
             // Quitar del DOM
             selectElement.remove(selectElement.selectedIndex);
             selectElement.selectedIndex = 0; // Volver al primer elemento
-            alert("✅ Opción borrada correctamente.");
+            alert("Opción borrada correctamente.");
         } catch (error) {
             console.error("Error al borrar:", error);
             alert("Error al intentar borrar la opción.");
@@ -269,10 +263,9 @@ function actualizarEstadoDesdeRemoto(data) {
     
     if (data.status === 'running') {
         requestWakeLock();
-        btnIniciar.textContent = "Pausar"; 
-        btnIniciar.style.background = "#ffc107";
-        btnIniciar.style.color = "#333";
-        btnIniciar.onclick = pausarTimerRemoto; 
+        btnIniciar.textContent = "Pausar";
+        btnIniciar.dataset.state = "running";
+        btnIniciar.onclick = pausarTimerRemoto;
 
         const checkTime = () => {
             const currentNow = Date.now();
@@ -292,18 +285,16 @@ function actualizarEstadoDesdeRemoto(data) {
     } else if (data.status === 'paused') {
         releaseWakeLock();
         btnIniciar.textContent = "Continuar";
-        btnIniciar.style.background = "#007bff";
-        btnIniciar.style.color = "white";
-        btnIniciar.onclick = iniciarTimerLocal; 
+        btnIniciar.dataset.state = "paused";
+        btnIniciar.onclick = iniciarTimerLocal;
         updateDisplay(data.timeLeft);
 
     } else { 
         releaseWakeLock();
         btnIniciar.textContent = "Iniciar";
-        btnIniciar.style.background = "#007bff";
-        btnIniciar.style.color = "white";
+        btnIniciar.dataset.state = "idle";
         btnIniciar.onclick = iniciarTimerLocal;
-        
+
         let defaultTime = esEstudio ? parseInt(inputEstudio.value) * 60 : parseInt(inputDescanso.value) * 60;
         if (isNaN(defaultTime) || defaultTime <= 0) defaultTime = 25 * 60;
         updateDisplay(defaultTime);
@@ -454,7 +445,7 @@ btnSaveManual.addEventListener('click', async () => {
     if (totalMinutos <= 0) return alert('Introduce un tiempo mayor a 0');
 
     await guardarSesionEnBD(totalMinutos, act, tema === 'ADD_NEW' ? null : tema, desc);
-    alert(`✅ Guardados ${h}h ${m}m ${s}s correctamente.`);
+    alert(`Guardados ${h} h ${m} min ${s} s correctamente.`);
     
     // Limpiar inputs
     document.getElementById('input-horas').value = '';
@@ -475,11 +466,11 @@ function renderTask(taskDoc) {
     if (task.completada) listItem.classList.add('completed');
     
     listItem.innerHTML = `
-        <span class="drag-handle">⋮⋮</span>
+        <span class="drag-handle" aria-hidden="true">${icon('grip', 'icon--sm')}</span>
         <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
         <span class="task-text">${task.texto}</span>
-        <button class="edit-task-btn">✏️</button>
-        <button class="delete-task-btn">🗑️</button>
+        <button class="edit-task-btn" title="Editar" aria-label="Editar tarea">${icon('edit', 'icon--sm')}</button>
+        <button class="delete-task-btn" title="Borrar" aria-label="Borrar tarea">${icon('trash', 'icon--sm')}</button>
     `;
     taskList.appendChild(listItem);
 }
