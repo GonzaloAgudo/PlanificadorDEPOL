@@ -58,19 +58,27 @@ button:active {
     place-items: center; 
     min-height: 100vh; 
 }
-.login-container form { 
-    background: var(--color-tarjeta); 
-    padding: 2rem; 
-    border-radius: 16px; 
-    box-shadow: var(--sombra); 
-    width: 100%; 
-    max-width: 400px; 
-    box-sizing: border-box; 
+.login-container form {
+    background: var(--color-tarjeta);
+    padding: 2.5rem 2rem;
+    border-radius: 20px;
+    box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+    width: 100%;
+    max-width: 400px;
+    box-sizing: border-box;
 }
-.login-container h2 { 
-    text-align: center; 
-    color: var(--color-primario); 
-    margin-top: 0; 
+.login-logo {
+    display: block;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem auto;
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.login-container h2 {
+    text-align: center;
+    color: var(--color-primario);
+    margin-top: 0;
 }
 .form-group { 
     margin-bottom: 1rem; 
@@ -82,27 +90,43 @@ button:active {
     font-size: 0.9rem;
     color: var(--color-secundario);
 }
-.form-group input { 
-    width: 100%; 
-    padding: 0.75rem; 
-    font-size: 1rem; 
-    border: 1px solid #ccc; 
-    border-radius: 8px; 
-    box-sizing: border-box; 
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 2px solid transparent;
+    background-color: #f4f7f9;
+    border-radius: 10px;
+    box-sizing: border-box;
+    transition: border-color 0.2s, background-color 0.2s;
 }
-.login-container button { 
-    width: 100%; 
-    padding: 0.75rem; 
-    font-size: 1.1rem; 
-    font-weight: 600; 
-    background: var(--color-estudio); 
-    color: white; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer; 
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--color-primario);
+    background-color: white;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+.login-container .input-with-icon input {
+    padding-left: 40px;
+}
+.login-container button {
+    width: 100%;
+    padding: 0.85rem;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--color-estudio), var(--color-estudio-oscuro));
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 .login-container button:hover {
-    background: var(--color-estudio-oscuro);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(40,167,69,0.35);
 }
 .login-container p { 
     text-align: center; 
@@ -253,10 +277,11 @@ button:active {
 
 /* --- 6. PÁGINA: Pomodoro (index.php) --- */
 .tabs {
-    display: flex; 
-    background-color: #e9ecef; 
-    border-radius: 10px; 
-    margin-bottom: 1rem; 
+    display: flex;
+    background-color: #f1f3f5;
+    border-radius: 12px;
+    padding: 5px;
+    margin-bottom: 1rem;
 }
 .tab-btn {
     flex: 1;
@@ -273,47 +298,60 @@ button:active {
 .tab-btn:not(.active):hover {
     background-color: rgba(0,0,0,0.05);
 }
-.tab-btn.active[data-mode=estudio] { 
-    background-color: var(--color-estudio); 
-    color: white; 
+.tab-btn.active {
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
-.tab-btn.active[data-mode=descanso] { 
-    background-color: var(--color-descanso); 
-    color: #333; 
+.tab-btn.active[data-mode=estudio] {
+    background-color: var(--color-estudio);
+    color: white;
 }
-.pomodoro-counter { 
-    font-size: 1.1rem; 
-    font-weight: 600; 
-    color: var(--color-secundario); 
-    background-color: var(--color-fondo); 
-    padding: 0.5rem; 
-    border-radius: 8px; 
-    margin-bottom: 1rem; 
+.tab-btn.active[data-mode=descanso] {
+    background-color: var(--color-descanso);
+    color: #333;
 }
-.pomodoro-counter span { 
-    color: var(--color-estudio); 
-    font-size: 1.2rem; 
+.pomodoro-counter {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--color-secundario);
+    background-color: #f8f9fa;
+    padding: 0.6rem 1rem;
+    border-radius: 30px;
+    margin-bottom: 1rem;
+    text-align: center;
 }
-.timer { 
-    font-size: 5rem; 
-    font-weight: 700; 
-    margin: 1rem 0; 
+.pomodoro-counter span {
+    color: var(--color-estudio);
+    font-size: 1.2rem;
 }
-.controles { 
-    display: flex; 
-    justify-content: center; 
-    gap: 0.5rem; 
-    margin-bottom: 1.5rem; 
+.timer {
+    font-size: 5rem;
+    font-weight: 700;
+    margin: 1rem 0;
+    font-variant-numeric: tabular-nums;
 }
-.controles button { 
-    font-size: 1rem; 
-    padding: 0.6rem 1rem; 
-    border: none; 
-    border-radius: 8px; 
-    cursor: pointer; 
+.controles {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.controles button {
+    font-size: 1rem;
+    padding: 0.6rem 1rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
 }
 
 /* Botones de Acción Principales (Iniciar/Pausar) */
+#btn-iniciar, #btn-reset {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+#btn-iniciar:hover, #btn-reset:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.18);
+}
 #btn-iniciar {
     background: var(--color-estudio);
     color: white;
@@ -332,40 +370,47 @@ button:active {
 }
 
 /* Configuración Pomodoro */
-.config { 
-    margin-top: 1.5rem; 
-    text-align: left; 
-    border-top: 1px solid #eee; 
-    padding-top: 1rem; 
+.config {
+    margin-top: 1.5rem;
+    text-align: left;
+    border-top: 1px solid #eee;
+    padding-top: 1rem;
 }
-.config h3 { 
-    cursor: pointer; 
-    margin: 0 0 1rem 0; 
+.config h3 {
+    cursor: pointer;
+    margin: 0 0 1rem 0;
 }
-.config-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; 
-    gap: 0 1rem; 
-    align-items: center; 
+.config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 1rem;
+    align-items: center;
 }
-.config-column { 
-    display: grid; 
-    grid-template-columns: auto 1fr; 
-    gap: 0.75rem 0.5rem; 
-    align-items: center; 
+.config-column {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem 0.5rem;
+    align-items: center;
 }
-.config-column label { 
-    font-size: 0.9rem; 
-    font-weight: 600; 
-    text-align: right; 
+.config-column label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: right;
 }
-.config-column input[type="number"] { 
-    width: 60px; 
-    font-size: 1rem; 
-    padding: 0.25rem; 
-    border: 1px solid #ccc; 
-    border-radius: 5px; 
-    justify-self: left; 
+.config-column input[type="number"] {
+    width: 60px;
+    font-size: 1rem;
+    padding: 0.4rem;
+    border: 2px solid transparent;
+    background-color: #f4f7f9;
+    border-radius: 10px;
+    justify-self: left;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+.config-column input[type="number"]:focus {
+    outline: none;
+    border-color: var(--color-primario);
+    background-color: white;
 }
 .stats-link { 
     display: inline-block; 
@@ -425,39 +470,37 @@ button:active {
 .task-checkbox:checked::before { content: '✓'; display: block; color: white; font-size: 0.9rem; text-align: center; line-height: 1.1; }
 .task-text { flex-grow: 1; font-size: 1.1rem; line-height: 1.5; word-break: break-word; }
 .task-item.completed .task-text { text-decoration: line-through; color: var(--color-secundario); }
-.edit-task-btn, .delete-task-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.6; flex-shrink: 0; transition: opacity 0.2s; padding: 0 0.25rem; }
+.edit-task-btn, .delete-task-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; opacity: 0.6; flex-shrink: 0; transition: opacity 0.2s; padding: 0.6rem 0.4rem; margin: -0.6rem 0; }
 .edit-task-btn:hover, .delete-task-btn:hover { opacity: 1; transform: scale(1.1); }
-.edit-task-btn { color: var(--color-secundario); margin-left: 1rem; }
-.delete-task-btn { color: var(--color-peligro); margin-left: 0.5rem; }
+.edit-task-btn { color: var(--color-secundario); margin-left: 0.5rem; }
+.delete-task-btn { color: var(--color-peligro); margin-left: 0.1rem; }
 
 /* --- 8. PÁGINA: Estadísticas (stats.php) --- */
-.activity-filter { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.5rem; background-color: #e9ecef; border-radius: 10px; flex-wrap: wrap; }
-.activity-filter label { font-weight: 600; cursor: pointer; padding: 0.5rem 0.75rem; border-radius: 8px; transition: background-color 0.2s; }
+.activity-filter { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; padding: 0.6rem; background-color: #f1f3f5; border-radius: 16px; flex-wrap: wrap; }
+.activity-filter label { font-weight: 600; cursor: pointer; padding: 0.5rem 0.9rem; border-radius: 20px; border: 2px solid transparent; transition: all 0.2s; }
 .activity-filter input { margin-right: 0.25rem; }
 .activity-filter label:hover { background-color: rgba(0,0,0,0.05); }
-.activity-filter label:has(input:checked) { background-color: var(--color-primario); color: white; }
+.activity-filter label:has(input:checked) { background-color: var(--color-primario); color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
 .activity-filter label.conjunto-label:has(input:checked) { background-color: var(--color-secundario); color: white; }
 .activity-filter label.temas-label:has(input:checked) { background-color: var(--color-psico); color: white; }
-.topic-sub-filter { display: flex; justify-content: center; gap: 1rem; margin-bottom: 1rem; }
+.topic-sub-filter { display: flex; justify-content: center; gap: 0.6rem; margin-bottom: 1rem; flex-wrap: wrap; }
 .topic-sub-filter.hidden { display: none; }
-.topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); cursor: pointer; transition: transform 0.1s; }
+.topic-sub-filter label { font-size: 0.9rem; font-weight: 600; color: var(--color-secundario); cursor: pointer; padding: 0.3rem 0.7rem; border-radius: 20px; transition: all 0.2s; }
 .topic-sub-filter input { margin-right: 0.25rem; }
-.topic-sub-filter label:hover { transform: scale(1.05); }
+.topic-sub-filter label:hover { background-color: #f1f3f5; }
 /* Estilo para checkboxes seleccionados */
 .topic-sub-filter label:has(input:checked) {
     background-color: var(--color-primario);
     color: white;
-    border-radius: 12px;
-    padding: 0.2rem 0.6rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
 }
 .stats-app h1 { margin-top: 0; color: var(--color-primario); }
 .filtros { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-.filtros.hidden { display: none; } 
-.filtro-btn { flex-grow: 1; padding: 0.5rem; font-size: 0.9rem; border: 1px solid var(--color-primario); background-color: var(--color-tarjeta); color: var(--color-primario); border-radius: 6px; cursor: pointer; flex-basis: 48%; }
+.filtros.hidden { display: none; }
+.filtro-btn { flex-grow: 1; padding: 0.55rem; font-size: 0.9rem; border: 2px solid var(--color-primario); background-color: var(--color-tarjeta); color: var(--color-primario); border-radius: 20px; cursor: pointer; flex-basis: 48%; transition: all 0.2s; }
 .filtro-btn:hover { background-color: #e7f1ff; }
-.filtro-btn.active { background-color: var(--color-primario); color: white; }
-.resumen-stats { font-size: 1.2rem; margin: 1.5rem 0; padding: 1rem; background-color: var(--color-fondo); border-radius: 8px; }
+.filtro-btn.active { background-color: var(--color-primario); color: white; box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+.resumen-stats { font-size: 1.2rem; margin: 1.5rem 0; padding: 1rem; background-color: var(--color-fondo); border-radius: 12px; }
 .resumen-stats strong { color: var(--color-primario-oscuro); }
 .chart-container { position: relative; height: 300px; width: 100%; margin-bottom: 1.5rem; }
 /* --- NAVEGACIÓN ESTADÍSTICAS --- */
@@ -485,21 +528,24 @@ button:active {
 .nav-arrow {
     background: #f1f3f5;
     border: none;
-    width: 35px;
-    height: 35px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     cursor: pointer;
     font-weight: bold;
+    font-size: 1.05rem;
     color: #555;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .nav-arrow:hover {
     background: var(--color-primario);
     color: white;
+    transform: scale(1.05);
 }
 
 /* --- 9. PÁGINA: Semana (semana.php) --- */
@@ -533,49 +579,38 @@ button:active {
     font-size: 1.5rem;
     color: var(--color-primario-oscuro);
 }
-.week-nav-btn {
-    background: var(--color-primario);
-    color: white;
-    border: none;
-    font-size: 1.5rem;
-    font-weight: bold;
-    border-radius: 8px;
-    cursor: pointer;
-    padding: 0.4rem 1rem;
-}
-.week-nav-btn:hover {
-    background: var(--color-primario-oscuro);
-}
-.week-grid { 
-    display: flex; 
-    flex-direction: row; 
-    gap: 1.5rem; 
-    overflow-x: auto; 
-    padding: 1.5rem; 
-    background: var(--color-fondo); 
-    border-radius: 16px; 
-    min-height: 60vh; 
-    cursor: grab; 
+.week-grid {
+    display: flex;
+    flex-direction: row;
+    gap: 1.5rem;
+    overflow-x: auto;
+    padding: 1.5rem;
+    background: var(--color-fondo);
+    border-radius: 16px;
+    min-height: 60vh;
+    cursor: grab;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
+    scroll-snap-type: x proximity;
 }
 .week-grid.is-panning {
     cursor: grabbing; 
 }
-.day-column { 
-    min-width: 320px; 
-    max-width: 320px; 
-    flex-shrink: 0; 
-    background: var(--color-tarjeta); 
-    border-radius: 12px; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08); 
-    padding: 1rem; 
-    display: flex; 
-    flex-direction: column; 
+.day-column {
+    min-width: 320px;
+    max-width: 320px;
+    flex-shrink: 0;
+    background: var(--color-tarjeta);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
+    scroll-snap-align: start;
 }
 .day-column h2 { 
     text-align: left; 
@@ -635,8 +670,9 @@ button:active {
     font-size: 1.3rem;
     color: #888;
     cursor: pointer;
-    padding: 0 0.5rem;
-    border-radius: 4px;
+    padding: 0.6rem 0.5rem;
+    margin: -0.6rem 0;
+    border-radius: 8px;
     transition: background-color 0.2s;
 }
 
@@ -739,8 +775,6 @@ button:active {
 /* --- 10. PÁGINA: Calendario (calendario.php) --- */
 .calendar-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
 .calendar-header h1 { color: var(--color-primario); font-size: 1.8rem; margin: 0; }
-.calendar-header button { background: var(--color-primario); color: white; border: none; font-size: 1.5rem; font-weight: bold; border-radius: 8px; cursor: pointer; padding: 0.4rem 1rem; }
-.calendar-header button:hover { background: var(--color-primario-oscuro); }
 .calendar-grid-header, .calendar-grid-body { display: grid; grid-template-columns: repeat(7, 1fr); width: 100%; }
 .calendar-grid-header { background-color: var(--color-secundario); color: white; font-weight: 600; border-radius: 8px 8px 0 0; }
 .calendar-grid-header > div { padding: 0.75rem 0.5rem; text-align: center; }
@@ -1049,30 +1083,37 @@ button:active {
     display: flex; /* Usamos flex para controlar la posición del texto e icono */
     align-items: center;
     justify-content: flex-start; /* Alineado a la izquierda, queda mejor en lista */
-    gap: 12px; 
-    padding: 12px 20px; /* Botones un poco más grandes */
+    gap: 14px;
+    padding: 14px 18px;
     width: 100%; /* <--- ESTO hace que el botón se estire a los lados */
-    background-color: #e9ecef; 
-    border: 1px solid #adb5bd; 
-    border-radius: 8px; 
-    color: #333; 
-    text-decoration: none; 
+    background-color: white;
+    border: 1px solid #f0f0f0;
+    border-radius: 14px;
+    color: #333;
+    text-decoration: none;
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
 }
 
 .settings-nav-btn:hover {
-    background-color: #dde2e6;
-    border-color: #6c757d;
-    transform: translateY(-2px); 
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    border-color: var(--color-primario);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.1);
 }
 
 .settings-nav-btn span.icon {
     font-size: 1.2rem;
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #eef4ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .settings-nav-btn.danger {
@@ -1080,6 +1121,10 @@ button:active {
     background-color: #fff5f5;
     border-color: #f5c6cb;
     color: #dc3545;
+}
+
+.settings-nav-btn.danger span.icon {
+    background: #ffe3e3;
 }
 
 .settings-nav-btn.danger:hover {
@@ -1261,7 +1306,6 @@ button:active {
     
     .calendar-container { padding: 0.5rem; border-radius: 0; box-shadow: none; }
     .calendar-header h1 { font-size: 1.2rem; }
-    .calendar-header button { padding: 0.2rem 0.6rem; font-size: 1.2rem; }
     .calendar-grid-header { font-size: 0.7rem; }
     .calendar-day { min-height: 80px; padding: 0.2rem; }
     .day-number { font-size: 0.7rem; }
@@ -1278,7 +1322,7 @@ button:active {
     
     .timer { font-size: 4rem; }
     .controles { flex-wrap: wrap; }
-    .controles button { flex-basis: 48%; }
+    .controles button { flex-basis: 48%; min-height: 48px; }
     #btn-iniciar { width: 100%; order: -1; margin-bottom: 0.5rem; }
     .filtros .filtro-btn { flex-basis: 48%; }
     .activity-filter { flex-direction: column; align-items: stretch; }
@@ -1326,8 +1370,8 @@ button:active {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid #dee2e6;
-    background-color: #e9ecef;
+    border-bottom: 1px solid #eee;
+    background-color: #f8f9fa;
 }
 
 .sidebar-header h3 { margin: 0; color: var(--color-menu); font-size: 1.1rem; }
@@ -1337,14 +1381,19 @@ button:active {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     font-size: 1.2rem;
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+    transition: transform 0.2s;
+}
+#add-category-btn:hover {
+    transform: scale(1.08);
 }
 
 #categories-list {
@@ -1366,15 +1415,17 @@ button:active {
     font-weight: 500;
 }
 
-.category-item:hover { background-color: #e2e6ea; }
-.category-item.active { 
-    background-color: #fff; 
+.category-item:hover { background-color: #f1f3f5; }
+.category-item.active {
+    background-color: #eef4ff;
     border-left: 4px solid var(--color-primario);
     color: var(--color-primario);
+    font-weight: 600;
 }
 
 .delete-cat-btn {
     background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.9rem;
+    padding: 0.6rem; margin: -0.6rem;
 }
 .delete-cat-btn:hover { color: var(--color-peligro); }
 
@@ -1391,7 +1442,7 @@ button:active {
 
 .editor-header {
     padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
+    border-bottom: 1px solid #eee;
     display: flex;
     justify-content: space-between;
     align-items: center;
