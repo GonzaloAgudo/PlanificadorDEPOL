@@ -2,6 +2,18 @@ import { collection, query, where, getDocs } from "https://www.gstatic.com/fireb
 import { TEMARIO_OFICIAL, getPesoNormalizado, TEMA_GLOBAL } from './temario-oficial.js';
 
 /**
+ * Punto de partida al ordenar: mientras no haya notas de un tema, se le trata
+ * como un 5 (ni bien ni mal). PESO_NEUTRO marca cuánta evidencia hace falta
+ * para dejar atrás esa suposición: con peso 1, un test propio de un tema
+ * (que también pesa 1) ya mueve el valor hasta la mitad del camino.
+ *
+ * Solo afecta al orden de las recomendaciones; la nota que se muestra en
+ * pantalla es siempre la media real.
+ */
+const NOTA_NEUTRA = 5;
+const PESO_NEUTRO = 1;
+
+/**
  * Calcula, para cada uno de los 45 temas oficiales, una prioridad de estudio:
  *
  *   Prioridad = Peso_examen_normalizado × (1 − Cobertura)
@@ -11,10 +23,12 @@ import { TEMARIO_OFICIAL, getPesoNormalizado, TEMA_GLOBAL } from './temario-ofic
  *   2020-2025 (ver temario-oficial.js), en relación al tema con más peso.
  * - tiempo_relativo_estudiado: minutos de estudio dedicados a ese tema
  *   (sesiones tipo "estudio"), en relación al tema más estudiado.
- * - nota_relativa: nota media ponderada de los tests y exámenes de ese tema
- *   (0.5 = neutral si no hay ninguno). Los exámenes globales, que abarcan
- *   todo el temario, entran en la media de todos los temas con un peso
- *   proporcional a las preguntas que cada uno aporta al examen real.
+ * - nota_relativa: nota media ponderada de los tests y exámenes de ese tema.
+ *   Los exámenes globales, que abarcan todo el temario, entran en la media de
+ *   todos los temas con un peso proporcional a las preguntas que cada uno
+ *   aporta al examen real. Para ordenar se parte además de un 5 neutro, de
+ *   modo que un tema con muy pocos datos no se dé por cubierto (ver
+ *   notaParaOrden más abajo); la nota que se muestra sí es la media real.
  *
  * Así, un tema que pesa mucho en el examen real y está poco estudiado o con
  * mala nota sube al principio; uno ya bien cubierto baja aunque pese mucho.
@@ -83,10 +97,20 @@ export async function calcularRecomendaciones(db, uid) {
             pesoTotal += pesoNorm;
         }
 
+        // Nota que se muestra: la media real, sin retocar.
         const notaMedia = pesoTotal > 0 ? sumaPonderada / pesoTotal : null;
 
+        // Nota que se usa para ordenar: la misma media, pero partiendo de un 5
+        // ("todavía no sé nada de este tema") con peso 1. Cada nota aleja de ese
+        // 5 en proporción a lo que realmente ha medido, así que un único examen
+        // global no puede dar por cubiertos los 45 temas de golpe: al Tema 8 lo
+        // examina de verdad y lo mueve, y al Tema 45, del que apenas entra media
+        // pregunta, lo deja prácticamente como estaba. Según se acumulan notas,
+        // el 5 inicial pierde influencia y el valor converge a la media real.
+        const notaParaOrden = (sumaPonderada + NOTA_NEUTRA * PESO_NEUTRO) / (pesoTotal + PESO_NEUTRO);
+
         const tiempoNorm = minutos / maxMinutos;
-        const notaNorm = notaMedia !== null ? Math.min(1, notaMedia / 10) : 0.5;
+        const notaNorm = Math.min(1, notaParaOrden / 10);
 
         const cobertura = (0.5 * tiempoNorm) + (0.5 * notaNorm);
         const prioridad = pesoNorm * (1 - cobertura);
@@ -95,6 +119,7 @@ export async function calcularRecomendaciones(db, uid) {
             ...t,
             minutos,
             notaMedia,
+            notaParaOrden,
             numTests: propio ? propio.count : 0,
             numGlobales: notasGlobales.length,
             pesoNorm,
