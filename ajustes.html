@@ -8,6 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#111c29">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Planificador">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body style="display: none;">
@@ -42,6 +47,19 @@
                         </span>
                     </button>
 
+                    <button class="settings-nav-btn" data-target="section-objetivos">
+                        <span class="icon-box">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>
+                        </span>
+                        <span class="settings-nav-text">
+                            Convocatoria y objetivos
+                            <span class="settings-nav-desc">Fecha del examen y horas de estudio por semana</span>
+                        </span>
+                        <span class="chev">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+                        </span>
+                    </button>
+
                     <button class="settings-nav-btn" data-target="section-history">
                         <span class="icon-box">
                             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
@@ -65,6 +83,36 @@
                         </span>
                     </button>
                 </div>
+            </div>
+
+            <div id="section-objetivos" class="settings-section" style="display: none;">
+                <button class="back-btn">
+                    <svg class="icon icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6"/></svg>
+                    Volver a ajustes
+                </button>
+
+                <form id="objetivos-form" class="settings-card">
+                    <h2>Convocatoria y objetivos</h2>
+
+                    <div class="form-group">
+                        <label for="fecha-examen">Fecha de la convocatoria</label>
+                        <input type="date" id="fecha-examen">
+                        <p class="field__hint">Se mostrará una cuenta atrás en la pantalla de inicio. Déjalo vacío si aún no hay fecha.</p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meta-semanal">Objetivo de estudio semanal</label>
+                        <div class="input-with-suffix">
+                            <input type="number" id="meta-semanal" min="0" max="120" step="0.5" placeholder="15">
+                            <span>horas por semana</span>
+                        </div>
+                        <p class="field__hint">Solo cuentan las sesiones de tipo «estudio». Déjalo vacío para no fijar objetivo.</p>
+                    </div>
+
+                    <div class="form-actions mt-5">
+                        <button type="submit" id="guardar-objetivos" class="btn btn--primary">Guardar</button>
+                    </div>
+                </form>
             </div>
 
             <div id="section-rules" class="settings-section" style="display: none;">
@@ -182,5 +230,6 @@
     <script type="module" src="js/nav.js"></script>
     <script type="module" src="js/colorRules.js"></script>
     <script type="module" src="js/ajustes.js"></script>
+    <script type="module" src="js/pwa.js"></script>
 </body>
 </html>

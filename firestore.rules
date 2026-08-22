@@ -1,13 +1,70 @@
 rules_version = '2';
 
+// Reglas de acceso a Firestore.
+//
+// Cada usuario solo puede leer y escribir sus propios datos. Antes bastaba
+// con estar autenticado para acceder a CUALQUIER documento, lo que dejaba
+// los datos de todos los usuarios a la vista de cualquiera que se registrase.
+//
+// Los datos se organizan de dos formas:
+//   1. Colecciones cuyos documentos llevan un campo "user_id".
+//   2. Colecciones con un único documento por usuario, cuyo identificador
+//      es el propio uid.
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Esta regla dice: "Aplica a cualquier documento en cualquier colección"
-    match /{document=**} {
-      // Permite leer y escribir SOLO si el usuario está autenticado
-      allow read, write: if request.auth != null;
+
+    function autenticado() {
+      return request.auth != null;
     }
-    
+
+    // Colecciones cuyos documentos identifican a su dueño con "user_id"
+    function coleccionesConDueno() {
+      return [
+        'sesiones_estudio',
+        'tareas_semanales',
+        'calendario_eventos',
+        'bloc_notas',
+        'notas_historial',
+        'progreso_temario',
+        'color_rules'
+      ];
+    }
+
+    // El documento ya guardado pertenece a quien hace la petición
+    function esSuyo() {
+      return autenticado() && resource.data.user_id == request.auth.uid;
+    }
+
+    // El documento que se pretende guardar queda a su nombre. Evita tanto
+    // crear datos a nombre de otro como reasignar los propios a un tercero.
+    function loGuardaASuNombre() {
+      return autenticado() && request.resource.data.user_id == request.auth.uid;
+    }
+
+    // --- 1. Colecciones con campo user_id ---
+    //
+    // Las consultas de la aplicación siempre filtran por user_id, que es lo
+    // que Firestore exige para poder autorizar una lectura de varios
+    // documentos a la vez.
+    match /{coleccion}/{documento} {
+      allow read, delete: if coleccion in coleccionesConDueno() && esSuyo();
+      allow create: if coleccion in coleccionesConDueno() && loGuardaASuNombre();
+      allow update: if coleccion in coleccionesConDueno() && esSuyo() && loGuardaASuNombre();
+    }
+
+    // --- 2. Un documento por usuario, identificado por su uid ---
+    match /preferencias_usuario/{uid} {
+      allow read, write: if autenticado() && request.auth.uid == uid;
+    }
+
+    match /config_progreso/{uid} {
+      allow read, write: if autenticado() && request.auth.uid == uid;
+    }
+
+    match /timers_activos/{uid} {
+      allow read, write: if autenticado() && request.auth.uid == uid;
+    }
+
+    // Todo lo que no encaje arriba queda denegado por defecto.
   }
 }

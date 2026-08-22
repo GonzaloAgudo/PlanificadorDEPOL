@@ -8,6 +8,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#111c29">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Planificador">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body style="display: none;">
@@ -32,6 +37,25 @@
                     </a>
                 </div>
             </header>
+
+            <section id="panel-objetivos" class="objetivos-panel hidden">
+                <div id="cuenta-atras" class="countdown hidden">
+                    <span class="countdown__num" id="countdown-dias">—</span>
+                    <span class="countdown__body">
+                        <span class="countdown__label">para la convocatoria</span>
+                        <span class="countdown__fecha" id="countdown-fecha"></span>
+                    </span>
+                </div>
+
+                <div id="meta-semanal" class="goal hidden">
+                    <div class="goal__head">
+                        <span class="goal__label">Objetivo semanal</span>
+                        <span class="goal__cifra"><b id="goal-hecho">—</b> <span id="goal-total"></span></span>
+                    </div>
+                    <div class="goal__bar"><div class="goal__fill" id="goal-fill"></div></div>
+                    <p class="goal__resto" id="goal-resto"></p>
+                </div>
+            </section>
 
             <section class="kpi-grid">
                 <article class="kpi">
@@ -97,5 +121,6 @@
     <script type="module" src="js/auth-guard.js"></script>
     <script type="module" src="js/nav.js"></script>
     <script type="module" src="js/inicio.js"></script>
+    <script type="module" src="js/pwa.js"></script>
 </body>
 </html>

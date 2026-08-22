@@ -1,6 +1,6 @@
 import { db, auth } from './firebase-config.js';
 import {
-    collection, query, where, getDocs, orderBy, doc, updateDoc, Timestamp
+    collection, query, where, getDocs, orderBy, doc, updateDoc, getDoc, Timestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { icon } from './icons.js';
 import { calcularRecomendaciones } from './recomendaciones.js';
@@ -111,6 +111,86 @@ async function cargarResumenSesiones(uid) {
     if (kpiSemana) kpiSemana.textContent = formatearMinutos(minutosSemana);
     if (kpiRacha) kpiRacha.textContent = racha === 1 ? '1 día' : `${racha} días`;
     if (kpiSesiones) kpiSesiones.textContent = String(sesionesHoy);
+
+    return { minutosHoy, minutosSemana, racha };
+}
+
+/**
+ * Cuenta atrás para la convocatoria y progreso del objetivo semanal.
+ * Ambos son opcionales: cada bloque solo aparece si está configurado en
+ * Ajustes, para no dejar huecos vacíos en la pantalla.
+ *
+ * @param {number} minutosSemana Minutos ya estudiados en la semana en curso
+ */
+async function cargarObjetivos(uid, minutosSemana) {
+    const panel = document.getElementById('panel-objetivos');
+    const cuentaAtras = document.getElementById('cuenta-atras');
+    const meta = document.getElementById('meta-semanal');
+    if (!panel) return;
+
+    let prefs = {};
+    try {
+        const snap = await getDoc(doc(db, 'preferencias_usuario', uid));
+        if (snap.exists()) prefs = snap.data();
+    } catch (error) {
+        console.error('Error cargando objetivos:', error);
+        return;
+    }
+
+    let hayAlgo = false;
+
+    // --- Cuenta atrás ---
+    if (prefs.fecha_examen) {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+        const [y, m, d] = prefs.fecha_examen.split('-').map(Number);
+        const examen = new Date(y, m - 1, d);
+
+        const dias = Math.round((examen - hoy) / 86400000);
+        const numEl = document.getElementById('countdown-dias');
+        const fechaEl = document.getElementById('countdown-fecha');
+
+        if (dias > 0) {
+            numEl.textContent = dias;
+            cuentaAtras.querySelector('.countdown__label').textContent =
+                dias === 1 ? 'día para la convocatoria' : 'días para la convocatoria';
+        } else if (dias === 0) {
+            numEl.textContent = '¡Hoy!';
+            cuentaAtras.querySelector('.countdown__label').textContent = 'es la convocatoria';
+        } else {
+            numEl.textContent = Math.abs(dias);
+            cuentaAtras.querySelector('.countdown__label').textContent =
+                dias === -1 ? 'día desde la convocatoria' : 'días desde la convocatoria';
+        }
+        cuentaAtras.classList.toggle('is-pasado', dias < 0);
+        fechaEl.textContent = `${d} de ${MESES[m - 1]} de ${y}`;
+        cuentaAtras.classList.remove('hidden');
+        hayAlgo = true;
+    }
+
+    // --- Objetivo semanal ---
+    const horasMeta = prefs.meta_semanal_horas;
+    if (typeof horasMeta === 'number' && horasMeta > 0) {
+        const minutosMeta = horasMeta * 60;
+        const porcentaje = Math.min(100, Math.round((minutosSemana / minutosMeta) * 100));
+        const restante = Math.max(0, minutosMeta - minutosSemana);
+
+        document.getElementById('goal-hecho').textContent = formatearMinutos(minutosSemana);
+        document.getElementById('goal-total').textContent = `de ${formatearMinutos(minutosMeta)}`;
+
+        const fill = document.getElementById('goal-fill');
+        fill.style.width = `${porcentaje}%`;
+        meta.classList.toggle('is-cumplido', porcentaje >= 100);
+
+        document.getElementById('goal-resto').textContent = restante === 0
+            ? `Objetivo cumplido (${porcentaje}%)`
+            : `Te faltan ${formatearMinutos(restante)} · ${porcentaje}%`;
+
+        meta.classList.remove('hidden');
+        hayAlgo = true;
+    }
+
+    if (hayAlgo) panel.classList.remove('hidden');
 }
 
 async function cargarTareasDeHoy(uid) {
@@ -209,12 +289,15 @@ auth.onAuthStateChanged(async (user) => {
     if (!user) return;
     pintarCabecera(user);
     try {
-        await Promise.all([
+        // El objetivo semanal necesita saber cuánto se lleva estudiado, así
+        // que espera al resumen; el resto se carga en paralelo.
+        const [resumen] = await Promise.all([
             cargarResumenSesiones(user.uid),
             cargarTareasDeHoy(user.uid),
             cargarProximosEventos(user.uid),
             cargarRecomendaciones(user.uid)
         ]);
+        await cargarObjetivos(user.uid, resumen ? resumen.minutosSemana : 0);
     } catch (error) {
         console.error('Error cargando el inicio:', error);
     }

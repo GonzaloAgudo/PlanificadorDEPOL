@@ -1,6 +1,6 @@
 import { db, auth } from './firebase-config.js';
 import {
-    collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
+    collection, query, where, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc, setDoc,
     orderBy, limit, startAfter, Timestamp, writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
@@ -510,10 +510,53 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ==========================================
+    // 5. CONVOCATORIA Y OBJETIVOS
+    // ==========================================
+    const objetivosForm = document.getElementById('objetivos-form');
+    const fechaExamenInput = document.getElementById('fecha-examen');
+    const metaSemanalInput = document.getElementById('meta-semanal');
+
+    async function cargarObjetivos() {
+        if (!auth.currentUser || !objetivosForm) return;
+        try {
+            const snap = await getDoc(doc(db, "preferencias_usuario", auth.currentUser.uid));
+            if (!snap.exists()) return;
+            const data = snap.data();
+            if (data.fecha_examen) fechaExamenInput.value = data.fecha_examen;
+            if (typeof data.meta_semanal_horas === 'number') metaSemanalInput.value = data.meta_semanal_horas;
+        } catch (error) {
+            console.error("Error cargando objetivos:", error);
+        }
+    }
+
+    if (objetivosForm) {
+        objetivosForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!auth.currentUser) return;
+
+            const fecha = fechaExamenInput.value;           // '' si se deja vacío
+            const horas = parseFloat(metaSemanalInput.value);
+            const meta = Number.isFinite(horas) && horas > 0 ? horas : null;
+
+            try {
+                await setDoc(doc(db, "preferencias_usuario", auth.currentUser.uid), {
+                    fecha_examen: fecha || null,
+                    meta_semanal_horas: meta
+                }, { merge: true });
+                toast('Objetivos guardados.', { type: 'success' });
+            } catch (error) {
+                console.error("Error guardando objetivos:", error);
+                toast('No se pudieron guardar los objetivos.', { type: 'error' });
+            }
+        });
+    }
+
     // Inicializar
     auth.onAuthStateChanged(user => {
         if (user) {
             loadCustomSessionTypes();
+            cargarObjetivos();
         }
     });
 });
