@@ -26,7 +26,8 @@ service cloud.firestore {
         'bloc_notas',
         'notas_historial',
         'progreso_temario',
-        'color_rules'
+        'color_rules',
+        'entrenamientos'
       ];
     }
 

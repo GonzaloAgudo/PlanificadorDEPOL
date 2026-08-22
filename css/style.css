@@ -1456,6 +1456,139 @@ body.has-dialog { overflow: hidden; }
 .reco-mini__meta .icon { width: 13px; height: 13px; }
 
 
+/* --- 13c. Página: Pruebas físicas ----------------------------------- */
+.aviso {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    padding: var(--sp-4);
+    margin-bottom: var(--sp-5);
+    background: var(--c-warning-soft);
+    border: 1px solid var(--c-warning-border);
+    border-radius: var(--r-md);
+    color: var(--c-warning);
+    font-size: 0.875rem;
+}
+.aviso .icon { flex-shrink: 0; margin-top: 1px; }
+.aviso a { color: inherit; text-decoration: underline; font-weight: 600; }
+
+.resumen-fisicas { margin-bottom: var(--sp-5); }
+.resumen-fisicas__total {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: var(--sp-4) var(--sp-5);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+}
+
+.pruebas-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--sp-3);
+}
+.prueba-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-2);
+    padding: var(--sp-4);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-lg);
+}
+.prueba-card__head {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+}
+.prueba-card__orden {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+    background: var(--c-surface-alt);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-sm);
+    color: var(--c-text-subtle);
+    font-family: var(--f-mono);
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+.prueba-card__head h3 {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--c-text-muted);
+}
+.prueba-card__cifras {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--sp-2);
+    margin-top: var(--sp-1);
+}
+.prueba-card__marca {
+    font-family: var(--f-mono);
+    font-size: 1.5rem;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+}
+.prueba-card__puntos {
+    font-family: var(--f-mono);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--c-text-subtle);
+}
+.prueba-card__puntos.tiene-puntos { color: var(--c-accent); }
+.prueba-card__puntos small {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--c-text-subtle);
+}
+.prueba-card__ultima,
+.prueba-card__pie {
+    color: var(--c-text-subtle);
+    font-size: 0.75rem;
+}
+.prueba-card__pie.is-max { color: var(--c-success); font-weight: 500; }
+.prueba-card .btn { margin-top: auto; }
+
+/* Historial de marcas */
+.marca-list { list-style: none; margin: 0; padding: 0; }
+.marca-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    padding: var(--sp-3) 0;
+    border-bottom: 1px solid var(--c-border);
+    font-size: 0.875rem;
+}
+.marca-item:last-child { border-bottom: none; }
+.marca-item__punto {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+    border-radius: 50%;
+}
+.marca-item__cuerpo { flex: 1; min-width: 0; }
+.marca-item__prueba { display: block; font-weight: 500; }
+.marca-item__fecha {
+    display: block;
+    color: var(--c-text-subtle);
+    font-family: var(--f-mono);
+    font-size: 0.75rem;
+}
+.marca-item__marca {
+    flex-shrink: 0;
+    font-family: var(--f-mono);
+    font-weight: 600;
+}
+
+
 /* --- 14. Componente: Lista de tareas -------------------------------- */
 .task-input-group {
     display: flex;
@@ -3112,6 +3245,7 @@ body.has-dialog { overflow: hidden; }
 
     .filtro-btn { flex-basis: calc(50% - var(--sp-1)); }
     .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .pruebas-grid { grid-template-columns: minmax(0, 1fr); }
     .kpi__value { font-size: 1.25rem; }
     .objetivos-panel { grid-template-columns: minmax(0, 1fr); }
     .countdown { justify-content: center; }

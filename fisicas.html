@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pruebas físicas · Planificador CNP</title>
+    <link rel="icon" href="assets/logo.png" type="image/png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#111c29">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Planificador">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body style="display: none;">
+
+    <button id="menu-toggle" aria-label="Abrir menú de navegación">
+        <svg class="icon icon--lg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="main-nav" aria-label="Navegación principal"></nav>
+
+    <main class="content-wrapper">
+        <div class="page-inner">
+
+            <header class="page-header">
+                <div>
+                    <h1 class="page-header__title">Pruebas físicas</h1>
+                    <p class="page-header__sub">Marcas y puntuación en las tres pruebas de la oposición.</p>
+                </div>
+                <div class="page-header__actions">
+                    <span class="badge" id="baremo-actual"></span>
+                </div>
+            </header>
+
+            <div id="aviso-baremo" class="aviso hidden">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17"/></svg>
+                <span>
+                    Las tablas de puntuación son distintas para hombres y mujeres.
+                    Elige la que te corresponde en <a href="ajustes.html">Ajustes</a> para ver tus puntos.
+                </span>
+            </div>
+
+            <section class="resumen-fisicas">
+                <div class="resumen-fisicas__total">
+                    <span class="kpi__label">Puntuación media</span>
+                    <span class="kpi__value" id="media-puntos">—</span>
+                    <span class="u-subtle u-small" id="detalle-puntos">Sin marcas registradas</span>
+                </div>
+            </section>
+
+            <div id="tarjetas-pruebas" class="pruebas-grid"></div>
+
+            <section class="card mt-5">
+                <div class="card__header">
+                    <h2 class="card__title">Evolución de la puntuación</h2>
+                </div>
+                <div class="card__body">
+                    <div class="chart-container" id="chart-fisicas-cont">
+                        <canvas id="chart-fisicas"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card mt-5">
+                <div class="card__header">
+                    <h2 class="card__title">Historial de marcas</h2>
+                </div>
+                <div class="card__body">
+                    <ul id="historial-marcas" class="marca-list">
+                        <li class="empty-msg">Cargando…</li>
+                    </ul>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script type="module" src="js/auth-guard.js"></script>
+    <script type="module" src="js/nav.js"></script>
+    <script type="module" src="js/fisicas.js"></script>
+    <script type="module" src="js/pwa.js"></script>
+</body>
+</html>

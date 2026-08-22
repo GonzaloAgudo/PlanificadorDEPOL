@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { name: 'Planificador semanal', link: 'semana.html', icon: 'board' },
         { name: 'Calendario', link: 'calendario.html', icon: 'calendar' },
         { name: 'Progreso del temario', link: 'progreso.html', icon: 'checklist' },
+        { name: 'Pruebas físicas', link: 'fisicas.html', icon: 'pesas' },
         { name: 'Calculadora de nota', link: 'calcular-nota.html', icon: 'calculator' },
         { name: 'Apuntes', link: 'notas.html', icon: 'notebook' },
         { name: 'Ajustes', link: 'ajustes.html', icon: 'settings' }

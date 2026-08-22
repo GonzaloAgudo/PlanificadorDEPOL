@@ -15,7 +15,8 @@ const COLECCIONES_POR_USUARIO = [
     'bloc_notas',
     'notas_historial',
     'progreso_temario',
-    'color_rules'
+    'color_rules',
+    'entrenamientos'
 ];
 
 /**

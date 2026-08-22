@@ -516,6 +516,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const objetivosForm = document.getElementById('objetivos-form');
     const fechaExamenInput = document.getElementById('fecha-examen');
     const metaSemanalInput = document.getElementById('meta-semanal');
+    const baremoInput = document.getElementById('baremo-fisicas');
 
     async function cargarObjetivos() {
         if (!auth.currentUser || !objetivosForm) return;
@@ -525,6 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = snap.data();
             if (data.fecha_examen) fechaExamenInput.value = data.fecha_examen;
             if (typeof data.meta_semanal_horas === 'number') metaSemanalInput.value = data.meta_semanal_horas;
+            if (data.baremo_fisicas) baremoInput.value = data.baremo_fisicas;
         } catch (error) {
             console.error("Error cargando objetivos:", error);
         }
@@ -542,7 +544,8 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 await setDoc(doc(db, "preferencias_usuario", auth.currentUser.uid), {
                     fecha_examen: fecha || null,
-                    meta_semanal_horas: meta
+                    meta_semanal_horas: meta,
+                    baremo_fisicas: baremoInput.value || null
                 }, { merge: true });
                 toast('Objetivos guardados.', { type: 'success' });
             } catch (error) {
