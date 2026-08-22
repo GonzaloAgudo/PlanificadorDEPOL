@@ -3,7 +3,7 @@ import {
     collection, addDoc, query, where,
     deleteDoc, updateDoc, doc, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { TEMARIO_OFICIAL } from './temario-oficial.js';
+import { TEMARIO_OFICIAL, TEMA_GLOBAL } from './temario-oficial.js';
 import { icon } from './icons.js';
 import { toast, confirmDialog } from './ui.js';
 
@@ -250,7 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isExam = data.titulo.toLowerCase().includes('examen');
         const tipoIcon = isExam ? icon('award', 'icon--sm') : icon('document', 'icon--sm');
-        const meta = [dateStr, data.tema].filter(Boolean).join(' · ');
+        const ambito = data.tema === TEMA_GLOBAL ? 'Examen global' : data.tema;
+        const meta = [dateStr, ambito].filter(Boolean).join(' · ');
 
         li.innerHTML = `
             <div class="grade-main">

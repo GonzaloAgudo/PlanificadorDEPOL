@@ -49,6 +49,12 @@ export const TEMARIO_OFICIAL = [
     { numero: 45, tema: "Tema 45", bloque: "MATERIAS TÉCNICO CIENTÍFICAS", nombre: "PRL EN SEGURIDAD VIAL", media: 0.5 },
 ];
 
+/**
+ * Valor que se guarda en el campo "tema" de una nota cuando el examen no es
+ * de un tema concreto, sino de todo el temario (un simulacro completo).
+ */
+export const TEMA_GLOBAL = 'GLOBAL';
+
 const MEDIA_MAXIMA = Math.max(...TEMARIO_OFICIAL.map(t => t.media));
 
 // Peso normalizado (0-1) de un tema según su presencia histórica en el examen real.
