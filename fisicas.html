@@ -44,13 +44,19 @@
                 </span>
             </div>
 
-            <section class="resumen-fisicas">
-                <div class="resumen-fisicas__total">
-                    <span class="kpi__label">Puntuación media</span>
+            <section class="estado-fisicas" id="estado-fisicas">
+                <div class="estado-fisicas__marca">
+                    <span class="estado-fisicas__etiqueta" id="estado-etiqueta">—</span>
+                    <span class="estado-fisicas__detalle" id="estado-detalle">Sin marcas registradas</span>
+                </div>
+                <div class="estado-fisicas__media">
+                    <span class="kpi__label">Media</span>
                     <span class="kpi__value" id="media-puntos">—</span>
-                    <span class="u-subtle u-small" id="detalle-puntos">Sin marcas registradas</span>
+                    <span class="u-subtle u-small">mínimo 5</span>
                 </div>
             </section>
+
+            <p class="u-subtle u-small mb-4" id="detalle-puntos"></p>
 
             <div id="tarjetas-pruebas" class="pruebas-grid"></div>
 

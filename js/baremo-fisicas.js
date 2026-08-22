@@ -102,6 +102,58 @@ const TABLAS = {
     }
 };
 
+/** Media mínima exigida en el conjunto de las tres pruebas. */
+export const MEDIA_MINIMA = 5;
+
+/** Puntuación que elimina directamente, se saque lo que se saque en el resto. */
+export const PUNTOS_ELIMINATORIOS = 0;
+
+/**
+ * Evalúa el conjunto de las tres pruebas según el criterio de la convocatoria:
+ * un 0 en cualquiera de ellas elimina, y hay que alcanzar una media de 5.
+ *
+ * @param {Array<number|null>} puntos Puntuación de cada prueba; null si no hay marca
+ * @returns {{estado: string, media: number|null, suma: number, faltan: number,
+ *            margen: number, eliminatorias: number[], registradas: number}}
+ *
+ * estado: 'sin-datos' | 'eliminado' | 'incompleto' | 'no-apto' | 'apto'
+ */
+export function evaluarConjunto(puntos) {
+    const total = puntos.length;
+    const registradas = puntos.filter(p => p !== null);
+    const eliminatorias = puntos
+        .map((p, i) => (p === PUNTOS_ELIMINATORIOS ? i : -1))
+        .filter(i => i !== -1);
+
+    const suma = registradas.reduce((a, b) => a + b, 0);
+    const media = registradas.length ? suma / registradas.length : null;
+    const minimoTotal = MEDIA_MINIMA * total;
+
+    // Un cero elimina aunque falten pruebas por registrar o la media sea alta
+    if (eliminatorias.length) {
+        return { estado: 'eliminado', media, suma, faltan: 0, margen: 0,
+                 eliminatorias, registradas: registradas.length };
+    }
+    if (!registradas.length) {
+        return { estado: 'sin-datos', media: null, suma: 0, faltan: minimoTotal,
+                 margen: 0, eliminatorias, registradas: 0 };
+    }
+    if (registradas.length < total) {
+        return { estado: 'incompleto', media, suma, faltan: Math.max(0, minimoTotal - suma),
+                 margen: 0, eliminatorias, registradas: registradas.length };
+    }
+
+    const apto = suma >= minimoTotal;
+    return {
+        estado: apto ? 'apto' : 'no-apto',
+        media, suma,
+        faltan: apto ? 0 : minimoTotal - suma,
+        margen: apto ? suma - minimoTotal : 0,
+        eliminatorias,
+        registradas: registradas.length
+    };
+}
+
 /** Unidad real de la prueba de barra, que cambia según el baremo. */
 export function unidadBarra(baremo) {
     return baremo === 'mujeres' ? 'segundos' : 'repeticiones';

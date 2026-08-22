@@ -6,7 +6,7 @@ import { icon } from './icons.js';
 import { toast, formDialog, confirmDialog } from './ui.js';
 import {
     PRUEBAS, calcularPuntos, siguienteEscalon, formatearMarca,
-    marcaDesdeFormulario, unidadBarra
+    marcaDesdeFormulario, evaluarConjunto
 } from './baremo-fisicas.js';
 
 const contTarjetas = document.getElementById('tarjetas-pruebas');
@@ -17,6 +17,12 @@ const avisoBaremo = document.getElementById('aviso-baremo');
 const baremoEl = document.getElementById('baremo-actual');
 
 const COLOR = { agilidad: '#1c4e80', barra: '#58487f', carrera: '#1f6f4a' };
+
+/**
+ * Marca claramente insuficiente en cada prueba, usada solo para preguntar al
+ * baremo cuál es el umbral del primer punto cuando aún no hay ninguna marca.
+ */
+const PEOR_MARCA = { agilidad: 999, barra: 0, carrera: 9999 };
 
 let baremo = null;      // 'hombres' | 'mujeres' | null
 let marcas = [];        // todas las marcas del usuario
@@ -153,9 +159,16 @@ function pintarTarjetas() {
 
         let pie;
         if (!mejor) {
-            pie = '<span class="prueba-card__pie">Sin marcas todavía</span>';
+            // Sin marca, lo útil es saber a partir de dónde se deja de eliminar
+            const minimo = baremo ? siguienteEscalon(p.id, baremo, PEOR_MARCA[p.id]) : null;
+            pie = minimo
+                ? `<span class="prueba-card__pie">Desde ${formatearMarca(p.id, baremo, minimo.objetivo)} se evita el 0</span>`
+                : '<span class="prueba-card__pie">Sin marcas todavía</span>';
         } else if (!baremo) {
             pie = '<span class="prueba-card__pie">Elige tu baremo para ver los puntos</span>';
+        } else if (puntos === 0) {
+            const sig = siguienteEscalon(p.id, baremo, mejor.marca);
+            pie = `<span class="prueba-card__pie is-elim">Un 0 elimina. Con ${formatearMarca(p.id, baremo, sig.objetivo)} sales del 0</span>`;
         } else {
             const sig = siguienteEscalon(p.id, baremo, mejor.marca);
             pie = sig
@@ -168,7 +181,7 @@ function pintarTarjetas() {
             : '';
 
         return `
-            <article class="prueba-card">
+            <article class="prueba-card${puntos === 0 ? ' es-eliminatoria' : ''}">
                 <div class="prueba-card__head">
                     <span class="prueba-card__orden">${p.orden}</span>
                     <h3>${nombrePrueba(p)}</h3>
@@ -192,30 +205,67 @@ function pintarTarjetas() {
     });
 }
 
-function pintarResumen() {
-    if (!baremo) { mediaEl.textContent = '—'; detalleEl.textContent = 'Elige tu baremo en Ajustes'; return; }
-
-    const puntosPorPrueba = listaPruebas.map(p => {
+/** Puntuación de cada prueba a partir de la mejor marca; null si no hay. */
+function puntosActuales() {
+    return listaPruebas.map(p => {
         const mejor = mejorMarca(p.id);
-        return mejor ? calcularPuntos(p.id, baremo, mejor.marca) : null;
+        return mejor && baremo ? calcularPuntos(p.id, baremo, mejor.marca) : null;
     });
+}
 
-    const conMarca = puntosPorPrueba.filter(v => v !== null);
-    if (!conMarca.length) {
+function pintarResumen() {
+    const panel = document.getElementById('estado-fisicas');
+    const etiqueta = document.getElementById('estado-etiqueta');
+
+    if (!baremo) {
+        panel.dataset.estado = 'sin-datos';
+        etiqueta.textContent = 'Sin baremo';
+        document.getElementById('estado-detalle').textContent = 'Elige tu baremo en Ajustes para calcular los puntos.';
         mediaEl.textContent = '—';
-        detalleEl.textContent = 'Sin marcas registradas';
+        detalleEl.textContent = '';
         return;
     }
 
-    const suma = conMarca.reduce((a, b) => a + b, 0);
-    mediaEl.textContent = (suma / conMarca.length).toFixed(2).replace('.', ',');
+    const puntos = puntosActuales();
+    const r = evaluarConjunto(puntos);
 
-    const detalle = listaPruebas
-        .map((p, i) => `${nombrePrueba(p)}: ${puntosPorPrueba[i] === null ? '—' : puntosPorPrueba[i]}`)
-        .join(' · ');
-    detalleEl.textContent = conMarca.length < listaPruebas.length
-        ? `${detalle} (media solo de las pruebas con marca)`
-        : detalle;
+    // Un plural correcto se nota, y aquí se lee muchas veces
+    const pts = (n) => `${String(n).replace('.', ',')} ${n === 1 ? 'punto' : 'puntos'}`;
+
+    const TEXTOS = {
+        'sin-datos': ['Sin marcas', 'Registra tus marcas para saber si superas el corte.'],
+        'eliminado': ['Eliminado', ''],   // se completa abajo con la prueba culpable
+        'incompleto': ['Incompleto', ''],
+        'no-apto': ['No apto', ''],
+        'apto': ['Apto', '']
+    };
+    const [titulo] = TEXTOS[r.estado];
+
+    let detalle;
+    if (r.estado === 'eliminado') {
+        const nombres = r.eliminatorias.map(i => nombrePrueba(listaPruebas[i])).join(' y ');
+        detalle = `Un 0 en ${nombres} deja fuera, aunque la media sea suficiente.`;
+    } else if (r.estado === 'sin-datos') {
+        detalle = TEXTOS['sin-datos'][1];
+    } else if (r.estado === 'incompleto') {
+        const faltan = listaPruebas.filter((p, i) => puntos[i] === null).map(nombrePrueba).join(' y ');
+        detalle = `Falta registrar ${faltan}. Llevas ${pts(r.suma)} de los 15 necesarios.`;
+    } else if (r.estado === 'no-apto') {
+        detalle = `Te ${r.faltan === 1 ? 'falta' : 'faltan'} ${pts(r.faltan)} para llegar a la media de 5.`;
+    } else {
+        detalle = r.margen > 0
+            ? `Superas el corte con ${pts(r.margen)} de margen.`
+            : 'Superas el corte justo, sin margen.';
+    }
+
+    panel.dataset.estado = r.estado;
+    etiqueta.textContent = titulo;
+    document.getElementById('estado-detalle').textContent = detalle;
+    mediaEl.textContent = r.media === null ? '—' : r.media.toFixed(2).replace('.', ',');
+
+    detalleEl.textContent = listaPruebas
+        .map((p, i) => `${nombrePrueba(p)}: ${puntos[i] === null ? 'sin marca' : puntos[i]}`)
+        .join('  ·  ');
 }
 
 function pintarHistorial() {
