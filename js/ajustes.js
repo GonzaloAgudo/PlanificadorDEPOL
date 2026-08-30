@@ -441,14 +441,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if(loadMoreBtn) loadMoreBtn.addEventListener('click', () => loadHistory(true));
 
+    // Convierte una fecha a la cadena que espera un input datetime-local,
+    // que trabaja siempre en hora local y no admite zona horaria.
+    function comoValorLocal(fecha) {
+        const desfase = fecha.getTimezoneOffset() * 60000;
+        return new Date(fecha - desfase).toISOString().slice(0, 16);
+    }
+
     function editSession(docSnap) {
         const s = docSnap.data();
         const date = s.fecha_sesion.toDate();
-        const tzOffset = date.getTimezoneOffset() * 60000; 
-        const localISOTime = (new Date(date - tzOffset)).toISOString().slice(0, 16);
 
         sessionIdInput.value = docSnap.id;
-        sessionDateInput.value = localISOTime;
+        sessionDateInput.value = comoValorLocal(date);
+        // RF-16: el historial no admite sesiones por delante del momento actual
+        sessionDateInput.max = comoValorLocal(new Date());
         sessionDurationInput.value = s.duracion_minutos;
         
         const options = Array.from(sessionTypeInput.options).map(opt => opt.value);
@@ -471,10 +478,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const id = sessionIdInput.value;
             if(!id) return;
 
+            // RF-16: ni sesiones vacías ni fechadas por delante del día en curso.
+            // El alta ya lo comprueba; la edición podía colarlas.
+            const minutos = parseInt(sessionDurationInput.value, 10);
+            if (!Number.isFinite(minutos) || minutos <= 0) {
+                return toast('La duración debe ser de al menos un minuto.', { type: 'warning' });
+            }
+
+            const fecha = new Date(sessionDateInput.value);
+            if (Number.isNaN(fecha.getTime())) {
+                return toast('La fecha de la sesión no es válida.', { type: 'warning' });
+            }
+            if (fecha.getTime() > Date.now()) {
+                return toast('No puedes registrar una sesión con fecha futura.', { type: 'warning' });
+            }
+
             try {
                 await updateDoc(doc(db, "sesiones_estudio", id), {
-                    fecha_sesion: Timestamp.fromDate(new Date(sessionDateInput.value)),
-                    duracion_minutos: parseInt(sessionDurationInput.value),
+                    fecha_sesion: Timestamp.fromDate(fecha),
+                    duracion_minutos: minutos,
                     tipo: sessionTypeInput.value,
                     tema: sessionTopicInput.value.trim(),
                     descripcion: sessionDescriptionInput.value.trim() // Actualizamos la descripción
