@@ -73,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
-                if (data.tipos_custom) {
-                    data.tipos_custom.forEach(tipo => {
+                if (data.actividades_personalizadas) {
+                    data.actividades_personalizadas.forEach(tipo => {
                         if (!Array.from(sessionTypeInput.options).some(opt => opt.value === tipo)) {
                             const opt = new Option(tipo, tipo);
                             sessionTypeInput.add(opt);
@@ -234,10 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorsArray = [];
 
         loadedRules.forEach(rule => {
-            const key = rule.bg_color + '|' + rule.border_color;
+            const key = rule.color_fondo + '|' + rule.color_borde;
             if (!uniqueColors.has(key)) {
                 uniqueColors.add(key);
-                colorsArray.push({ bg: rule.bg_color, border: rule.border_color });
+                colorsArray.push({ bg: rule.color_fondo, border: rule.color_borde });
             }
         });
 
@@ -265,8 +265,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const li = document.createElement('li');
         li.className = 'rule-item';
         li.innerHTML = `
-            <span class="rule-swatch" style="background-color: ${rule.bg_color}; border-color: ${rule.border_color};"></span>
-            <span class="rule-keyword">${rule.keyword}</span>
+            <span class="rule-swatch" style="background-color: ${rule.color_fondo}; border-color: ${rule.color_borde};"></span>
+            <span class="rule-keyword">${rule.palabra_clave}</span>
             <div class="rule-actions">
                 <button class="edit-btn" title="Editar" aria-label="Editar regla">${icon('edit', 'icon--sm')}</button>
                 <button class="delete-btn" title="Borrar" aria-label="Borrar regla">${icon('trash', 'icon--sm')}</button>
@@ -280,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadRules() {
         if (!auth.currentUser) return;
         rulesList.innerHTML = 'Cargando...'; 
-        const q = query(collection(db, "color_rules"), where("user_id", "==", auth.currentUser.uid), orderBy("keyword"));
+        const q = query(collection(db, "reglas_color"), where("id_usuario", "==", auth.currentUser.uid), orderBy("palabra_clave"));
         const querySnapshot = await getDocs(q);
         
         rulesList.innerHTML = ''; 
@@ -301,22 +301,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!auth.currentUser) return;
 
             const ruleData = {
-                keyword: keywordInput.value.trim(),
-                bg_color: bgColorInput.value,
-                border_color: borderColorInput.value,
-                user_id: auth.currentUser.uid
+                palabra_clave: keywordInput.value.trim(),
+                color_fondo: bgColorInput.value,
+                color_borde: borderColorInput.value,
+                id_usuario: auth.currentUser.uid
             };
             
-            if (!ruleData.keyword || !ruleData.bg_color) {
+            if (!ruleData.palabra_clave || !ruleData.color_fondo) {
                 if(errorDiv) errorDiv.textContent = 'Faltan datos.';
                 return;
             }
 
             try {
                 if (ruleIdInput.value) {
-                    await updateDoc(doc(db, "color_rules", ruleIdInput.value), ruleData);
+                    await updateDoc(doc(db, "reglas_color", ruleIdInput.value), ruleData);
                 } else {
-                    await addDoc(collection(db, "color_rules"), ruleData);
+                    await addDoc(collection(db, "reglas_color"), ruleData);
                 }
                 loadRules(); 
                 resetForm();
@@ -335,7 +335,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (!ok) return;
         try {
-            await deleteDoc(doc(db, "color_rules", id));
+            await deleteDoc(doc(db, "reglas_color", id));
             loadRules();
             toast('Regla borrada.', { type: 'success' });
         } catch (e) { toast('No se pudo borrar la regla.', { type: 'error' }); }
@@ -345,8 +345,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const rule = ruleDoc.data();
         ruleFormTitle.textContent = 'Editar Regla';
         ruleIdInput.value = ruleDoc.id;
-        keywordInput.value = rule.keyword;
-        selectColor(rule.bg_color, rule.border_color);
+        keywordInput.value = rule.palabra_clave;
+        selectColor(rule.color_fondo, rule.color_borde);
         
         saveRuleBtn.textContent = 'Actualizar';
         cancelRuleEditBtn.style.display = 'inline-block';
@@ -381,8 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         let q = query(
             collection(db, "sesiones_estudio"),
-            where("user_id", "==", auth.currentUser.uid),
-            orderBy("fecha_sesion", "desc"),
+            where("id_usuario", "==", auth.currentUser.uid),
+            orderBy("fecha", "desc"),
             limit(SESSIONS_PER_PAGE)
         );
 
@@ -403,9 +403,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             snapshot.forEach(doc => {
                 const s = doc.data();
-                const date = s.fecha_sesion.toDate();
+                const date = s.fecha.toDate();
 
-                const tipoVisual = s.tipo || 'estudio';
+                const tipoVisual = s.actividad || 'estudio';
                 const bgBadge = badgeColors[tipoVisual] || '#5b6673';
 
                 // Si hay descripción, la mostramos debajo del tema
@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function editSession(docSnap) {
         const s = docSnap.data();
-        const date = s.fecha_sesion.toDate();
+        const date = s.fecha.toDate();
 
         sessionIdInput.value = docSnap.id;
         sessionDateInput.value = comoValorLocal(date);
@@ -459,8 +459,8 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionDurationInput.value = s.duracion_minutos;
         
         const options = Array.from(sessionTypeInput.options).map(opt => opt.value);
-        if (options.includes(s.tipo)) {
-            sessionTypeInput.value = s.tipo;
+        if (options.includes(s.actividad)) {
+            sessionTypeInput.value = s.actividad;
         } else {
             sessionTypeInput.value = 'estudio'; 
         }
@@ -495,9 +495,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 await updateDoc(doc(db, "sesiones_estudio", id), {
-                    fecha_sesion: Timestamp.fromDate(fecha),
+                    fecha: Timestamp.fromDate(fecha),
                     duracion_minutos: minutos,
-                    tipo: sessionTypeInput.value,
+                    actividad: sessionTypeInput.value,
                     tema: sessionTopicInput.value.trim(),
                     descripcion: sessionDescriptionInput.value.trim() // Actualizamos la descripción
                 });

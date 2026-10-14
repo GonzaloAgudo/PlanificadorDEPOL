@@ -162,15 +162,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             if (editingId) {
-                await updateDoc(doc(db, "notas_historial", editingId), {
+                await updateDoc(doc(db, "calificaciones", editingId), {
                     titulo: title, nota: score, fecha: dateVal, tema: tema
                 });
                 resetForm();
             } else {
-                await addDoc(collection(db, "notas_historial"), {
-                    user_id: auth.currentUser.uid,
+                await addDoc(collection(db, "calificaciones"), {
+                    id_usuario: auth.currentUser.uid,
                     titulo: title, nota: score, fecha: dateVal, tema: tema,
-                    timestamp: new Date()
+                    fecha_registro: new Date()
                 });
                 inpTitle.value = '';
                 inpScore.value = '';
@@ -214,8 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!auth.currentUser) return;
 
         const q = query(
-            collection(db, "notas_historial"),
-            where("user_id", "==", auth.currentUser.uid),
+            collection(db, "calificaciones"),
+            where("id_usuario", "==", auth.currentUser.uid),
             orderBy("fecha", "asc") 
         );
 
@@ -278,7 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (ok) {
                 if (editingId === data.id) resetForm();
-                await deleteDoc(doc(db, "notas_historial", data.id));
+                await deleteDoc(doc(db, "calificaciones", data.id));
                 toast('Nota borrada.');
             }
         });

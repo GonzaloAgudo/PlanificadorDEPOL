@@ -104,9 +104,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             if (id) {
                 // CASO 1: EDITAR EVENTO EXISTENTE
-                const eventRef = doc(db, "calendario_eventos", id);
+                const eventRef = doc(db, "eventos_calendario", id);
                 await updateDoc(eventRef, {
-                    texto_evento: newTitle,
+                    titulo: newTitle,
                     descripcion: newDesc
                 });
 
@@ -117,14 +117,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!targetDateForNewEvent) return;
 
                 const newEvent = {
-                    user_id: auth.currentUser.uid,
-                    fecha_evento: targetDateForNewEvent,
-                    texto_evento: newTitle,
+                    id_usuario: auth.currentUser.uid,
+                    fecha: targetDateForNewEvent,
+                    titulo: newTitle,
                     descripcion: newDesc,
-                    tipo_calendario: currentMode
+                    calendario: currentMode
                 };
                 
-                await addDoc(collection(db, "calendario_eventos"), newEvent);
+                await addDoc(collection(db, "eventos_calendario"), newEvent);
                 renderCalendar(currentDate);
             }
             
@@ -155,7 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     delete activeCellElement.dataset.festivoId;
                 }
 
-                await deleteDoc(doc(db, "calendario_eventos", id));
+                await deleteDoc(doc(db, "eventos_calendario", id));
                 renderCalendar(currentDate);
                 closeModal();
             } catch (e) {
@@ -263,18 +263,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const endStr = `${year}-${String(month).padStart(2, '0')}-31`;
 
             const q = query(
-                collection(db, "calendario_eventos"),
-                where("user_id", "==", auth.currentUser.uid),
-                where("fecha_evento", ">=", startStr),
-                where("fecha_evento", "<=", endStr),
-                where("tipo_calendario", "==", currentMode) 
+                collection(db, "eventos_calendario"),
+                where("id_usuario", "==", auth.currentUser.uid),
+                where("fecha", ">=", startStr),
+                where("fecha", "<=", endStr),
+                where("calendario", "==", currentMode) 
             );
 
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach(doc => {
                 const evento = doc.data();
                 evento.id = doc.id; 
-                const cell = document.querySelector(`.calendar-day[data-date="${evento.fecha_evento}"]`);
+                const cell = document.querySelector(`.calendar-day[data-date="${evento.fecha}"]`);
                 if (cell) renderEvent(cell, evento);
             });
         } catch (error) {
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderEvent(cell, evento) {
-        const isFestivo = evento.texto_evento.trim().toLowerCase() === 'festivo';
+        const isFestivo = evento.titulo.trim().toLowerCase() === 'festivo';
 
         if (isFestivo) {
             cell.classList.add('is-weekend'); 
@@ -296,7 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         eventEl.setAttribute('data-id', evento.id);
         
-        applyEventColorRule(eventEl, evento.texto_evento); 
+        applyEventColorRule(eventEl, evento.titulo); 
         
         let descIndicator = '';
         if (evento.descripcion && evento.descripcion.trim() !== '') {
@@ -304,14 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         eventEl.innerHTML = `
-            <span class="event-text">${evento.texto_evento}</span>
+            <span class="event-text">${evento.titulo}</span>
             ${descIndicator}
         `;
         
         eventEl.addEventListener('click', (e) => {
             e.stopPropagation(); 
             // Abrimos modal en modo edición
-            openModal(evento.id, evento.texto_evento, evento.descripcion, cell);
+            openModal(evento.id, evento.titulo, evento.descripcion, cell);
         });
         
         cell.appendChild(eventEl);

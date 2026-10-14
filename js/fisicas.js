@@ -111,14 +111,14 @@ async function registrarMarca(pruebaId) {
     const puntos = calcularPuntos(pruebaId, baremo, marca);
 
     try {
-        await addDoc(collection(db, 'entrenamientos'), {
-            user_id: auth.currentUser.uid,
+        await addDoc(collection(db, 'marcas_fisicas'), {
+            id_usuario: auth.currentUser.uid,
             prueba: pruebaId,
             marca,
             puntos,
             baremo,
             fecha: datos.fecha,
-            creado: new Date()
+            fecha_registro: new Date()
         });
         toast(`${formatearMarca(pruebaId, baremo, marca)} · ${puntos} ${puntos === 1 ? 'punto' : 'puntos'}`,
               { type: 'success' });
@@ -138,7 +138,7 @@ async function borrarMarca(id, texto) {
     });
     if (!ok) return;
     try {
-        await deleteDoc(doc(db, 'entrenamientos', id));
+        await deleteDoc(doc(db, 'marcas_fisicas', id));
         toast('Marca borrada.');
         await cargarMarcas();
     } catch (error) {
@@ -370,7 +370,7 @@ function pintarTodo() {
 
 async function cargarMarcas() {
     // Se ordena en el navegador para no necesitar un índice compuesto nuevo
-    const q = query(collection(db, 'entrenamientos'), where('user_id', '==', auth.currentUser.uid));
+    const q = query(collection(db, 'marcas_fisicas'), where('id_usuario', '==', auth.currentUser.uid));
     const snap = await getDocs(q);
     marcas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     pintarTodo();

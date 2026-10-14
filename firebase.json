@@ -12,7 +12,8 @@
       "firestore.rules",
       "firestore.indexes.json",
       "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "test/**"
     ],
     "headers": [
       {

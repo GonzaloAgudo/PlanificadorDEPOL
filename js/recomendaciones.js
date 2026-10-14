@@ -22,7 +22,7 @@ const PESO_NEUTRO = 1;
  * - Peso_examen_normalizado: cuánto pesa el tema en las convocatorias reales
  *   2020-2025 (ver temario-oficial.js), en relación al tema con más peso.
  * - tiempo_relativo_estudiado: minutos de estudio dedicados a ese tema
- *   (sesiones tipo "estudio"), en relación al tema más estudiado.
+ *   (sesiones de actividad "estudio"), en relación al tema más estudiado.
  * - nota_relativa: nota media ponderada de los tests y exámenes de ese tema.
  *   Los exámenes globales, que abarcan todo el temario, entran en la media de
  *   todos los temas con un peso proporcional a las preguntas que cada uno
@@ -41,8 +41,8 @@ export async function calcularRecomendaciones(db, uid) {
     const minutosPorTema = {};
     const sesionesQ = query(
         collection(db, "sesiones_estudio"),
-        where("user_id", "==", uid),
-        where("tipo", "==", "estudio")
+        where("id_usuario", "==", uid),
+        where("actividad", "==", "estudio")
     );
     const sesionesSnap = await getDocs(sesionesQ);
     sesionesSnap.forEach(docSnap => {
@@ -56,8 +56,8 @@ export async function calcularRecomendaciones(db, uid) {
     const notasGlobales = [];  // exámenes de todo el temario
 
     const notasQ = query(
-        collection(db, "notas_historial"),
-        where("user_id", "==", uid)
+        collection(db, "calificaciones"),
+        where("id_usuario", "==", uid)
     );
     const notasSnap = await getDocs(notasQ);
     notasSnap.forEach(docSnap => {

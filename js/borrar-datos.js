@@ -4,19 +4,19 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 /**
- * Colecciones donde cada documento lleva el campo user_id.
+ * Colecciones donde cada documento lleva el campo id_usuario.
  * Al eliminar la cuenta hay que barrerlas todas: si no, los datos se quedan
  * huérfanos en Firestore para siempre.
  */
 const COLECCIONES_POR_USUARIO = [
     'sesiones_estudio',
     'tareas_semanales',
-    'calendario_eventos',
-    'bloc_notas',
-    'notas_historial',
+    'eventos_calendario',
+    'cuadernos',
+    'calificaciones',
     'progreso_temario',
-    'color_rules',
-    'entrenamientos'
+    'reglas_color',
+    'marcas_fisicas'
 ];
 
 /**
@@ -24,8 +24,8 @@ const COLECCIONES_POR_USUARIO = [
  */
 const DOCUMENTOS_POR_UID = [
     'preferencias_usuario',
-    'config_progreso',
-    'timers_activos'
+    'configuracion_progreso',
+    'temporizadores'
 ];
 
 // Firestore admite como mucho 500 operaciones por lote
@@ -44,7 +44,7 @@ export async function borrarDatosDeUsuario(uid, onProgreso = () => {}) {
     for (const nombre of COLECCIONES_POR_USUARIO) {
         onProgreso(`Borrando ${nombre}…`);
 
-        const q = query(collection(db, nombre), where('user_id', '==', uid));
+        const q = query(collection(db, nombre), where('id_usuario', '==', uid));
         const snap = await getDocs(q);
         if (snap.empty) continue;
 

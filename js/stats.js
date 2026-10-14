@@ -154,13 +154,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function distribuirMinutosEnHoras(sesion, datasets, labels) {
-        let endDateStr = sesion.fecha_sesion;
+        let endDateStr = sesion.fecha;
         let endDate = (endDateStr && endDateStr.toDate) ? endDateStr.toDate() : new Date(endDateStr);
         
         const durationMins = sesion.duracion_minutos;
         const startDate = new Date(endDate.getTime() - (durationMins * 60000));
         
-        const tipoSesion = sesion.tipo || 'estudio';
+        const tipoSesion = sesion.actividad || 'estudio';
         const targetDataset = initDataset(datasets, tipoSesion, labels.length);
 
         let pointer = new Date(startDate);
@@ -185,13 +185,13 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(TIPO_COLORES).forEach(tipo => initDataset(datasets, tipo, labels.length));
 
         sessions.forEach(s => {
-            const tipoSesion = s.tipo || 'estudio';
+            const tipoSesion = s.actividad || 'estudio';
             
             if (timeUnit === 'day') {
                 distribuirMinutosEnHoras(s, datasets, labels);
             } else {
                 let label;
-                let dateStr = s.fecha_sesion;
+                let dateStr = s.fecha;
                 let date = (dateStr && dateStr.toDate) ? dateStr.toDate() : new Date(dateStr);
 
                 if (timeUnit === 'week') {
@@ -386,9 +386,9 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             let q = query(
                 collection(db, "sesiones_estudio"),
-                where("user_id", "==", auth.currentUser.uid),
-                where("fecha_sesion", ">=", Timestamp.fromDate(startDate)),
-                where("fecha_sesion", "<=", Timestamp.fromDate(endDate)) 
+                where("id_usuario", "==", auth.currentUser.uid),
+                where("fecha", ">=", Timestamp.fromDate(startDate)),
+                where("fecha", "<=", Timestamp.fromDate(endDate)) 
             );
 
             const querySnapshot = await getDocs(q);
@@ -401,9 +401,9 @@ document.addEventListener('DOMContentLoaded', () => {
             querySnapshot.forEach(doc => {
                 const data = doc.data();
                 
-                let tipoReal = data.tipo || 'estudio';
+                let tipoReal = data.actividad || 'estudio';
                 if (tipoReal === 'seminario') tipoReal = 'clase';
-                data.tipo = tipoReal;
+                data.actividad = tipoReal;
 
                 let include = false;
                 if (filtroActividad === 'temas') {

@@ -79,10 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const q = query(
                 collection(db, "tareas_semanales"),
-                where("user_id", "==", auth.currentUser.uid),
-                where("fecha_tarea", ">=", formatDate(monday)),
-                where("fecha_tarea", "<=", formatDate(sunday)),
-                orderBy("fecha_tarea", "asc"),
+                where("id_usuario", "==", auth.currentUser.uid),
+                where("fecha", ">=", formatDate(monday)),
+                where("fecha", "<=", formatDate(sunday)),
+                orderBy("fecha", "asc"),
                 orderBy("orden", "asc")
             );
             
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const batch = writeBatch(db);
             
             const taskRef = doc(db, "tareas_semanales", taskId);
-            batch.update(taskRef, { fecha_tarea: newDate });
+            batch.update(taskRef, { fecha: newDate });
             
             sourceListIds.forEach((id, index) => {
                 const docRef = doc(db, "tareas_semanales", id);
@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Renderizado de una Tarea (Con Menú de 3 Puntos) ---
     function renderTask(taskDoc) {
         const task = taskDoc.data();
-        const cell = document.querySelector(`.day-column[data-date="${task.fecha_tarea}"]`);
+        const cell = document.querySelector(`.day-column[data-date="${task.fecha}"]`);
         if (!cell) return;
 
         const taskList = cell.querySelector('.task-list'); 
@@ -153,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         listItem.addEventListener('selectstart', (e) => e.preventDefault());
         // --------------------------------------------------------
 
-        applyColorRule(listItem, task.texto); 
+        applyColorRule(listItem, task.descripcion); 
 
         if (task.completada) {
             listItem.classList.add('completed');
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Checkbox + texto + menú desplegable de acciones
         listItem.innerHTML = `
             <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
-            <span class="task-text">${task.texto}</span>
+            <span class="task-text">${task.descripcion}</span>
 
             <div class="task-actions-container">
                 <button class="task-menu-btn" title="Acciones" aria-label="Acciones de la tarea">${icon('more', 'icon--sm')}</button>
@@ -211,8 +211,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const qOrder = query(
                 collection(db, "tareas_semanales"),
-                where("user_id", "==", auth.currentUser.uid),
-                where("fecha_tarea", "==", date),
+                where("id_usuario", "==", auth.currentUser.uid),
+                where("fecha", "==", date),
                 orderBy("orden", "desc"),
                 limit(1)
             );
@@ -220,9 +220,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const newOrder = snapOrder.empty ? 1 : snapOrder.docs[0].data().orden + 1;
 
             const newTask = {
-                user_id: auth.currentUser.uid,
-                texto: text,
-                fecha_tarea: date,
+                id_usuario: auth.currentUser.uid,
+                descripcion: text,
+                fecha: date,
                 completada: false,
                 orden: newOrder
             };
@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         if (newText && newText !== currentText) {
             try {
-                await updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
+                await updateDoc(doc(db, "tareas_semanales", id), { descripcion: newText });
                 taskElement.querySelector('.task-text').textContent = newText;
                 applyColorRule(taskElement, newText);
             } catch(e) { console.error(e); }
@@ -344,7 +344,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 // --- PASO 2: Guardar en DB ---
-                await updateDoc(doc(db, "tareas_semanales", taskId), { fecha_tarea: newDate });
+                await updateDoc(doc(db, "tareas_semanales", taskId), { fecha: newDate });
 
                 // --- PASO 3: Pintar en destino si es visible ---
                 const targetColumn = document.querySelector(`.day-column[data-date="${newDate}"]`);
@@ -352,8 +352,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     renderTask({
                         id: taskId,
                         data: () => ({
-                            texto: taskText,
-                            fecha_tarea: newDate,
+                            descripcion: taskText,
+                            fecha: newDate,
                             completada: isCompleted,
                             orden: 9999
                         })

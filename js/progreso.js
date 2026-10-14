@@ -43,17 +43,17 @@ const STATUS_OPTIONS = {
 
 async function loadConfig() {
     if (!auth.currentUser) return;
-    const configRef = doc(db, "config_progreso", auth.currentUser.uid);
+    const configRef = doc(db, "configuracion_progreso", auth.currentUser.uid);
 
     onSnapshot(configRef, (docSnap) => {
         if (docSnap.exists()) {
-            dynamicColumns = docSnap.data().columns || [];
+            dynamicColumns = docSnap.data().columnas || [];
         } else {
             dynamicColumns = [
-                { id: 'c_' + Date.now(), name: '1ª Lectura' },
-                { id: 'c_' + (Date.now()+1), name: 'Esquema' }
+                { id: 'c_' + Date.now(), nombre: '1ª Lectura' },
+                { id: 'c_' + (Date.now()+1), nombre: 'Esquema' }
             ];
-            setDoc(configRef, { columns: dynamicColumns });
+            setDoc(configRef, { columnas: dynamicColumns });
         }
         renderTable(); 
     });
@@ -68,7 +68,7 @@ async function addColumn() {
     });
     if (!name) return;
 
-    const newCol = { id: 'c_' + Date.now(), name: name };
+    const newCol = { id: 'c_' + Date.now(), nombre: name };
     dynamicColumns.push(newCol);
     
     // 1. Guardar la nueva columna
@@ -83,11 +83,11 @@ async function renameColumn(colId) {
     const newName = await promptDialog({
         title: 'Renombrar columna',
         label: 'Nombre',
-        value: col.name,
+        value: col.nombre,
         confirmText: 'Guardar'
     });
-    if (newName && newName !== col.name) {
-        col.name = newName;
+    if (newName && newName !== col.nombre) {
+        col.nombre = newName;
         await saveColumnsConfig();
     }
 }
@@ -96,7 +96,7 @@ async function deleteColumn(colId) {
     const col = dynamicColumns.find(c => c.id === colId);
     const ok = await confirmDialog({
         title: 'Borrar columna',
-        message: `Se eliminará la columna <strong>${col ? col.name : ''}</strong> y las marcas de todos los temas en ella.`,
+        message: `Se eliminará la columna <strong>${col ? col.nombre : ''}</strong> y las marcas de todos los temas en ella.`,
         confirmText: 'Borrar',
         danger: true
     });
@@ -108,8 +108,8 @@ async function deleteColumn(colId) {
 }
 
 async function saveColumnsConfig() {
-    const configRef = doc(db, "config_progreso", auth.currentUser.uid);
-    await updateDoc(configRef, { columns: dynamicColumns });
+    const configRef = doc(db, "configuracion_progreso", auth.currentUser.uid);
+    await updateDoc(configRef, { columnas: dynamicColumns });
 }
 
 // --- RECALCULAR DOMINIO GLOBAL ---
@@ -121,7 +121,7 @@ async function recalculateAllDomains() {
     let updatesCount = 0;
 
     rowsData.forEach(row => {
-        const checks = row.checks || {};
+        const checks = row.columnas_completadas || {};
         const checkedCount = dynamicColumns.filter(col => checks[col.id]).length;
         const nuevoDominio = totalCols === 0 ? 0 : Math.round((checkedCount / totalCols) * 100);
 
@@ -146,7 +146,7 @@ function loadData() {
     if (!auth.currentUser) return;
     const q = query(
         collection(db, "progreso_temario"),
-        where("user_id", "==", auth.currentUser.uid),
+        where("id_usuario", "==", auth.currentUser.uid),
         orderBy("orden", "asc")
     );
 
@@ -163,12 +163,12 @@ async function addRow() {
     
     try {
         await addDoc(collection(db, "progreso_temario"), {
-            user_id: auth.currentUser.uid,
+            id_usuario: auth.currentUser.uid,
             orden: maxOrden + 1,
             tema: `Tema ${maxOrden + 1}`,
             estado: 'sin_empezar',
             dominio: 0,
-            checks: {}, 
+            columnas_completadas: {}, 
             comentarios: ''
         });
     } catch (e) { console.error(e); }
@@ -181,7 +181,7 @@ async function updateRow(id, field, value) {
 
 async function updateCheck(id, colId, isChecked) {
     const row = rowsData.find(r => r.id === id);
-    const currentChecks = row.checks || {};
+    const currentChecks = row.columnas_completadas || {};
     
     currentChecks[colId] = isChecked;
     
@@ -191,7 +191,7 @@ async function updateCheck(id, colId, isChecked) {
 
     const rowRef = doc(db, "progreso_temario", id);
     await updateDoc(rowRef, { 
-        [`checks.${colId}`]: isChecked,
+        [`columnas_completadas.${colId}`]: isChecked,
         dominio: nuevoDominio
     });
 }
@@ -223,7 +223,7 @@ function renderTable() {
         headerHTML += `
             <th class="th-dynamic" data-col-id="${col.id}">
                 <div class="col-header-content">
-                    <span class="col-name">${col.name}</span>
+                    <span class="col-name">${col.nombre}</span>
                     <button class="btn-del-col" title="Borrar columna">×</button>
                 </div>
             </th>
@@ -282,7 +282,7 @@ function renderTable() {
 
         // Checkboxes dinámicos
         dynamicColumns.forEach(col => {
-            const isChecked = row.checks && row.checks[col.id] ? 'checked' : '';
+            const isChecked = row.columnas_completadas && row.columnas_completadas[col.id] ? 'checked' : '';
             rowHTML += `
                 <td class="td-center">
                     <input type="checkbox" class="check-dynamic" data-col-id="${col.id}" ${isChecked}>

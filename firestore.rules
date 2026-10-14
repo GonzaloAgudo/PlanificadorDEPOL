@@ -7,7 +7,7 @@ rules_version = '2';
 // los datos de todos los usuarios a la vista de cualquiera que se registrase.
 //
 // Los datos se organizan de dos formas:
-//   1. Colecciones cuyos documentos llevan un campo "user_id".
+//   1. Colecciones cuyos documentos llevan un campo "id_usuario".
 //   2. Colecciones con un único documento por usuario, cuyo identificador
 //      es el propio uid.
 service cloud.firestore {
@@ -17,40 +17,72 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Colecciones cuyos documentos identifican a su dueño con "user_id"
+    // Colecciones cuyos documentos identifican a su dueño con "id_usuario"
     function coleccionesConDueno() {
       return [
         'sesiones_estudio',
         'tareas_semanales',
-        'calendario_eventos',
-        'bloc_notas',
-        'notas_historial',
+        'eventos_calendario',
+        'cuadernos',
+        'calificaciones',
         'progreso_temario',
-        'color_rules',
-        'entrenamientos'
+        'reglas_color',
+        'marcas_fisicas'
       ];
     }
 
     // El documento ya guardado pertenece a quien hace la petición
     function esSuyo() {
-      return autenticado() && resource.data.user_id == request.auth.uid;
+      return autenticado() && resource.data.id_usuario == request.auth.uid;
     }
 
     // El documento que se pretende guardar queda a su nombre. Evita tanto
     // crear datos a nombre de otro como reasignar los propios a un tercero.
     function loGuardaASuNombre() {
-      return autenticado() && request.resource.data.user_id == request.auth.uid;
+      return autenticado() && request.resource.data.id_usuario == request.auth.uid;
     }
 
-    // --- 1. Colecciones con campo user_id ---
+    // --- TEMPORAL: nombres anteriores a la migración ---
+
+    // Colecciones que cambian de nombre
+    function coleccionesAntiguas() {
+      return [
+        'calendario_eventos',
+        'bloc_notas',
+        'notas_historial',
+        'color_rules',
+        'entrenamientos'
+      ];
+    }
+
+    // Colecciones que conservan el nombre pero cambian sus campos
+    function coleccionesQueConservanNombre() {
+      return ['sesiones_estudio', 'tareas_semanales', 'progreso_temario'];
+    }
+
+    // Dueño identificado con el campo antiguo
+    function eraSuyo() {
+      return autenticado() && resource.data.user_id == request.auth.uid;
+    }
+
+    // --- 1. Colecciones con campo id_usuario ---
     //
-    // Las consultas de la aplicación siempre filtran por user_id, que es lo
+    // Las consultas de la aplicación siempre filtran por id_usuario, que es lo
     // que Firestore exige para poder autorizar una lectura de varios
     // documentos a la vez.
     match /{coleccion}/{documento} {
       allow read, delete: if coleccion in coleccionesConDueno() && esSuyo();
       allow create: if coleccion in coleccionesConDueno() && loGuardaASuNombre();
       allow update: if coleccion in coleccionesConDueno() && esSuyo() && loGuardaASuNombre();
+
+      // TEMPORAL, solo mientras dura la migración de nombres (migracion.html).
+      // Las colecciones que cambian de nombre se pueden leer y borrar, pero
+      // ya no se puede escribir en ellas. Las que conservan el nombre se
+      // pueden reescribir en el sitio, siempre que el documento resultante
+      // siga siendo del mismo usuario.
+      allow read, delete: if coleccion in coleccionesAntiguas() && eraSuyo();
+      allow read: if coleccion in coleccionesQueConservanNombre() && eraSuyo();
+      allow update: if coleccion in coleccionesQueConservanNombre() && eraSuyo() && loGuardaASuNombre();
     }
 
     // --- 2. Un documento por usuario, identificado por su uid ---
@@ -58,12 +90,21 @@ service cloud.firestore {
       allow read, write: if autenticado() && request.auth.uid == uid;
     }
 
-    match /config_progreso/{uid} {
+    match /configuracion_progreso/{uid} {
       allow read, write: if autenticado() && request.auth.uid == uid;
     }
 
-    match /timers_activos/{uid} {
+    match /temporizadores/{uid} {
       allow read, write: if autenticado() && request.auth.uid == uid;
+    }
+
+    // TEMPORAL: nombres antiguos, solo lectura y borrado para migrarlos
+    match /config_progreso/{uid} {
+      allow read, delete: if autenticado() && request.auth.uid == uid;
+    }
+
+    match /timers_activos/{uid} {
+      allow read, delete: if autenticado() && request.auth.uid == uid;
     }
 
     // Todo lo que no encaje arriba queda denegado por defecto.

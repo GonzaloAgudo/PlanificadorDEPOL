@@ -10,7 +10,7 @@ let cachedRules = [];
 export async function fetchColorRules() {
     if (!auth.currentUser) return;
     try {
-        const q = query(collection(db, "color_rules"), where("user_id", "==", auth.currentUser.uid));
+        const q = query(collection(db, "reglas_color"), where("id_usuario", "==", auth.currentUser.uid));
         const snapshot = await getDocs(q);
         cachedRules = snapshot.docs.map(doc => doc.data());
     } catch (error) {
@@ -25,11 +25,11 @@ export function applyColorRule(element, text) {
     if (!text) return;
     const textLower = text.toLowerCase();
     
-    const rule = cachedRules.find(r => textLower.includes(r.keyword.toLowerCase()));
+    const rule = cachedRules.find(r => textLower.includes(r.palabra_clave.toLowerCase()));
     
     if (rule) {
         // Estilo para lista de tareas (más sutil)
-        element.style.borderLeftColor = rule.border_color || rule.bg_color;
+        element.style.borderLeftColor = rule.color_borde || rule.color_fondo;
     }
 }
 
@@ -41,15 +41,15 @@ export function applyEventColorRule(element, text) {
     const textLower = text.toLowerCase();
     
     // Buscar si el texto del evento contiene alguna palabra clave
-    const rule = cachedRules.find(r => textLower.includes(r.keyword.toLowerCase()));
+    const rule = cachedRules.find(r => textLower.includes(r.palabra_clave.toLowerCase()));
     
     if (rule) {
         // 1. Color de Fondo (El que elegiste en el selector)
-        element.style.backgroundColor = rule.bg_color;
+        element.style.backgroundColor = rule.color_fondo;
         
         // 2. Color de la Franja Izquierda (El borde oscuro)
-        // Si existe border_color úsalo, si no, usa el mismo del fondo
-        element.style.borderLeftColor = rule.border_color || rule.bg_color;
+        // Si existe color_borde úsalo, si no, usa el mismo del fondo
+        element.style.borderLeftColor = rule.color_borde || rule.color_fondo;
         
         // 3. Color del Texto
         // Por defecto oscuro para legibilidad en colores pastel
@@ -57,7 +57,7 @@ export function applyEventColorRule(element, text) {
         
         // Excepción: Si el fondo es muy oscuro (como el rojo "Festivo"), poner texto blanco
         // (Esto es un cálculo simple de brillo)
-        if (isDarkColor(rule.bg_color)) {
+        if (isDarkColor(rule.color_fondo)) {
             element.style.color = 'white';
         }
     }

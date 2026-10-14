@@ -59,8 +59,8 @@ function loadCategories() {
     if (!auth.currentUser) return;
 
     const q = query(
-        collection(db, "bloc_notas"),
-        where("user_id", "==", auth.currentUser.uid),
+        collection(db, "cuadernos"),
+        where("id_usuario", "==", auth.currentUser.uid),
         orderBy("orden", "asc") 
     );
 
@@ -125,7 +125,7 @@ async function saveCategoryOrder(ids) {
     try {
         const batch = writeBatch(db);
         ids.forEach((id, index) => {
-            const docRef = doc(db, "bloc_notas", id);
+            const docRef = doc(db, "cuadernos", id);
             batch.update(docRef, { orden: index + 1 });
         });
         await batch.commit();
@@ -142,13 +142,13 @@ async function createNewCategory() {
     if (!titulo) return;
 
     try {
-        const qOrder = query(collection(db, "bloc_notas"), where("user_id", "==", auth.currentUser.uid), orderBy("orden", "desc"), limit(1));
+        const qOrder = query(collection(db, "cuadernos"), where("id_usuario", "==", auth.currentUser.uid), orderBy("orden", "desc"), limit(1));
         const snapOrder = await getDocs(qOrder);
         const newOrder = snapOrder.empty ? 1 : snapOrder.docs[0].data().orden + 1;
 
-        const docRef = await addDoc(collection(db, "bloc_notas"), {
-            user_id: auth.currentUser.uid, titulo: titulo.trim(), contenido: "", 
-            updatedAt: new Date(), orden: newOrder 
+        const docRef = await addDoc(collection(db, "cuadernos"), {
+            id_usuario: auth.currentUser.uid, titulo: titulo.trim(), contenido: "", 
+            fecha_modificacion: new Date(), orden: newOrder 
         });
 
         unsavedChanges = false; // Nueva nota empieza limpia
@@ -195,8 +195,8 @@ async function saveCurrentNote() {
     saveNoteBtn.disabled = true;
 
     try {
-        await updateDoc(doc(db, "bloc_notas", currentNoteId), {
-            titulo: title, contenido: content, updatedAt: new Date()
+        await updateDoc(doc(db, "cuadernos", currentNoteId), {
+            titulo: title, contenido: content, fecha_modificacion: new Date()
         });
 
         statusMsg.textContent = "Guardado";
@@ -232,7 +232,7 @@ async function deleteNote(id, title) {
     });
     if (!ok) return;
     try {
-        await deleteDoc(doc(db, "bloc_notas", id));
+        await deleteDoc(doc(db, "cuadernos", id));
         if (currentNoteId === id) resetEditor();
         toast('Cuaderno borrado.', { type: 'success' });
     } catch (error) { console.error(error); toast('No se pudo borrar el cuaderno.', { type: 'error' }); }

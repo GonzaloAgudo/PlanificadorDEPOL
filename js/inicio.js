@@ -64,8 +64,8 @@ async function cargarResumenSesiones(uid) {
 
     const q = query(
         collection(db, 'sesiones_estudio'),
-        where('user_id', '==', uid),
-        where('fecha_sesion', '>=', Timestamp.fromDate(desde))
+        where('id_usuario', '==', uid),
+        where('fecha', '>=', Timestamp.fromDate(desde))
     );
     const snap = await getDocs(q);
 
@@ -84,8 +84,8 @@ async function cargarResumenSesiones(uid) {
 
     snap.forEach(d => {
         const s = d.data();
-        if (!s.fecha_sesion || !s.fecha_sesion.toDate) return;
-        const fecha = s.fecha_sesion.toDate();
+        if (!s.fecha || !s.fecha.toDate) return;
+        const fecha = s.fecha.toDate();
         const minutos = Number(s.duracion_minutos) || 0;
         const clave = claveFecha(fecha);
 
@@ -199,8 +199,8 @@ async function cargarTareasDeHoy(uid) {
 
     const q = query(
         collection(db, 'tareas_semanales'),
-        where('user_id', '==', uid),
-        where('fecha_tarea', '==', hoyClave),
+        where('id_usuario', '==', uid),
+        where('fecha', '==', hoyClave),
         orderBy('orden', 'asc')
     );
     const snap = await getDocs(q);
@@ -218,7 +218,7 @@ async function cargarTareasDeHoy(uid) {
         li.style.cursor = 'default';
         li.innerHTML = `
             <input type="checkbox" class="task-checkbox" ${t.completada ? 'checked' : ''}>
-            <span class="task-text">${t.texto}</span>
+            <span class="task-text">${t.descripcion}</span>
         `;
         li.querySelector('.task-checkbox').addEventListener('change', (e) => {
             li.classList.toggle('completed', e.target.checked);
@@ -233,14 +233,14 @@ async function cargarProximosEventos(uid) {
 
     // Solo se filtra por usuario y se ordena en el navegador: así no hace
     // falta ningún índice compuesto nuevo en Firestore.
-    const q = query(collection(db, 'calendario_eventos'), where('user_id', '==', uid));
+    const q = query(collection(db, 'eventos_calendario'), where('id_usuario', '==', uid));
     const snap = await getDocs(q);
 
     const hoyClave = claveFecha(new Date());
     const proximos = snap.docs
         .map(d => d.data())
-        .filter(e => e.fecha_evento && e.fecha_evento >= hoyClave)
-        .sort((a, b) => a.fecha_evento.localeCompare(b.fecha_evento))
+        .filter(e => e.fecha && e.fecha >= hoyClave)
+        .sort((a, b) => a.fecha.localeCompare(b.fecha))
         .slice(0, 5);
 
     if (!proximos.length) {
@@ -249,16 +249,16 @@ async function cargarProximosEventos(uid) {
     }
 
     listaEventos.innerHTML = proximos.map(e => {
-        const [y, m, d] = e.fecha_evento.split('-');
-        const esHoy = e.fecha_evento === hoyClave;
+        const [y, m, d] = e.fecha.split('-');
+        const esHoy = e.fecha === hoyClave;
         return `
             <li class="evento-item">
                 <span class="evento-fecha${esHoy ? ' is-today' : ''}">
                     <b>${d}</b><span>${MESES[Number(m) - 1].slice(0, 3)}</span>
                 </span>
                 <span class="evento-texto">
-                    ${e.texto_evento}
-                    <span class="evento-tipo">${e.tipo_calendario === 'entrenamientos' ? 'Entrenamiento' : 'Clase'}</span>
+                    ${e.titulo}
+                    <span class="evento-tipo">${e.calendario === 'entrenamientos' ? 'Entrenamiento' : 'Clase'}</span>
                 </span>
             </li>`;
     }).join('');

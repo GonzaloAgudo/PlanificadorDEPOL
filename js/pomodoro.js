@@ -47,13 +47,13 @@ let wakeLock = null;
 let unsubscribeTimer = null; 
 
 let remoteState = {
-    status: 'stopped', 
-    endTime: 0,        
-    timeLeft: 0,       
-    totalDuration: 0,  
-    mode: 'estudio',   
-    activity: 'estudio',
-    topic: ''
+    estado: 'detenido',
+    instante_fin: 0,
+    segundos_restantes: 0,
+    duracion_segundos: 0,
+    modo: 'estudio',
+    actividad: 'estudio',
+    tema: ''
 };
 
 const audioAlarma = new Audio('assets/alarma.mp3'); 
@@ -98,15 +98,15 @@ async function loadUserPreferences() {
         const data = docSnap.data();
         
         // Cargamos temas personalizados SOLO si no existen ya en los por defecto
-        if (data.temas_custom) {
-            data.temas_custom.forEach(t => {
+        if (data.temas_personalizados) {
+            data.temas_personalizados.forEach(t => {
                 if (!defaultTemas.includes(t)) addOptionToSelect(selectTema, t, t);
             });
         }
         
         // Cargamos tipos personalizados SOLO si no existen ya en los por defecto
-        if (data.tipos_custom) {
-            data.tipos_custom.forEach(t => {
+        if (data.actividades_personalizadas) {
+            data.actividades_personalizadas.forEach(t => {
                 if (!defaultTipos.includes(t)) addOptionToSelect(selectTipo, t, t);
             });
         }
@@ -123,7 +123,7 @@ async function handleAddNew(event, fieldToUpdate) {
     const selectElement = event.target;
     
     if (selectElement.value === 'ADD_NEW') {
-        const esTema = fieldToUpdate === 'temas_custom';
+        const esTema = fieldToUpdate === 'temas_personalizados';
         const newValue = await promptDialog({
             title: esTema ? 'Nuevo tema' : 'Nueva actividad',
             label: 'Nombre',
@@ -193,11 +193,11 @@ async function handleDeleteCustom(selectElement, fieldToUpdate, defaultsArray) {
 }
 
 // Listeners de los selectores y botones de borrar
-selectTema.addEventListener('change', (e) => handleAddNew(e, 'temas_custom'));
-selectTipo.addEventListener('change', (e) => handleAddNew(e, 'tipos_custom'));
+selectTema.addEventListener('change', (e) => handleAddNew(e, 'temas_personalizados'));
+selectTipo.addEventListener('change', (e) => handleAddNew(e, 'actividades_personalizadas'));
 
-btnDelTema.addEventListener('click', () => handleDeleteCustom(selectTema, 'temas_custom', defaultTemas));
-btnDelTipo.addEventListener('click', () => handleDeleteCustom(selectTipo, 'tipos_custom', defaultTipos));
+btnDelTema.addEventListener('click', () => handleDeleteCustom(selectTema, 'temas_personalizados', defaultTemas));
+btnDelTipo.addEventListener('click', () => handleDeleteCustom(selectTipo, 'actividades_personalizadas', defaultTipos));
 
 
 // ==============================================================
@@ -215,7 +215,7 @@ function releaseWakeLock() {
 }
 
 async function getValidatedTopic() {
-    if (remoteState.status === 'running') return { valid: true, topic: remoteState.topic };
+    if (remoteState.estado === 'en_curso') return { valid: true, topic: remoteState.tema };
 
     const act = selectTipo.value;
     const tema = selectTema.value;
@@ -251,13 +251,13 @@ function updateDisplay(seconds) {
 
 function iniciarEscuchaFirebase() {
     if (!auth.currentUser) return;
-    const docRef = doc(db, "timers_activos", auth.currentUser.uid);
+    const docRef = doc(db, "temporizadores", auth.currentUser.uid);
     
     unsubscribeTimer = onSnapshot(docRef, (docSnap) => {
         if (docSnap.exists()) {
             actualizarEstadoDesdeRemoto(docSnap.data());
         } else {
-            actualizarEstadoDesdeRemoto({ status: 'stopped', mode: 'estudio', activity: 'estudio' });
+            actualizarEstadoDesdeRemoto({ estado: 'detenido', modo: 'estudio', actividad: 'estudio' });
         }
     });
 }
@@ -265,21 +265,21 @@ function iniciarEscuchaFirebase() {
 function actualizarEstadoDesdeRemoto(data) {
     remoteState = { ...remoteState, ...data };
     
-    if (data.activity && selectTipo.querySelector(`option[value="${data.activity}"]`)) {
-        selectTipo.value = data.activity;
+    if (data.actividad && selectTipo.querySelector(`option[value="${data.actividad}"]`)) {
+        selectTipo.value = data.actividad;
     }
-    if (data.topic && selectTema.querySelector(`option[value="${data.topic}"]`)) {
-        selectTema.value = data.topic;
+    if (data.tema && selectTema.querySelector(`option[value="${data.tema}"]`)) {
+        selectTema.value = data.tema;
     }
 
-    if (data.mode) {
-        esEstudio = (data.mode === 'estudio');
-        tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === data.mode));
+    if (data.modo) {
+        esEstudio = (data.modo === 'estudio');
+        tabBotones.forEach(btn => btn.classList.toggle('active', btn.dataset.mode === data.modo));
     }
 
     clearInterval(visualInterval);
     
-    if (data.status === 'running') {
+    if (data.estado === 'en_curso') {
         requestWakeLock();
         btnIniciar.textContent = "Pausar";
         btnIniciar.dataset.state = "running";
@@ -287,7 +287,7 @@ function actualizarEstadoDesdeRemoto(data) {
 
         const checkTime = () => {
             const currentNow = Date.now();
-            const currentSecondsLeft = Math.ceil((data.endTime - currentNow) / 1000);
+            const currentSecondsLeft = Math.ceil((data.instante_fin - currentNow) / 1000);
 
             if (currentSecondsLeft <= 0) {
                 clearInterval(visualInterval);
@@ -300,12 +300,12 @@ function actualizarEstadoDesdeRemoto(data) {
         checkTime();
         visualInterval = setInterval(checkTime, 1000);
 
-    } else if (data.status === 'paused') {
+    } else if (data.estado === 'en_pausa') {
         releaseWakeLock();
         btnIniciar.textContent = "Continuar";
         btnIniciar.dataset.state = "paused";
         btnIniciar.onclick = iniciarTimerLocal;
-        updateDisplay(data.timeLeft);
+        updateDisplay(data.segundos_restantes);
 
     } else { 
         releaseWakeLock();
@@ -327,13 +327,13 @@ async function iniciarTimerLocal() {
     if (!auth.currentUser) return toast('Debes iniciar sesión.', { type: 'error' });
 
     let durationSec = 0;
-    if (remoteState.status === 'paused') {
-        durationSec = remoteState.timeLeft;
+    if (remoteState.estado === 'en_pausa') {
+        durationSec = remoteState.segundos_restantes;
     } else {
         if (esEstudio) {
             const validation = await getValidatedTopic();
             if (!validation.valid) return;
-            remoteState.topic = validation.topic; 
+            remoteState.tema = validation.topic; 
             durationSec = parseInt(inputEstudio.value) * 60;
         } else {
             const cicloTarget = parseInt(inputCicloPomodoro.value) || 4;
@@ -349,38 +349,38 @@ async function iniciarTimerLocal() {
     const currentAct = selectTipo.value || 'estudio';
 
     try {
-        await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
-            status: 'running',
-            endTime: endTime,
-            totalDuration: durationSec, 
-            mode: esEstudio ? 'estudio' : 'descanso',
-            activity: currentAct,
-            topic: remoteState.topic || '',
-            lastUpdated: Date.now()
+        await setDoc(doc(db, "temporizadores", auth.currentUser.uid), {
+            estado: 'en_curso',
+            instante_fin: endTime,
+            duracion_segundos: durationSec,
+            modo: esEstudio ? 'estudio' : 'descanso',
+            actividad: currentAct,
+            tema: remoteState.tema || '',
+            ultima_actualizacion: Date.now()
         });
         audioAlarma.load();
     } catch (e) { console.error("Error al iniciar:", e); }
 }
 
 async function pausarTimerRemoto() {
-    if (!auth.currentUser || remoteState.status !== 'running') return;
+    if (!auth.currentUser || remoteState.estado !== 'en_curso') return;
     const now = Date.now();
-    const timeLeft = Math.ceil((remoteState.endTime - now) / 1000);
-    await updateDoc(doc(db, "timers_activos", auth.currentUser.uid), {
-        status: 'paused',
-        timeLeft: Math.max(0, timeLeft)
+    const timeLeft = Math.ceil((remoteState.instante_fin - now) / 1000);
+    await updateDoc(doc(db, "temporizadores", auth.currentUser.uid), {
+        estado: 'en_pausa',
+        segundos_restantes: Math.max(0, timeLeft)
     });
 }
 
 async function guardarYResetearRemoto() {
     if (!auth.currentUser) return;
     
-    if (remoteState.status === 'running' || remoteState.status === 'paused') {
-        let secondsLeft = remoteState.status === 'running' ? Math.ceil((remoteState.endTime - Date.now()) / 1000) : remoteState.timeLeft;
-        const secondsElapsed = Math.max(0, remoteState.totalDuration - secondsLeft);
+    if (remoteState.estado === 'en_curso' || remoteState.estado === 'en_pausa') {
+        let secondsLeft = remoteState.estado === 'en_curso' ? Math.ceil((remoteState.instante_fin - Date.now()) / 1000) : remoteState.segundos_restantes;
+        const secondsElapsed = Math.max(0, remoteState.duracion_segundos - secondsLeft);
         const minutosEstudiados = Math.round(secondsElapsed / 60);
 
-        if (remoteState.mode === 'estudio' && minutosEstudiados > 0) {
+        if (remoteState.modo === 'estudio' && minutosEstudiados > 0) {
             const guardar = await confirmDialog({
                 title: 'Sesión sin terminar',
                 message: `Llevas <strong>${minutosEstudiados} minutos</strong> de esta sesión. ¿Quieres registrarlos antes de reiniciar?`,
@@ -389,37 +389,37 @@ async function guardarYResetearRemoto() {
             });
             if (guardar) {
                 const desc = inputDescripcion.value.trim();
-                await guardarSesionEnBD(minutosEstudiados, remoteState.activity, remoteState.topic, desc);
+                await guardarSesionEnBD(minutosEstudiados, remoteState.actividad, remoteState.tema, desc);
             }
         }
     }
 
     try {
-        await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
-            status: 'stopped', mode: 'estudio', activity: selectTipo.value || 'estudio', timeLeft: 0, lastUpdated: Date.now()
+        await setDoc(doc(db, "temporizadores", auth.currentUser.uid), {
+            estado: 'detenido', modo: 'estudio', actividad: selectTipo.value || 'estudio', segundos_restantes: 0, ultima_actualizacion: Date.now()
         });
         inputDescripcion.value = ''; 
     } catch (e) { console.error("Error al resetear timer:", e); }
 }
 
 async function terminarSesionRemota() {
-    if (!auth.currentUser || remoteState.status !== 'running') return;
+    if (!auth.currentUser || remoteState.estado !== 'en_curso') return;
 
     audioAlarma.play().catch(e => console.log(e));
     if (Notification.permission === "granted") new Notification("Tiempo Terminado", { body: esEstudio ? "¡Descanso!" : "A estudiar" });
 
-    if (remoteState.mode === 'estudio') {
-        const minutos = Math.round(remoteState.totalDuration / 60);
+    if (remoteState.modo === 'estudio') {
+        const minutos = Math.round(remoteState.duracion_segundos / 60);
         const desc = inputDescripcion.value.trim();
-        if (minutos > 0) await guardarSesionEnBD(minutos, remoteState.activity, remoteState.topic, desc);
+        if (minutos > 0) await guardarSesionEnBD(minutos, remoteState.actividad, remoteState.tema, desc);
     }
     
-    let nextMode = remoteState.mode === 'estudio' ? 'descanso' : 'estudio';
-    if (remoteState.mode === 'estudio') pomodoroCount++;
+    let nextMode = remoteState.modo === 'estudio' ? 'descanso' : 'estudio';
+    if (remoteState.modo === 'estudio') pomodoroCount++;
 
     try {
-        await setDoc(doc(db, "timers_activos", auth.currentUser.uid), {
-            status: 'stopped', mode: nextMode, activity: remoteState.activity, timeLeft: 0, lastUpdated: Date.now()
+        await setDoc(doc(db, "temporizadores", auth.currentUser.uid), {
+            estado: 'detenido', modo: nextMode, actividad: remoteState.actividad, segundos_restantes: 0, ultima_actualizacion: Date.now()
         });
         inputDescripcion.value = ''; 
     } catch (e) { console.error("Error al terminar sesión:", e); }
@@ -429,20 +429,20 @@ async function terminarSesionRemota() {
 //  GUARDADO DE DATOS (BD) - POMODORO Y MANUAL
 // ==============================================================
 
-async function guardarSesionEnBD(duracion, tipo, tema = null, descripcion = "") { 
+async function guardarSesionEnBD(duracion, actividad, tema = null, descripcion = "") { 
     if (!auth.currentUser || !duracion || duracion <= 0) return;
 
     try {
         await addDoc(collection(db, "sesiones_estudio"), {
-            user_id: auth.currentUser.uid,
-            fecha_sesion: Timestamp.now(), 
+            id_usuario: auth.currentUser.uid,
+            fecha: Timestamp.now(), 
             duracion_minutos: Number(duracion),
-            tipo: tipo,
+            actividad: actividad,
             tema: tema || "Sin tema",
             descripcion: descripcion 
         });
         
-        if (tipo === 'estudio') {
+        if (actividad === 'estudio') {
             pomodorosHoy++;
             if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
         }
@@ -492,13 +492,13 @@ function renderTask(taskDoc) {
     const listItem = document.createElement('li');
     listItem.className = 'task-item';
     listItem.setAttribute('data-id', taskDoc.id); 
-    applyColorRule(listItem, task.texto);
+    applyColorRule(listItem, task.descripcion);
     if (task.completada) listItem.classList.add('completed');
     
     listItem.innerHTML = `
         <span class="drag-handle" aria-hidden="true">${icon('grip', 'icon--sm')}</span>
         <input type="checkbox" ${task.completada ? 'checked' : ''} class="task-checkbox">
-        <span class="task-text">${task.texto}</span>
+        <span class="task-text">${task.descripcion}</span>
         <button class="edit-task-btn" title="Editar" aria-label="Editar tarea">${icon('edit', 'icon--sm')}</button>
         <button class="delete-task-btn" title="Borrar" aria-label="Borrar tarea">${icon('trash', 'icon--sm')}</button>
     `;
@@ -511,14 +511,14 @@ async function loadAndRenderTasks() {
     try {
         await fetchColorRules();
         const todayStr = new Date().toISOString().split('T')[0];
-        const tasksQ = query(collection(db, "tareas_semanales"), where("user_id", "==", auth.currentUser.uid), where("fecha_tarea", "==", todayStr), orderBy("orden", "asc"));
+        const tasksQ = query(collection(db, "tareas_semanales"), where("id_usuario", "==", auth.currentUser.uid), where("fecha", "==", todayStr), orderBy("orden", "asc"));
         const tasksSnap = await getDocs(tasksQ);
         taskList.innerHTML = ''; 
         tasksSnap.forEach(doc => renderTask(doc));
 
         const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
         const endOfDay = new Date(); endOfDay.setHours(23,59,59,999);
-        const sessionsQ = query(collection(db, "sesiones_estudio"), where("user_id", "==", auth.currentUser.uid), where("tipo", "==", "estudio"), where("fecha_sesion", ">=", Timestamp.fromDate(startOfDay)), where("fecha_sesion", "<=", Timestamp.fromDate(endOfDay)));
+        const sessionsQ = query(collection(db, "sesiones_estudio"), where("id_usuario", "==", auth.currentUser.uid), where("actividad", "==", "estudio"), where("fecha", ">=", Timestamp.fromDate(startOfDay)), where("fecha", "<=", Timestamp.fromDate(endOfDay)));
         const sessionsSnap = await getDocs(sessionsQ);
         
         pomodorosHoy = sessionsSnap.size;
@@ -531,7 +531,7 @@ async function addTask() {
     const txt = newTaskInput.value.trim();
     if(!txt || !auth.currentUser) return;
     const todayStr = new Date().toISOString().split('T')[0];
-    await addDoc(collection(db, "tareas_semanales"), { user_id: auth.currentUser.uid, texto: txt, fecha_tarea: todayStr, completada: false, orden: 999 });
+    await addDoc(collection(db, "tareas_semanales"), { id_usuario: auth.currentUser.uid, descripcion: txt, fecha: todayStr, completada: false, orden: 999 });
     newTaskInput.value = '';
     loadAndRenderTasks();
 }
@@ -551,7 +551,7 @@ btnReset.addEventListener('click', guardarYResetearRemoto);
 
 tabBotones.forEach(btn => { 
     btn.addEventListener('click', () => {
-        if(remoteState.status === 'stopped') actualizarEstadoDesdeRemoto({ status: 'stopped', mode: btn.dataset.mode });
+        if(remoteState.estado === 'detenido') actualizarEstadoDesdeRemoto({ estado: 'detenido', modo: btn.dataset.mode });
     }); 
 });
 
@@ -579,7 +579,7 @@ taskList.addEventListener('click', async (e) => {
             confirmText: 'Guardar'
         });
         if (newText && newText !== currentText) {
-            updateDoc(doc(db, "tareas_semanales", id), { texto: newText });
+            updateDoc(doc(db, "tareas_semanales", id), { descripcion: newText });
             item.querySelector('.task-text').textContent = newText;
         }
     }
