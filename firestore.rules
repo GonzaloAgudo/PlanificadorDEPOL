@@ -42,29 +42,6 @@ service cloud.firestore {
       return autenticado() && request.resource.data.id_usuario == request.auth.uid;
     }
 
-    // --- TEMPORAL: nombres anteriores a la migración ---
-
-    // Colecciones que cambian de nombre
-    function coleccionesAntiguas() {
-      return [
-        'calendario_eventos',
-        'bloc_notas',
-        'notas_historial',
-        'color_rules',
-        'entrenamientos'
-      ];
-    }
-
-    // Colecciones que conservan el nombre pero cambian sus campos
-    function coleccionesQueConservanNombre() {
-      return ['sesiones_estudio', 'tareas_semanales', 'progreso_temario'];
-    }
-
-    // Dueño identificado con el campo antiguo
-    function eraSuyo() {
-      return autenticado() && resource.data.user_id == request.auth.uid;
-    }
-
     // --- 1. Colecciones con campo id_usuario ---
     //
     // Las consultas de la aplicación siempre filtran por id_usuario, que es lo
@@ -74,15 +51,6 @@ service cloud.firestore {
       allow read, delete: if coleccion in coleccionesConDueno() && esSuyo();
       allow create: if coleccion in coleccionesConDueno() && loGuardaASuNombre();
       allow update: if coleccion in coleccionesConDueno() && esSuyo() && loGuardaASuNombre();
-
-      // TEMPORAL, solo mientras dura la migración de nombres (migracion.html).
-      // Las colecciones que cambian de nombre se pueden leer y borrar, pero
-      // ya no se puede escribir en ellas. Las que conservan el nombre se
-      // pueden reescribir en el sitio, siempre que el documento resultante
-      // siga siendo del mismo usuario.
-      allow read, delete: if coleccion in coleccionesAntiguas() && eraSuyo();
-      allow read: if coleccion in coleccionesQueConservanNombre() && eraSuyo();
-      allow update: if coleccion in coleccionesQueConservanNombre() && eraSuyo() && loGuardaASuNombre();
     }
 
     // --- 2. Un documento por usuario, identificado por su uid ---
@@ -96,15 +64,6 @@ service cloud.firestore {
 
     match /temporizadores/{uid} {
       allow read, write: if autenticado() && request.auth.uid == uid;
-    }
-
-    // TEMPORAL: nombres antiguos, solo lectura y borrado para migrarlos
-    match /config_progreso/{uid} {
-      allow read, delete: if autenticado() && request.auth.uid == uid;
-    }
-
-    match /timers_activos/{uid} {
-      allow read, delete: if autenticado() && request.auth.uid == uid;
     }
 
     // Todo lo que no encaje arriba queda denegado por defecto.
