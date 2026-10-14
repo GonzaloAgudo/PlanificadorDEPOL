@@ -10,6 +10,8 @@ import {
 import { fetchColorRules, applyColorRule } from './colorRules.js';
 import { icon } from './icons.js';
 import { toast, confirmDialog, promptDialog } from './ui.js';
+import { crearSelectorTemas } from './selector-temas.js';
+import { esTemaOficial } from './temario-oficial.js';
 
 // ==============================================================
 //  REFERENCIAS AL DOM
@@ -27,10 +29,8 @@ const newTaskInput = document.getElementById('new-task-input');
 const addTaskBtn = document.getElementById('add-task-btn');
 const taskList = document.getElementById('task-list');
 
-const selectTema = document.getElementById('select-tema');
 const selectTipo = document.getElementById('select-tipo');
 const inputDescripcion = document.getElementById('input-descripcion'); 
-const btnDelTema = document.getElementById('btn-del-tema'); // NUEVO: Borrar Tema
 const btnDelTipo = document.getElementById('btn-del-tipo'); // NUEVO: Borrar Tipo
 const mainTabBtns = document.querySelectorAll('.main-tab-btn');
 const mainTabContents = document.querySelectorAll('.main-tab-content');
@@ -53,26 +53,26 @@ let remoteState = {
     duracion_segundos: 0,
     modo: 'estudio',
     actividad: 'estudio',
-    tema: ''
+    temas: []
 };
 
 const audioAlarma = new Audio('assets/alarma.mp3'); 
 
-// Arrays para controlar qué opciones NO se pueden borrar
-const defaultTemas = ['TODOS', 'ADD_NEW', ''];
+// Actividades que vienen por defecto y no se pueden borrar
 const defaultTipos = ['estudio', 'clase', 'seminario', 'test', 'psicotecnicos', 'opowar', 'voltea', 'examen', 'ADD_NEW', ''];
 
 // ==============================================================
-//  INICIALIZACIÓN DE TEMAS 1-45 Y PESTAÑAS
+//  SELECTOR DE TEMAS Y PESTAÑAS
 // ==============================================================
 
-// Generar Temas del 1 al 45 automáticamente y añadirlos a la lista de bloqueados para borrar
-for (let i = 1; i <= 45; i++) {
-    const nombreTema = `Tema ${i}`;
-    const opt = new Option(nombreTema, nombreTema);
-    selectTema.add(opt, selectTema.options[selectTema.options.length - 1]);
-    defaultTemas.push(nombreTema);
-}
+// Una sesión puede dedicarse a varios temas: los 45 oficiales más los
+// propios del usuario (asignaturas, bloques...), que puede añadir y borrar.
+const selectorTemas = crearSelectorTemas(document.getElementById('selector-temas-sesion'), {
+    etiqueta: 'Temas o asignaturas',
+    vacio: 'Selecciona uno o varios temas',
+    alAnadir: anadirTemaPropio,
+    alBorrar: borrarTemaPropio
+});
 
 // Lógica de Pestañas (Temporizador / Registro manual)
 mainTabBtns.forEach(btn => {
@@ -97,12 +97,7 @@ async function loadUserPreferences() {
     if (docSnap.exists()) {
         const data = docSnap.data();
         
-        // Cargamos temas personalizados SOLO si no existen ya en los por defecto
-        if (data.temas_personalizados) {
-            data.temas_personalizados.forEach(t => {
-                if (!defaultTemas.includes(t)) addOptionToSelect(selectTema, t, t);
-            });
-        }
+        selectorTemas.fijarPropios(data.temas_personalizados || []);
         
         // Cargamos tipos personalizados SOLO si no existen ya en los por defecto
         if (data.actividades_personalizadas) {
@@ -123,11 +118,10 @@ async function handleAddNew(event, fieldToUpdate) {
     const selectElement = event.target;
     
     if (selectElement.value === 'ADD_NEW') {
-        const esTema = fieldToUpdate === 'temas_personalizados';
         const newValue = await promptDialog({
-            title: esTema ? 'Nuevo tema' : 'Nueva actividad',
+            title: 'Nueva actividad',
             label: 'Nombre',
-            placeholder: esTema ? 'Ej.: Legislación complementaria' : 'Ej.: Tutoría',
+            placeholder: 'Ej.: Tutoría',
             confirmText: 'Añadir'
         });
 
@@ -135,8 +129,7 @@ async function handleAddNew(event, fieldToUpdate) {
             const cleanValue = newValue;
 
             // 1. Evitar que se creen duplicados de los que ya vienen por defecto
-            const defaultsArray = esTema ? defaultTemas : defaultTipos;
-            if (defaultsArray.includes(cleanValue)) {
+            if (defaultTipos.includes(cleanValue)) {
                 toast(`"${cleanValue}" ya existe en la lista.`, { type: 'warning' });
                 selectElement.value = cleanValue; // Lo seleccionamos directamente
                 return;
@@ -192,11 +185,50 @@ async function handleDeleteCustom(selectElement, fieldToUpdate, defaultsArray) {
     }
 }
 
-// Listeners de los selectores y botones de borrar
-selectTema.addEventListener('change', (e) => handleAddNew(e, 'temas_personalizados'));
+// Temas propios: se guardan en las preferencias para tenerlos siempre a mano
+async function anadirTemaPropio() {
+    const nombre = await promptDialog({
+        title: 'Nuevo tema',
+        label: 'Nombre',
+        placeholder: 'Ej.: Legislación complementaria',
+        confirmText: 'Añadir'
+    });
+    const tema = nombre ? nombre.trim() : '';
+    if (!tema) return null;
+    if (!esTemaOficial(tema)) {
+        try {
+            await setDoc(doc(db, "preferencias_usuario", auth.currentUser.uid), {
+                temas_personalizados: arrayUnion(tema)
+            }, { merge: true });
+        } catch (error) { console.error("Error guardando el tema:", error); }
+    }
+    return tema;
+}
+
+async function borrarTemaPropio(tema) {
+    const ok = await confirmDialog({
+        title: 'Borrar de tu lista',
+        message: `Se quitará <strong>${tema}</strong> de tu lista personalizada. Las sesiones ya guardadas con ese tema no se modifican.`,
+        confirmText: 'Borrar',
+        danger: true
+    });
+    if (!ok) return false;
+    try {
+        await setDoc(doc(db, "preferencias_usuario", auth.currentUser.uid), {
+            temas_personalizados: arrayRemove(tema)
+        }, { merge: true });
+        toast('Tema borrado de tu lista.', { type: 'success' });
+        return true;
+    } catch (error) {
+        console.error("Error al borrar el tema:", error);
+        toast('No se pudo borrar el tema.', { type: 'error' });
+        return false;
+    }
+}
+
+// Listeners del selector de actividad y su botón de borrar
 selectTipo.addEventListener('change', (e) => handleAddNew(e, 'actividades_personalizadas'));
 
-btnDelTema.addEventListener('click', () => handleDeleteCustom(selectTema, 'temas_personalizados', defaultTemas));
 btnDelTipo.addEventListener('click', () => handleDeleteCustom(selectTipo, 'actividades_personalizadas', defaultTipos));
 
 
@@ -214,28 +246,30 @@ function releaseWakeLock() {
     if (wakeLock !== null) { wakeLock.release(); wakeLock = null; }
 }
 
-async function getValidatedTopic() {
-    if (remoteState.estado === 'en_curso') return { valid: true, topic: remoteState.tema };
-
+/**
+ * Comprueba la actividad y los temas elegidos antes de registrar tiempo.
+ * Los psicotécnicos no van ligados a ningún tema.
+ */
+async function validarSeleccion() {
     const act = selectTipo.value;
-    const tema = selectTema.value;
 
     if (!act || act === 'ADD_NEW') {
         toast('Selecciona antes un tipo de actividad.', { type: 'warning' });
-        return { valid: false, topic: null };
+        return { valido: false, temas: [] };
     }
 
-    if (act === 'psicotecnicos') return { valid: true, topic: null };
+    if (act === 'psicotecnicos') return { valido: true, temas: [] };
 
-    if (!tema || tema === 'ADD_NEW') {
-        const userConfirmed = await confirmDialog({
+    const temas = selectorTemas.obtener();
+    if (temas.length === 0) {
+        const seguir = await confirmDialog({
             title: 'Sesión sin tema',
             message: 'No has indicado ningún tema. ¿Quieres registrarla igualmente como “Sin tema”?',
             confirmText: 'Continuar sin tema'
         });
-        return userConfirmed ? { valid: true, topic: null } : { valid: false, topic: null };
+        return { valido: seguir, temas: [] };
     }
-    return { valid: true, topic: tema };
+    return { valido: true, temas };
 }
 
 function updateDisplay(seconds) {
@@ -268,8 +302,8 @@ function actualizarEstadoDesdeRemoto(data) {
     if (data.actividad && selectTipo.querySelector(`option[value="${data.actividad}"]`)) {
         selectTipo.value = data.actividad;
     }
-    if (data.tema && selectTema.querySelector(`option[value="${data.tema}"]`)) {
-        selectTema.value = data.tema;
+    if (Array.isArray(data.temas) && data.temas.length) {
+        selectorTemas.fijar(data.temas);
     }
 
     if (data.modo) {
@@ -331,9 +365,9 @@ async function iniciarTimerLocal() {
         durationSec = remoteState.segundos_restantes;
     } else {
         if (esEstudio) {
-            const validation = await getValidatedTopic();
-            if (!validation.valid) return;
-            remoteState.tema = validation.topic; 
+            const validacion = await validarSeleccion();
+            if (!validacion.valido) return;
+            remoteState.temas = validacion.temas;
             durationSec = parseInt(inputEstudio.value) * 60;
         } else {
             const cicloTarget = parseInt(inputCicloPomodoro.value) || 4;
@@ -355,7 +389,7 @@ async function iniciarTimerLocal() {
             duracion_segundos: durationSec,
             modo: esEstudio ? 'estudio' : 'descanso',
             actividad: currentAct,
-            tema: remoteState.tema || '',
+            temas: remoteState.temas || [],
             ultima_actualizacion: Date.now()
         });
         audioAlarma.load();
@@ -389,7 +423,7 @@ async function guardarYResetearRemoto() {
             });
             if (guardar) {
                 const desc = inputDescripcion.value.trim();
-                await guardarSesionEnBD(minutosEstudiados, remoteState.actividad, remoteState.tema, desc);
+                await guardarSesionEnBD(minutosEstudiados, remoteState.actividad, remoteState.temas, desc);
             }
         }
     }
@@ -411,7 +445,7 @@ async function terminarSesionRemota() {
     if (remoteState.modo === 'estudio') {
         const minutos = Math.round(remoteState.duracion_segundos / 60);
         const desc = inputDescripcion.value.trim();
-        if (minutos > 0) await guardarSesionEnBD(minutos, remoteState.actividad, remoteState.tema, desc);
+        if (minutos > 0) await guardarSesionEnBD(minutos, remoteState.actividad, remoteState.temas, desc);
     }
     
     let nextMode = remoteState.modo === 'estudio' ? 'descanso' : 'estudio';
@@ -429,7 +463,7 @@ async function terminarSesionRemota() {
 //  GUARDADO DE DATOS (BD) - POMODORO Y MANUAL
 // ==============================================================
 
-async function guardarSesionEnBD(duracion, actividad, tema = null, descripcion = "") { 
+async function guardarSesionEnBD(duracion, actividad, temas = [], descripcion = "") {
     if (!auth.currentUser || !duracion || duracion <= 0) return;
 
     try {
@@ -438,7 +472,7 @@ async function guardarSesionEnBD(duracion, actividad, tema = null, descripcion =
             fecha: Timestamp.now(), 
             duracion_minutos: Number(duracion),
             actividad: actividad,
-            tema: tema || "Sin tema",
+            temas: temas || [],
             descripcion: descripcion 
         });
         
@@ -452,18 +486,7 @@ async function guardarSesionEnBD(duracion, actividad, tema = null, descripcion =
 // Lógica de Guardado Manual (H:M:S)
 btnSaveManual.addEventListener('click', async () => {
     const act = selectTipo.value;
-    const tema = selectTema.value;
     const desc = inputDescripcion.value.trim();
-
-    if (!act || act === 'ADD_NEW') return toast('Selecciona antes un tipo de actividad.', { type: 'warning' });
-    if (act !== 'psicotecnicos' && (!tema || tema === 'ADD_NEW')) {
-        const seguir = await confirmDialog({
-            title: 'Sesión sin tema',
-            message: 'No has indicado ningún tema. ¿Quieres registrarla igualmente como “Sin tema”?',
-            confirmText: 'Continuar sin tema'
-        });
-        if (!seguir) return;
-    }
 
     const h = parseInt(document.getElementById('input-horas').value) || 0;
     const m = parseInt(document.getElementById('input-minutos').value) || 0;
@@ -473,7 +496,10 @@ btnSaveManual.addEventListener('click', async () => {
 
     if (totalMinutos <= 0) return toast('Introduce un tiempo mayor que cero.', { type: 'warning' });
 
-    await guardarSesionEnBD(totalMinutos, act, tema === 'ADD_NEW' ? null : tema, desc);
+    const validacion = await validarSeleccion();
+    if (!validacion.valido) return;
+
+    await guardarSesionEnBD(totalMinutos, act, validacion.temas, desc);
     const partes = [h ? `${h} h` : '', m ? `${m} min` : '', s ? `${s} s` : ''].filter(Boolean).join(' ');
     toast(`Registrado: ${partes}.`, { type: 'success' });
 

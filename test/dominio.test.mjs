@@ -5,8 +5,8 @@
  *     node --import ./test/enlace.mjs --test "test/*.test.mjs"
  *
  * Cubren los modulos que no dependen ni de la interfaz ni de la base de
- * datos: baremo-fisicas, temario-oficial y recomendaciones (esta ultima
- * con un doble de prueba en lugar de Firestore).
+ * datos: baremo-fisicas, temario-oficial, convocatorias y recomendaciones
+ * (estas dos ultimas con un doble de prueba en lugar de Firestore).
  */
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -18,11 +18,15 @@ import {
 } from '../js/baremo-fisicas.js';
 
 import {
-    TEMARIO_OFICIAL, TEMA_GLOBAL, getPesoNormalizado, formatNombreTema
+    TEMARIO_OFICIAL, TEMAS_OFICIALES, getPesoNormalizado, formatNombreTema,
+    cubreTodoElTemario, resumirTemas
 } from '../js/temario-oficial.js';
 
-import { calcularRecomendaciones } from '../js/recomendaciones.js';
-import { cargarDatos } from './doble-firestore.mjs';
+import { calcularRecomendaciones, pesosEnExamen } from '../js/recomendaciones.js';
+import {
+    ordenarConvocatorias, convocatoriaActual, rangoDe, dentroDeRango, cargarConvocatorias
+} from '../js/convocatorias.js';
+import { cargarDatos, Timestamp } from './doble-firestore.mjs';
 
 /* ================================================================
    PU-01 a PU-05 · Conversion de marca a puntuacion
@@ -217,11 +221,12 @@ const UID = 'usuario-de-prueba';
 const temaMasPesado = TEMARIO_OFICIAL.reduce((a, b) => (a.media > b.media ? a : b));
 const temaMenosPesado = TEMARIO_OFICIAL.reduce((a, b) => (a.media < b.media ? a : b));
 
-function sesion(tema, minutos) {
-    return { id_usuario: UID, actividad: 'estudio', tema, duracion_minutos: minutos };
+function sesion(temas, minutos, fecha = new Date(2026, 0, 15)) {
+    return { id_usuario: UID, actividad: 'estudio', temas, duracion_minutos: minutos,
+             fecha: Timestamp.fromDate(fecha) };
 }
-function nota(tema, valor) {
-    return { id_usuario: UID, tema, nota: valor };
+function nota(temas, valor, fecha = '2026-01-15') {
+    return { id_usuario: UID, temas, nota: valor, fecha };
 }
 
 test('PU-16 · sin datos, ordena por peso en el examen', () => {
@@ -237,7 +242,7 @@ test('PU-16 · sin datos, ordena por peso en el examen', () => {
 
 test('PU-17 · estudiar un tema lo baja en la lista', async () => {
     cargarDatos({
-        sesiones_estudio: [sesion(temaMasPesado.tema, 600)],
+        sesiones_estudio: [sesion([temaMasPesado.tema], 600)],
         calificaciones: []
     });
     const r = await calcularRecomendaciones(null, UID);
@@ -249,7 +254,7 @@ test('PU-17 · estudiar un tema lo baja en la lista', async () => {
 
 test('PU-18 · las sesiones sin tema no computan', async () => {
     cargarDatos({
-        sesiones_estudio: [sesion('Sin tema', 5000), sesion(null, 5000)],
+        sesiones_estudio: [sesion([], 5000), sesion(undefined, 5000)],
         calificaciones: []
     });
     const r = await calcularRecomendaciones(null, UID);
@@ -260,7 +265,7 @@ test('PU-18 · las sesiones sin tema no computan', async () => {
 test('PU-19 · un examen global no da por cubiertos los 45 temas', async () => {
     cargarDatos({
         sesiones_estudio: [],
-        calificaciones: [nota(TEMA_GLOBAL, 10)]
+        calificaciones: [nota(TEMAS_OFICIALES, 10)]
     });
     const r = await calcularRecomendaciones(null, UID);
 
@@ -278,7 +283,7 @@ test('PU-19 · un examen global no da por cubiertos los 45 temas', async () => {
 test('PU-20 · la nota mostrada es la media real, sin el 5 neutro', async () => {
     cargarDatos({
         sesiones_estudio: [],
-        calificaciones: [nota(temaMasPesado.tema, 8), nota(temaMasPesado.tema, 6)]
+        calificaciones: [nota([temaMasPesado.tema], 8), nota([temaMasPesado.tema], 6)]
     });
     const r = await calcularRecomendaciones(null, UID);
     const t = r.find(x => x.numero === temaMasPesado.numero);
@@ -335,4 +340,123 @@ test('PU-23 · datos incoherentes no producen nota', () => {
     assert.equal(calcularNota('teoria', -10, 0, 0), null, 'total negativo');
     // Todo fallado da nota negativa: es correcto, la penalizacion asi lo indica
     assert.ok(calcularNota('teoria', 100, 0, 100) < 0);
+});
+
+/* ================================================================
+   PU-24 a PU-27 · Examenes y sesiones de varios temas
+   ================================================================ */
+
+test('PU-24 · una sesion de varios temas reparte el tiempo a partes iguales', async () => {
+    const [a, b, c] = ['Tema 1', 'Tema 2', 'Tema 3'];
+    cargarDatos({
+        sesiones_estudio: [sesion([a, b, c], 60), sesion([a], 30)],
+        calificaciones: []
+    });
+    const r = await calcularRecomendaciones(null, UID);
+    const minutos = t => r.find(x => x.tema === t).minutos;
+    assert.equal(minutos(a), 50, '20 de la sesion compartida mas 30 de la propia');
+    assert.equal(minutos(b), 20);
+    assert.equal(minutos(c), 20);
+    const total = r.reduce((s, t) => s + t.minutos, 0);
+    assert.equal(total, 90, 'el tiempo repartido suma lo que se estudio de verdad');
+});
+
+test('PU-25 · peso de cada tema dentro de un examen', () => {
+    // Test de un solo tema: pesa 1, como antes
+    assert.deepEqual(pesosEnExamen(['Tema 3']), { 'Tema 3': 1 });
+
+    // Examen de todo el temario: cada tema pesa su peso normalizado
+    const global = pesosEnExamen(TEMAS_OFICIALES);
+    for (const t of TEMARIO_OFICIAL) {
+        assert.ok(Math.abs(global[t.tema] - getPesoNormalizado(t.media)) < 1e-12,
+            `en el global, ${t.tema} pesa su peso normalizado`);
+    }
+
+    // Examen de varios temas: el mas preguntado pesa 1 y el resto en proporcion
+    const media = Object.fromEntries(TEMARIO_OFICIAL.map(t => [t.tema, t.media]));
+    const pesos = pesosEnExamen(['Tema 8', 'Tema 2', 'Tema 45']);
+    assert.equal(pesos['Tema 8'], 1, 'el Tema 8 es el mas preguntado de los tres');
+    assert.ok(Math.abs(pesos['Tema 2'] - media['Tema 2'] / media['Tema 8']) < 1e-12);
+    assert.ok(Math.abs(pesos['Tema 45'] - media['Tema 45'] / media['Tema 8']) < 1e-12);
+});
+
+test('PU-26 · un examen de varios temas solo cuenta en esos temas', async () => {
+    cargarDatos({
+        sesiones_estudio: [],
+        calificaciones: [nota(['Tema 1', 'Tema 2', 'Tema 3'], 9)]
+    });
+    const r = await calcularRecomendaciones(null, UID);
+    for (const t of r) {
+        if (['Tema 1', 'Tema 2', 'Tema 3'].includes(t.tema)) {
+            assert.equal(t.notaMedia, 9, `${t.tema} recibe la nota del examen`);
+            assert.equal(t.numExamenes, 1);
+        } else {
+            assert.equal(t.notaMedia, null, `${t.tema} no estaba en el examen`);
+        }
+    }
+});
+
+test('PU-27 · resumen de una lista de temas', () => {
+    assert.ok(cubreTodoElTemario(TEMAS_OFICIALES));
+    assert.ok(!cubreTodoElTemario(TEMAS_OFICIALES.slice(1)), 'falta un tema');
+    assert.equal(resumirTemas([]), 'Sin tema');
+    assert.equal(resumirTemas(['Tema 1', 'Tema 5']), 'Tema 1, Tema 5');
+    assert.equal(resumirTemas(['Tema 1', 'Tema 2', 'Tema 3', 'Tema 4', 'Tema 5']), 'Tema 1, Tema 2 y 3 más');
+    assert.equal(resumirTemas([...TEMAS_OFICIALES, 'PED']), 'Todo el temario, PED');
+});
+
+/* ================================================================
+   PU-28 a PU-30 · Convocatorias
+   ================================================================ */
+
+const CONVOCATORIAS = [
+    { id: 'b', nombre: 'Convocatoria 2027', fecha_inicio: '2026-10-14' },
+    { id: 'a', nombre: 'Convocatoria 2026', fecha_inicio: '2025-10-01' }
+];
+
+test('PU-28 · cada convocatoria termina cuando empieza la siguiente', () => {
+    const [primera, segunda] = ordenarConvocatorias(CONVOCATORIAS);
+    assert.equal(primera.id, 'a', 'se ordenan por fecha de inicio');
+    assert.equal(primera.fecha_fin, '2026-10-14');
+    assert.equal(segunda.fecha_fin, null, 'la ultima sigue abierta');
+
+    const rango = rangoDe(primera);
+    assert.ok(dentroDeRango(new Date(2026, 9, 13, 23, 59), rango), 'el dia anterior aun cuenta');
+    assert.ok(!dentroDeRango(new Date(2026, 9, 14, 0, 0), rango), 'el dia de inicio de la siguiente ya no');
+    assert.ok(!dentroDeRango(new Date(2025, 8, 30), rango), 'lo anterior al inicio tampoco');
+    assert.ok(dentroDeRango(new Date(2020, 0, 1), null), 'sin convocatoria se admite todo');
+});
+
+test('PU-29 · la convocatoria en curso es la ultima que ya ha empezado', () => {
+    const ordenadas = ordenarConvocatorias(CONVOCATORIAS);
+    assert.equal(convocatoriaActual(ordenadas, new Date(2026, 9, 13)).id, 'a');
+    assert.equal(convocatoriaActual(ordenadas, new Date(2026, 9, 14)).id, 'b');
+    assert.equal(convocatoriaActual(ordenadas, new Date(2025, 0, 1)), null, 'antes de la primera no hay ninguna');
+    assert.equal(convocatoriaActual([], new Date()), null);
+});
+
+test('PU-30 · las recomendaciones solo cuentan la convocatoria indicada', async () => {
+    cargarDatos({
+        convocatorias: CONVOCATORIAS.map(c => ({ ...c, id_usuario: UID })),
+        sesiones_estudio: [
+            sesion(['Tema 1'], 600, new Date(2026, 5, 1)),   // convocatoria anterior
+            sesion(['Tema 2'], 60, new Date(2026, 9, 20))    // convocatoria en curso
+        ],
+        calificaciones: [
+            nota(['Tema 1'], 10, '2026-06-01'),
+            nota(['Tema 2'], 4, '2026-10-20')
+        ]
+    });
+    const convocatorias = await cargarConvocatorias(null, UID);
+    const actual = convocatoriaActual(convocatorias, new Date(2026, 9, 21));
+    const r = await calcularRecomendaciones(null, UID, rangoDe(actual));
+    const t1 = r.find(t => t.tema === 'Tema 1');
+    const t2 = r.find(t => t.tema === 'Tema 2');
+    assert.equal(t1.minutos, 0, 'lo estudiado en la convocatoria anterior no cuenta');
+    assert.equal(t1.notaMedia, null, 'ni sus notas');
+    assert.equal(t2.minutos, 60);
+    assert.equal(t2.notaMedia, 4);
+
+    const todo = await calcularRecomendaciones(null, UID);
+    assert.equal(todo.find(t => t.tema === 'Tema 1').minutos, 600, 'sin rango se cuenta todo el historial');
 });

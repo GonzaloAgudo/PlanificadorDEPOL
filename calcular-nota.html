@@ -110,11 +110,8 @@
 
                             <div class="input-row">
                                 <div class="grow-1">
-                                    <label class="field__label" for="grade-tema">Tema</label>
-                                    <select id="grade-tema" class="modern-select">
-                                        <option value="">Sin tema asociado</option>
-                                        <option value="GLOBAL">Examen global (todo el temario)</option>
-                                    </select>
+                                    <span class="field__label">Temas</span>
+                                    <div id="grade-temas"></div>
                                 </div>
                                 <div class="grow-1">
                                     <label class="field__label" for="grade-date">Fecha</label>
@@ -132,6 +129,13 @@
                         </div>
                     </div>
                 </section>
+
+                <div class="convocatoria-filtro">
+                    <label class="section-label" for="filtro-convocatoria">Convocatoria</label>
+                    <select id="filtro-convocatoria" class="modern-select">
+                        <option value="">Todo el historial</option>
+                    </select>
+                </div>
 
                 <p class="section-label">Mostrar en la gráfica</p>
                 <div class="chart-filters-modern mb-4">

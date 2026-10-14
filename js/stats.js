@@ -1,5 +1,6 @@
 import { db, auth } from './firebase-config.js';
 import { collection, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { cargarConvocatorias, rellenarSelectorConvocatorias, rangoSeleccionado } from './convocatorias.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -15,6 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const activityFilterRadios = document.querySelectorAll('.activity-filter input');
     const topicSubFilter = document.querySelector('.topic-sub-filter');
+    const selectorConvocatoria = document.getElementById('filtro-convocatoria');
+    let convocatorias = [];
 
     // --- ESTADO GLOBAL ---
     let miGrafico; 
@@ -228,11 +231,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtroActividad === 'temas') {
             const temaMap = {};
             sessions.forEach(s => {
-                if(s.tema) {
+                // Una sesión de varios temas reparte su tiempo a partes iguales
+                const temas = (s.temas && s.temas.length) ? s.temas : ['Sin tema'];
+                const reparto = s.duracion_minutos / temas.length;
+                temas.forEach(t => {
                     // Limpiamos los emojis de los temas antes de sumarlos
-                    const cleanTema = removeEmojis(s.tema);
-                    temaMap[cleanTema] = (temaMap[cleanTema] || 0) + s.duracion_minutos;
-                }
+                    const cleanTema = removeEmojis(t);
+                    temaMap[cleanTema] = (temaMap[cleanTema] || 0) + reparto;
+                });
             });
             
             const sortedTemas = Object.keys(temaMap).sort((a, b) => temaMap[b] - temaMap[a]); 
@@ -383,15 +389,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (filtroActividad !== 'temas') labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         }
 
+        // La convocatoria elegida recorta el periodo: lo anterior a su inicio
+        // o posterior a su fin no se muestra aunque caiga en el mismo mes o año
+        let desde = startDate;
+        let hasta = endDate;
+        const rango = rangoSeleccionado(selectorConvocatoria, convocatorias);
+        if (rango) {
+            if (rango.desde > desde) desde = rango.desde;
+            if (rango.hasta && rango.hasta <= hasta) hasta = new Date(rango.hasta.getTime() - 1);
+        }
+
         try {
             let q = query(
                 collection(db, "sesiones_estudio"),
                 where("id_usuario", "==", auth.currentUser.uid),
-                where("fecha", ">=", Timestamp.fromDate(startDate)),
-                where("fecha", "<=", Timestamp.fromDate(endDate)) 
+                where("fecha", ">=", Timestamp.fromDate(desde)),
+                where("fecha", "<=", Timestamp.fromDate(hasta))
             );
 
-            const querySnapshot = await getDocs(q);
+            const querySnapshot = desde <= hasta ? await getDocs(q) : { forEach() {} };
             let sessions = [];
             let totalMinutos = 0;
             
@@ -456,9 +472,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const topicCheckboxes = document.querySelectorAll('.topic-sub-filter input');
     topicCheckboxes.forEach(chk => chk.addEventListener('change', cargarEstadisticas));
 
-    auth.onAuthStateChanged(user => {
+    selectorConvocatoria.addEventListener('change', cargarEstadisticas);
+
+    auth.onAuthStateChanged(async user => {
         if (user) {
             updatePeriodLabel();
+            try {
+                convocatorias = await cargarConvocatorias(db, user.uid);
+                rellenarSelectorConvocatorias(selectorConvocatoria, convocatorias);
+            } catch (error) {
+                console.error("Error cargando convocatorias:", error);
+            }
             cargarEstadisticas();
         }
     });

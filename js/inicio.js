@@ -5,6 +5,7 @@ import {
 import { icon } from './icons.js';
 import { calcularRecomendaciones } from './recomendaciones.js';
 import { formatNombreTema } from './temario-oficial.js';
+import { cargarConvocatorias, convocatoriaActual, rangoDe } from './convocatorias.js';
 
 const saludoEl = document.getElementById('saludo');
 const fechaEl = document.getElementById('fecha-hoy');
@@ -122,7 +123,7 @@ async function cargarResumenSesiones(uid) {
  *
  * @param {number} minutosSemana Minutos ya estudiados en la semana en curso
  */
-async function cargarObjetivos(uid, minutosSemana) {
+async function cargarObjetivos(uid, minutosSemana, convocatoria) {
     const panel = document.getElementById('panel-objetivos');
     const cuentaAtras = document.getElementById('cuenta-atras');
     const meta = document.getElementById('meta-semanal');
@@ -139,11 +140,11 @@ async function cargarObjetivos(uid, minutosSemana) {
 
     let hayAlgo = false;
 
-    // --- Cuenta atrás ---
-    if (prefs.fecha_examen) {
+    // --- Cuenta atrás hasta el examen de la convocatoria en curso ---
+    if (convocatoria && convocatoria.fecha_examen) {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
-        const [y, m, d] = prefs.fecha_examen.split('-').map(Number);
+        const [y, m, d] = convocatoria.fecha_examen.split('-').map(Number);
         const examen = new Date(y, m - 1, d);
 
         const dias = Math.round((examen - hoy) / 86400000);
@@ -163,7 +164,7 @@ async function cargarObjetivos(uid, minutosSemana) {
                 dias === -1 ? 'día desde la convocatoria' : 'días desde la convocatoria';
         }
         cuentaAtras.classList.toggle('is-pasado', dias < 0);
-        fechaEl.textContent = `${d} de ${MESES[m - 1]} de ${y}`;
+        fechaEl.textContent = `${convocatoria.nombre} · ${d} de ${MESES[m - 1]} de ${y}`;
         cuentaAtras.classList.remove('hidden');
         hayAlgo = true;
     }
@@ -264,10 +265,10 @@ async function cargarProximosEventos(uid) {
     }).join('');
 }
 
-async function cargarRecomendaciones(uid) {
+async function cargarRecomendaciones(uid, convocatoria) {
     if (!listaRecos) return;
     try {
-        const ranking = await calcularRecomendaciones(db, uid);
+        const ranking = await calcularRecomendaciones(db, uid, rangoDe(convocatoria));
         listaRecos.innerHTML = ranking.slice(0, 3).map((t, i) => `
             <li class="reco-mini">
                 <span class="reco-mini__rank">${i + 1}</span>
@@ -289,15 +290,22 @@ auth.onAuthStateChanged(async (user) => {
     if (!user) return;
     pintarCabecera(user);
     try {
+        let convocatoria = null;
+        try {
+            convocatoria = convocatoriaActual(await cargarConvocatorias(db, user.uid));
+        } catch (error) {
+            console.error('Error cargando convocatorias:', error);
+        }
+
         // El objetivo semanal necesita saber cuánto se lleva estudiado, así
         // que espera al resumen; el resto se carga en paralelo.
         const [resumen] = await Promise.all([
             cargarResumenSesiones(user.uid),
             cargarTareasDeHoy(user.uid),
             cargarProximosEventos(user.uid),
-            cargarRecomendaciones(user.uid)
+            cargarRecomendaciones(user.uid, convocatoria)
         ]);
-        await cargarObjetivos(user.uid, resumen ? resumen.minutosSemana : 0);
+        await cargarObjetivos(user.uid, resumen ? resumen.minutosSemana : 0, convocatoria);
     } catch (error) {
         console.error('Error cargando el inicio:', error);
     }

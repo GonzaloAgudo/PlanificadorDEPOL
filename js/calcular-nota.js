@@ -3,7 +3,11 @@ import {
     collection, addDoc, query, where,
     deleteDoc, updateDoc, doc, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { TEMARIO_OFICIAL, TEMA_GLOBAL } from './temario-oficial.js';
+import { cubreTodoElTemario, resumirTemas } from './temario-oficial.js';
+import { crearSelectorTemas } from './selector-temas.js';
+import {
+    cargarConvocatorias, rellenarSelectorConvocatorias, rangoSeleccionado, claveFecha
+} from './convocatorias.js';
 import { icon } from './icons.js';
 import { toast, confirmDialog } from './ui.js';
 
@@ -28,10 +32,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const inpTitle = document.getElementById('grade-title');
     const inpScore = document.getElementById('grade-score');
     const inpDate = document.getElementById('grade-date');
-    const inpTema = document.getElementById('grade-tema');
+    const selectorTemas = crearSelectorTemas(document.getElementById('grade-temas'), {
+        etiqueta: 'Temas del examen',
+        vacio: 'Sin tema asociado'
+    });
     const btnSaveGrade = document.getElementById('btn-save-grade');
     const btnCancelEdit = document.getElementById('btn-cancel-edit');
     const listContainer = document.getElementById('grades-list');
+    const selectorConvocatoria = document.getElementById('filtro-convocatoria');
     
     // --- CORRECCIÓN AQUÍ: Selector actualizado al nuevo nombre de clase ---
     const filterCheckboxes = document.querySelectorAll('.chart-filters-modern input');
@@ -43,15 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastCalculatedScore = 0;
     let chartInstance = null;
     let editingId = null; 
-    let cachedGrades = []; // Guardamos los datos para filtrarlos rápido
+    let todasLasNotas = [];  // Todo lo que hay en Firestore, en orden de fecha
+    let cachedGrades = [];   // Las de la convocatoria elegida
+    let convocatorias = [];
 
     // Inicializar fecha
     inpDate.valueAsDate = new Date();
-
-    // Rellenar el selector de tema con los 45 temas oficiales
-    TEMARIO_OFICIAL.forEach(t => {
-        inpTema.add(new Option(t.tema, t.tema));
-    });
 
     // ======================================================
     //  1. LÓGICA CALCULADORA
@@ -156,25 +161,25 @@ document.addEventListener('DOMContentLoaded', () => {
         const title = inpTitle.value.trim();
         const score = parseFloat(inpScore.value);
         const dateVal = inpDate.value;
-        const tema = inpTema.value;
+        const temas = selectorTemas.obtener();
 
         if (!title || isNaN(score) || !dateVal) return toast('Rellena el título, la nota y la fecha.', { type: 'warning' });
 
         try {
             if (editingId) {
                 await updateDoc(doc(db, "calificaciones", editingId), {
-                    titulo: title, nota: score, fecha: dateVal, tema: tema
+                    titulo: title, nota: score, fecha: dateVal, temas
                 });
                 resetForm();
             } else {
                 await addDoc(collection(db, "calificaciones"), {
                     id_usuario: auth.currentUser.uid,
-                    titulo: title, nota: score, fecha: dateVal, tema: tema,
+                    titulo: title, nota: score, fecha: dateVal, temas,
                     fecha_registro: new Date()
                 });
                 inpTitle.value = '';
                 inpScore.value = '';
-                inpTema.value = '';
+                selectorTemas.limpiar();
             }
         } catch (error) {
             console.error(error);
@@ -188,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
         editingId = null;
         inpTitle.value = '';
         inpScore.value = '';
-        inpTema.value = '';
+        selectorTemas.limpiar();
         inpDate.valueAsDate = new Date();
         btnSaveGrade.innerHTML = `${icon('plus')}Añadir`;
         btnCancelEdit.classList.add('hidden');
@@ -200,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inpTitle.value = data.titulo;
         inpScore.value = data.nota;
         inpDate.value = data.fecha;
-        inpTema.value = data.tema || '';
+        selectorTemas.fijar(data.temas || []);
 
         btnSaveGrade.innerHTML = `${icon('save')}Guardar cambios`;
         btnCancelEdit.classList.remove('hidden');
@@ -210,8 +215,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // CARGA DE DATOS
-    function loadGrades() {
+    let convocatoriasCargadas = false;
+
+    async function loadGrades() {
         if (!auth.currentUser) return;
+
+        if (!convocatoriasCargadas) {
+            try {
+                convocatorias = await cargarConvocatorias(db, auth.currentUser.uid);
+                rellenarSelectorConvocatorias(selectorConvocatoria, convocatorias);
+                convocatoriasCargadas = true;
+            } catch (error) {
+                console.error("Error cargando convocatorias:", error);
+            }
+        }
 
         const q = query(
             collection(db, "calificaciones"),
@@ -228,16 +245,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 grades.push({ id: docSnap.id, ...data });
             });
 
-            // Guardamos en memoria para filtrar rápido
-            cachedGrades = grades;
-
-            // Lista (invertida para ver últimos)
-            [...grades].reverse().forEach(g => renderListItem(g));
-
-            // Gráfico
-            filterAndRenderChart();
+            todasLasNotas = grades;
+            pintarNotas();
         });
     }
+
+    // Lista y gráfica de la convocatoria elegida. Se filtra en memoria: la
+    // suscripción ya trae todas las notas y así cambiar de convocatoria no
+    // obliga a volver a consultar Firestore.
+    function pintarNotas() {
+        const rango = rangoSeleccionado(selectorConvocatoria, convocatorias);
+        const desde = rango ? claveFecha(rango.desde) : null;
+        const hasta = rango && rango.hasta ? claveFecha(rango.hasta) : null;
+        cachedGrades = todasLasNotas.filter(g =>
+            (!desde || g.fecha >= desde) && (!hasta || g.fecha < hasta));
+
+        listContainer.innerHTML = '';
+        if (cachedGrades.length === 0) {
+            listContainer.innerHTML = '<p class="empty-msg">No hay notas en esta convocatoria.</p>';
+        }
+        // Lista (invertida para ver últimos)
+        [...cachedGrades].reverse().forEach(g => renderListItem(g));
+
+        // Gráfico
+        filterAndRenderChart();
+    }
+
+    selectorConvocatoria.addEventListener('change', pintarNotas);
 
     function renderListItem(data) {
         const li = document.createElement('li');
@@ -250,7 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const isExam = data.titulo.toLowerCase().includes('examen');
         const tipoIcon = isExam ? icon('award', 'icon--sm') : icon('document', 'icon--sm');
-        const ambito = data.tema === TEMA_GLOBAL ? 'Examen global' : data.tema;
+        const ambito = !data.temas || data.temas.length === 0 ? ''
+            : cubreTodoElTemario(data.temas) ? 'Examen global'
+            : resumirTemas(data.temas);
         const meta = [dateStr, ambito].filter(Boolean).join(' · ');
 
         li.innerHTML = `

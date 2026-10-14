@@ -16,7 +16,7 @@
  * Al cambiar archivos hay que subir el número de VERSION para que los
  * navegadores se descarguen la copia nueva.
  */
-const VERSION = 'v6';
+const VERSION = 'v7';
 const CACHE_APP = `planificador-app-${VERSION}`;
 const CACHE_EXTERNO = `planificador-externo-${VERSION}`;
 
@@ -46,6 +46,7 @@ const ARCHIVOS = [
     'js/calcular-nota.js',
     'js/calendario.js',
     'js/colorRules.js',
+    'js/convocatorias.js',
     'js/firebase-config.js',
     'js/icons.js',
     'js/inicio.js',
@@ -57,6 +58,7 @@ const ARCHIVOS = [
     'js/baremo-fisicas.js',
     'js/pwa.js',
     'js/recomendaciones.js',
+    'js/selector-temas.js',
     'js/semana.js',
     'js/stats.js',
     'js/temario-oficial.js',

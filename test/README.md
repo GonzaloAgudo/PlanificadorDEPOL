@@ -1,8 +1,8 @@
 # Pruebas de la lógica de dominio
 
 Batería de pruebas unitarias sobre los módulos que contienen las reglas del
-dominio: el baremo de las pruebas físicas, los datos del temario oficial y el
-motor de recomendaciones.
+dominio: el baremo de las pruebas físicas, los datos del temario oficial, las
+convocatorias y el motor de recomendaciones.
 
 ## Cómo ejecutarlas
 
@@ -21,13 +21,14 @@ instalar nada: el corredor de pruebas viene incorporado en Node.
 
 ## Qué hay aquí
 
-- `dominio.test.mjs` — los 23 casos de prueba.
+- `dominio.test.mjs` — los 30 casos de prueba.
 - `doble-firestore.mjs` — doble de prueba que reemplaza a Cloud Firestore.
   Guarda los datos en memoria y reproduce las consultas con filtros de
-  igualdad, que es lo único que usa `recomendaciones.js`. Rechaza a propósito
-  cualquier otro operador: si el código de producción pasa a usar consultas
-  más complejas, las pruebas fallan en lugar de seguir pasando contra un
-  doble que ya no representa al original.
+  igualdad y de rango (`<`, `<=`, `>`, `>=`), que es lo que usan
+  `recomendaciones.js` y `convocatorias.js`, además de un `Timestamp` mínimo
+  para las fechas. Rechaza a propósito cualquier otro operador: si el código
+  de producción pasa a usar consultas más complejas, las pruebas fallan en
+  lugar de seguir pasando contra un doble que ya no representa al original.
 - `enlace.mjs` — gancho de resolución de módulos. `recomendaciones.js` importa
   el SDK de Firestore desde la CDN de Google; este gancho intercepta esa
   importación y la redirige al doble. Así las pruebas corren contra el código

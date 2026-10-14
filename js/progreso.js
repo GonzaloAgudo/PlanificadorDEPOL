@@ -4,6 +4,7 @@ import {
     doc, updateDoc, deleteDoc, orderBy, writeBatch, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { calcularRecomendaciones } from './recomendaciones.js';
+import { cargarConvocatorias, convocatoriaActual, rangoDe } from './convocatorias.js';
 import { formatNombreTema } from './temario-oficial.js';
 import { icon } from './icons.js';
 import { toast, confirmDialog, promptDialog } from './ui.js';
@@ -335,9 +336,12 @@ function renderTable() {
 // =======================================================
 
 function formatMinutos(mins) {
-    if (!mins) return '0 min';
-    const h = Math.floor(mins / 60);
-    const m = Math.round(mins % 60);
+    // Redondear antes de partir: con tiempo repartido entre varios temas
+    // salen minutos con decimales, y 119,6 daría "1h 60m"
+    const total = Math.round(mins || 0);
+    if (!total) return '0 min';
+    const h = Math.floor(total / 60);
+    const m = total % 60;
     return h > 0 ? `${h}h ${m}m` : `${m} min`;
 }
 
@@ -379,11 +383,20 @@ function renderRankingRow(t, index) {
     `;
 }
 
+const avisoConvocatoria = document.getElementById('reco-convocatoria');
+
 async function loadRecomendaciones() {
     if (!auth.currentUser) return;
     try {
-        const ranking = await calcularRecomendaciones(db, auth.currentUser.uid);
+        const uid = auth.currentUser.uid;
+        const convocatoria = convocatoriaActual(await cargarConvocatorias(db, uid));
+        const ranking = await calcularRecomendaciones(db, uid, rangoDe(convocatoria));
 
+        if (avisoConvocatoria) {
+            avisoConvocatoria.textContent = convocatoria
+                ? `Solo se tienen en cuenta las sesiones y notas de ${convocatoria.nombre}.`
+                : 'Se tiene en cuenta todo tu historial. Crea tu convocatoria en Ajustes para empezar de cero en cada una.';
+        }
         if (recoCards) {
             recoCards.innerHTML = ranking.slice(0, TOP_RECOMENDADOS).map(renderRecoCard).join('');
         }

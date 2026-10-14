@@ -16,7 +16,8 @@ const COLECCIONES_POR_USUARIO = [
     'calificaciones',
     'progreso_temario',
     'reglas_color',
-    'marcas_fisicas'
+    'marcas_fisicas',
+    'convocatorias'
 ];
 
 /**

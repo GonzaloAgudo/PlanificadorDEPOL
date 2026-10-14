@@ -10,6 +10,11 @@ import {
 import { icon } from './icons.js';
 import { toast, confirmDialog, formDialog } from './ui.js';
 import { borrarDatosDeUsuario } from './borrar-datos.js';
+import { crearSelectorTemas } from './selector-temas.js';
+import { resumirTemas } from './temario-oficial.js';
+import {
+    cargarConvocatorias, convocatoriaActual, fechaDesdeClave, claveFecha
+} from './convocatorias.js';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -42,7 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const sessionDateInput = document.getElementById('session-date-input');
     const sessionDurationInput = document.getElementById('session-duration-input');
     const sessionTypeInput = document.getElementById('session-type-input');
-    const sessionTopicInput = document.getElementById('session-topic-input');
+    const selectorTemasSesion = crearSelectorTemas(document.getElementById('session-temas-selector'), {
+        etiqueta: 'Temas de la sesión'
+    });
     const sessionDescriptionInput = document.getElementById('session-description-input'); // NUEVO CAMPO
     const cancelSessionBtn = document.getElementById('cancel-session-btn');
 
@@ -73,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (docSnap.exists()) {
                 const data = docSnap.data();
+                selectorTemasSesion.fijarPropios(data.temas_personalizados || []);
                 if (data.actividades_personalizadas) {
                     data.actividades_personalizadas.forEach(tipo => {
                         if (!Array.from(sessionTypeInput.options).some(opt => opt.value === tipo)) {
@@ -420,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <span class="history-date">${date.toLocaleString()}</span>
                         <div class="history-title">
                             <span class="history-badge" style="background-color: ${bgBadge};">${tipoVisual}</span>
-                            <span>${s.tema || 'Sin tema'}</span>
+                            <span>${resumirTemas(s.temas)}</span>
                         </div>
                         ${descHtml}
                     </div>
@@ -465,7 +473,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionTypeInput.value = 'estudio'; 
         }
         
-        sessionTopicInput.value = s.tema || '';
+        selectorTemasSesion.fijar(s.temas || []);
         sessionDescriptionInput.value = s.descripcion || ''; // Cargamos la descripción al editar
 
         sessionForm.style.display = 'block';
@@ -498,7 +506,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     fecha: Timestamp.fromDate(fecha),
                     duracion_minutos: minutos,
                     actividad: sessionTypeInput.value,
-                    tema: sessionTopicInput.value.trim(),
+                    temas: selectorTemasSesion.obtener(),
                     descripcion: sessionDescriptionInput.value.trim() // Actualizamos la descripción
                 });
                 toast('Sesión actualizada.', { type: 'success' });
@@ -533,10 +541,131 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // 5. CONVOCATORIA Y OBJETIVOS
+    // 5. CONVOCATORIAS
+    // ==========================================
+    const listaConvocatorias = document.getElementById('lista-convocatorias');
+    const btnNuevaConvocatoria = document.getElementById('btn-nueva-convocatoria');
+    let convocatorias = [];
+
+    const formatoFecha = (clave) => fechaDesdeClave(clave).toLocaleDateString('es-ES');
+
+    async function cargarListaConvocatorias() {
+        if (!auth.currentUser || !listaConvocatorias) return;
+        try {
+            convocatorias = await cargarConvocatorias(db, auth.currentUser.uid);
+        } catch (error) {
+            console.error("Error cargando convocatorias:", error);
+            listaConvocatorias.innerHTML = '<p class="empty-msg">No se pudieron cargar las convocatorias.</p>';
+            return;
+        }
+
+        if (convocatorias.length === 0) {
+            listaConvocatorias.innerHTML = '<p class="empty-msg">Todavía no has creado ninguna. Mientras no haya convocatorias se muestra todo tu historial.</p>';
+            return;
+        }
+
+        const actual = convocatoriaActual(convocatorias);
+        listaConvocatorias.innerHTML = '';
+        [...convocatorias].reverse().forEach(c => {
+            const detalle = [
+                `desde el ${formatoFecha(c.fecha_inicio)}`,
+                c.fecha_fin ? `hasta el ${formatoFecha(c.fecha_fin)}` : null,
+                c.fecha_examen ? `examen el ${formatoFecha(c.fecha_examen)}` : null
+            ].filter(Boolean).join(' · ');
+
+            const li = document.createElement('li');
+            li.className = 'rule-item';
+            li.innerHTML = `
+                <span class="rule-keyword">
+                    ${escaparTexto(c.nombre)}${c === actual ? ' <span class="convocatoria-actual">En curso</span>' : ''}
+                    <span class="convocatoria-detalle">${detalle}</span>
+                </span>
+                <div class="rule-actions">
+                    <button class="edit-btn" title="Editar" aria-label="Editar convocatoria">${icon('edit', 'icon--sm')}</button>
+                    <button class="delete-btn" title="Borrar" aria-label="Borrar convocatoria">${icon('trash', 'icon--sm')}</button>
+                </div>`;
+            li.querySelector('.edit-btn').addEventListener('click', () => editarConvocatoria(c));
+            li.querySelector('.delete-btn').addEventListener('click', () => borrarConvocatoria(c));
+            listaConvocatorias.appendChild(li);
+        });
+    }
+
+    function escaparTexto(texto) {
+        return String(texto).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+    }
+
+    /** Pide los datos de una convocatoria; devuelve null si se cancela. */
+    function pedirConvocatoria(titulo, actual = {}) {
+        const otras = convocatorias.filter(c => c.id !== actual.id);
+        return formDialog({
+            title: titulo,
+            confirmText: 'Guardar',
+            fields: [
+                { name: 'nombre', label: 'Nombre', value: actual.nombre || '', placeholder: 'Convocatoria 2027' },
+                { name: 'fecha_inicio', label: 'Empezaste a prepararla el', type: 'date', value: actual.fecha_inicio || '',
+                  hint: 'A partir de este día, todo lo que registres cuenta para esta convocatoria.' },
+                { name: 'fecha_examen', label: 'Fecha del examen', type: 'date', value: actual.fecha_examen || '',
+                  hint: 'Opcional. Se muestra una cuenta atrás en la pantalla de inicio.' }
+            ],
+            validate: (v) => v.nombre.trim() !== '' && v.fecha_inicio !== ''
+                && (!v.fecha_examen || v.fecha_examen >= v.fecha_inicio)
+                && !otras.some(c => c.fecha_inicio === v.fecha_inicio)
+        });
+    }
+
+    async function guardarConvocatoria(id, datos) {
+        const registro = {
+            id_usuario: auth.currentUser.uid,
+            nombre: datos.nombre.trim(),
+            fecha_inicio: datos.fecha_inicio,
+            fecha_examen: datos.fecha_examen || null
+        };
+        try {
+            if (id) await updateDoc(doc(db, "convocatorias", id), registro);
+            else await addDoc(collection(db, "convocatorias"), registro);
+            toast('Convocatoria guardada.', { type: 'success' });
+            cargarListaConvocatorias();
+        } catch (error) {
+            console.error("Error guardando la convocatoria:", error);
+            toast('No se pudo guardar la convocatoria.', { type: 'error' });
+        }
+    }
+
+    if (btnNuevaConvocatoria) {
+        btnNuevaConvocatoria.addEventListener('click', async () => {
+            if (!auth.currentUser) return;
+            const datos = await pedirConvocatoria('Nueva convocatoria', { fecha_inicio: claveFecha(new Date()) });
+            if (datos) guardarConvocatoria(null, datos);
+        });
+    }
+
+    async function editarConvocatoria(c) {
+        const datos = await pedirConvocatoria('Editar convocatoria', c);
+        if (datos) guardarConvocatoria(c.id, datos);
+    }
+
+    async function borrarConvocatoria(c) {
+        const ok = await confirmDialog({
+            title: 'Borrar convocatoria',
+            message: `Se borrará <strong>${escaparTexto(c.nombre)}</strong>. Tus sesiones y notas no se tocan: pasarán a contar en la convocatoria anterior.`,
+            confirmText: 'Borrar',
+            danger: true
+        });
+        if (!ok) return;
+        try {
+            await deleteDoc(doc(db, "convocatorias", c.id));
+            toast('Convocatoria borrada.');
+            cargarListaConvocatorias();
+        } catch (error) {
+            console.error("Error borrando la convocatoria:", error);
+            toast('No se pudo borrar la convocatoria.', { type: 'error' });
+        }
+    }
+
+    // ==========================================
+    // 6. OBJETIVOS
     // ==========================================
     const objetivosForm = document.getElementById('objetivos-form');
-    const fechaExamenInput = document.getElementById('fecha-examen');
     const metaSemanalInput = document.getElementById('meta-semanal');
     const baremoInput = document.getElementById('baremo-fisicas');
 
@@ -546,7 +675,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const snap = await getDoc(doc(db, "preferencias_usuario", auth.currentUser.uid));
             if (!snap.exists()) return;
             const data = snap.data();
-            if (data.fecha_examen) fechaExamenInput.value = data.fecha_examen;
             if (typeof data.meta_semanal_horas === 'number') metaSemanalInput.value = data.meta_semanal_horas;
             if (data.baremo_fisicas) baremoInput.value = data.baremo_fisicas;
         } catch (error) {
@@ -559,13 +687,11 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (!auth.currentUser) return;
 
-            const fecha = fechaExamenInput.value;           // '' si se deja vacío
             const horas = parseFloat(metaSemanalInput.value);
             const meta = Number.isFinite(horas) && horas > 0 ? horas : null;
 
             try {
                 await setDoc(doc(db, "preferencias_usuario", auth.currentUser.uid), {
-                    fecha_examen: fecha || null,
                     meta_semanal_horas: meta,
                     baremo_fisicas: baremoInput.value || null
                 }, { merge: true });
@@ -581,6 +707,7 @@ document.addEventListener('DOMContentLoaded', () => {
     auth.onAuthStateChanged(user => {
         if (user) {
             loadCustomSessionTypes();
+            cargarListaConvocatorias();
             cargarObjetivos();
         }
     });

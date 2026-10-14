@@ -1,5 +1,6 @@
-import { collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { TEMARIO_OFICIAL, getPesoNormalizado, TEMA_GLOBAL } from './temario-oficial.js';
+import { collection, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { TEMARIO_OFICIAL, getPesoNormalizado, esTemaOficial } from './temario-oficial.js';
+import { claveFecha } from './convocatorias.js';
 
 /**
  * Punto de partida al ordenar: mientras no haya notas de un tema, se le trata
@@ -23,54 +24,60 @@ const PESO_NEUTRO = 1;
  *   2020-2025 (ver temario-oficial.js), en relación al tema con más peso.
  * - tiempo_relativo_estudiado: minutos de estudio dedicados a ese tema
  *   (sesiones de actividad "estudio"), en relación al tema más estudiado.
- * - nota_relativa: nota media ponderada de los tests y exámenes de ese tema.
- *   Los exámenes globales, que abarcan todo el temario, entran en la media de
- *   todos los temas con un peso proporcional a las preguntas que cada uno
- *   aporta al examen real. Para ordenar se parte además de un 5 neutro, de
- *   modo que un tema con muy pocos datos no se dé por cubierto (ver
- *   notaParaOrden más abajo); la nota que se muestra sí es la media real.
+ *   Una sesión dedicada a varios temas reparte su tiempo a partes iguales.
+ * - nota_relativa: nota media ponderada de los tests y exámenes que
+ *   incluyen ese tema (ver pesoEnExamen). Para ordenar se parte además de un
+ *   5 neutro, de modo que un tema con muy pocos datos no se dé por cubierto
+ *   (ver notaParaOrden más abajo); la nota que se muestra sí es la media real.
+ *
+ * Con un rango (el de la convocatoria en curso) solo cuentan las sesiones y
+ * las notas de ese periodo: cada convocatoria empieza de cero.
  *
  * Así, un tema que pesa mucho en el examen real y está poco estudiado o con
  * mala nota sube al principio; uno ya bien cubierto baja aunque pese mucho.
  *
  * @param {*} db Instancia de Firestore
  * @param {string} uid UID del usuario
+ * @param {{desde: Date, hasta: Date|null}|null} [rango] Periodo que se tiene en cuenta
  * @returns {Promise<Array>} Los 45 temas ordenados de mayor a menor prioridad
  */
-export async function calcularRecomendaciones(db, uid) {
+export async function calcularRecomendaciones(db, uid, rango = null) {
+    const filtrosSesion = [where("id_usuario", "==", uid), where("actividad", "==", "estudio")];
+    const filtrosNota = [where("id_usuario", "==", uid)];
+    if (rango) {
+        // Las sesiones guardan la fecha como Timestamp; las notas, como texto
+        filtrosSesion.push(where("fecha", ">=", Timestamp.fromDate(rango.desde)));
+        filtrosNota.push(where("fecha", ">=", claveFecha(rango.desde)));
+        if (rango.hasta) {
+            filtrosSesion.push(where("fecha", "<", Timestamp.fromDate(rango.hasta)));
+            filtrosNota.push(where("fecha", "<", claveFecha(rango.hasta)));
+        }
+    }
+
     const minutosPorTema = {};
-    const sesionesQ = query(
-        collection(db, "sesiones_estudio"),
-        where("id_usuario", "==", uid),
-        where("actividad", "==", "estudio")
-    );
-    const sesionesSnap = await getDocs(sesionesQ);
+    const sesionesSnap = await getDocs(query(collection(db, "sesiones_estudio"), ...filtrosSesion));
     sesionesSnap.forEach(docSnap => {
         const s = docSnap.data();
-        const tema = s.tema;
-        if (!tema || tema === 'Sin tema') return;
-        minutosPorTema[tema] = (minutosPorTema[tema] || 0) + (s.duracion_minutos || 0);
+        const temas = (s.temas || []).filter(Boolean);
+        if (temas.length === 0) return;
+        const reparto = (s.duracion_minutos || 0) / temas.length;
+        temas.forEach(t => { minutosPorTema[t] = (minutosPorTema[t] || 0) + reparto; });
     });
 
-    const notasPorTema = {};   // tema -> { suma, count }
-    const notasGlobales = [];  // exámenes de todo el temario
-
-    const notasQ = query(
-        collection(db, "calificaciones"),
-        where("id_usuario", "==", uid)
-    );
-    const notasSnap = await getDocs(notasQ);
+    const notasPorTema = {};   // tema -> { suma, peso, examenes }
+    const notasSnap = await getDocs(query(collection(db, "calificaciones"), ...filtrosNota));
     notasSnap.forEach(docSnap => {
         const n = docSnap.data();
-        if (!n.tema) return;
+        const temas = (n.temas || []).filter(esTemaOficial);
+        if (temas.length === 0) return;
 
-        if (n.tema === TEMA_GLOBAL) {
-            notasGlobales.push(n.nota);
-            return;
-        }
-        if (!notasPorTema[n.tema]) notasPorTema[n.tema] = { suma: 0, count: 0 };
-        notasPorTema[n.tema].suma += n.nota;
-        notasPorTema[n.tema].count += 1;
+        const pesos = pesosEnExamen(temas);
+        temas.forEach(t => {
+            if (!notasPorTema[t]) notasPorTema[t] = { suma: 0, peso: 0, examenes: 0 };
+            notasPorTema[t].suma += n.nota * pesos[t];
+            notasPorTema[t].peso += pesos[t];
+            notasPorTema[t].examenes += 1;
+        });
     });
 
     const maxMinutos = Math.max(1, ...Object.values(minutosPorTema));
@@ -79,23 +86,10 @@ export async function calcularRecomendaciones(db, uid) {
         const minutos = minutosPorTema[t.tema] || 0;
         const pesoNorm = getPesoNormalizado(t.media);
 
-        // Nota media ponderada.
-        //
-        // Un test de un tema concreto dice mucho sobre ese tema, así que pesa 1.
-        // Un examen global reparte sus preguntas entre los 45 temas según la
-        // presencia real de cada uno en la convocatoria: de un simulacro
-        // completo salen unas 6 preguntas del Tema 8 pero solo media del
-        // Tema 45, así que informa mucho del primero y casi nada del segundo.
-        // Ese reparto es justo pesoNorm (media del tema / media del tema con
-        // más preguntas).
-        const propio = notasPorTema[t.tema];
-        let sumaPonderada = propio ? propio.suma : 0;
-        let pesoTotal = propio ? propio.count : 0;
-
-        for (const nota of notasGlobales) {
-            sumaPonderada += nota * pesoNorm;
-            pesoTotal += pesoNorm;
-        }
+        // Nota media ponderada (ver pesosEnExamen)
+        const acumulado = notasPorTema[t.tema];
+        const sumaPonderada = acumulado ? acumulado.suma : 0;
+        const pesoTotal = acumulado ? acumulado.peso : 0;
 
         // Nota que se muestra: la media real, sin retocar.
         const notaMedia = pesoTotal > 0 ? sumaPonderada / pesoTotal : null;
@@ -120,8 +114,7 @@ export async function calcularRecomendaciones(db, uid) {
             minutos,
             notaMedia,
             notaParaOrden,
-            numTests: propio ? propio.count : 0,
-            numGlobales: notasGlobales.length,
+            numExamenes: acumulado ? acumulado.examenes : 0,
             pesoNorm,
             cobertura,
             prioridad
@@ -130,4 +123,29 @@ export async function calcularRecomendaciones(db, uid) {
 
     ranking.sort((a, b) => b.prioridad - a.prioridad);
     return ranking;
+}
+
+/**
+ * Cuánto informa un examen sobre cada uno de los temas que incluye.
+ *
+ * Un examen no reparte sus preguntas por igual: cada tema aporta más o
+ * menos según su presencia en el examen real. De un simulacro completo
+ * salen unas 6 preguntas del Tema 8 pero solo media del Tema 45, así que
+ * informa mucho del primero y casi nada del segundo.
+ *
+ *   peso(tema) = peso_normalizado(tema) / máximo peso_normalizado del examen
+ *
+ * El tema más preguntado del examen pesa 1 y el resto, en proporción. La
+ * regla abarca los dos casos extremos sin tratarlos aparte: un test de un
+ * solo tema pesa 1 para ese tema, y un examen de todo el temario pesa en
+ * cada tema justo su peso normalizado, porque su máximo es el del tema más
+ * preguntado de todo el temario, que vale 1.
+ */
+export function pesosEnExamen(temas) {
+    const pesoNorm = Object.fromEntries(
+        TEMARIO_OFICIAL.filter(t => temas.includes(t.tema))
+            .map(t => [t.tema, getPesoNormalizado(t.media)])
+    );
+    const maximo = Math.max(...Object.values(pesoNorm));
+    return Object.fromEntries(Object.entries(pesoNorm).map(([t, p]) => [t, p / maximo]));
 }

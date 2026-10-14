@@ -4,6 +4,73 @@ import { signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-aut
 import { icon } from './icons.js';
 import { confirmDialog } from './ui.js';
 
+const INICIO = 'index.html';
+
+// Marca que hay una entrada de Inicio justo debajo en el historial
+const CLAVE_INICIO_DEBAJO = 'inicioDebajo';
+
+function paginaDe(url) {
+    return url.pathname.split('/').pop() || INICIO;
+}
+
+function leerMarca() {
+    try { return sessionStorage.getItem(CLAVE_INICIO_DEBAJO) === '1'; } catch { return false; }
+}
+
+function fijarMarca(valor) {
+    try {
+        if (valor) sessionStorage.setItem(CLAVE_INICIO_DEBAJO, '1');
+        else sessionStorage.removeItem(CLAVE_INICIO_DEBAJO);
+    } catch { /* sin sessionStorage se navega igual, solo que sin la marca */ }
+}
+
+/**
+ * Hace que el botón de atrás se comporte como en una app del móvil.
+ *
+ * Cada sección es una página distinta, así que el navegador apilaba todas
+ * las visitadas y «atrás» las recorría una a una. Ahora Inicio es la raíz:
+ * desde Inicio se entra a las secciones con normalidad, pero entre secciones
+ * cada una sustituye a la anterior en el historial. Así, desde cualquier
+ * sección, «atrás» lleva a Inicio, y desde Inicio se sale de la aplicación.
+ */
+function activarNavegacionTipoApp(paginaActual) {
+    if (paginaActual === INICIO) {
+        fijarMarca(false);
+    } else if (!document.referrer.startsWith(location.origin)) {
+        // Se ha llegado a la sección desde fuera: debajo no hay ningún Inicio
+        fijarMarca(false);
+    }
+
+    document.addEventListener('click', (e) => {
+        const enlace = e.target.closest('a[href]');
+        if (!enlace || enlace.target || e.defaultPrevented) return;
+        if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+
+        const url = new URL(enlace.href, location.href);
+        if (url.origin !== location.origin || !paginaDe(url).endsWith('.html')) return;
+        if (url.pathname === location.pathname) return; // anclas dentro de la misma página
+
+        if (paginaActual === INICIO) {
+            fijarMarca(true);
+            return; // navegación normal: Inicio queda debajo
+        }
+
+        e.preventDefault();
+        if (paginaDe(url) === INICIO && leerMarca()) {
+            fijarMarca(false);
+            history.back();
+        } else {
+            location.replace(url.href);
+        }
+    });
+
+    // Al volver con «atrás», el navegador puede mostrar la página tal como
+    // estaba en memoria. Se recarga para que los datos no estén desfasados.
+    window.addEventListener('pageshow', (e) => {
+        if (e.persisted) location.reload();
+    });
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const mainNav = document.getElementById('main-nav');
     const menuToggle = document.getElementById('menu-toggle');
@@ -78,6 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
     mainNav.querySelectorAll('a[href]:not(.logout-link)').forEach(a => {
         a.addEventListener('click', closeMenu);
     });
+
+    activarNavegacionTipoApp(currentPage);
 
     const logoutLink = mainNav.querySelector('.logout-link');
     if (logoutLink) {

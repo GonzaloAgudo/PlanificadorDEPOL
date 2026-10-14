@@ -91,14 +91,19 @@
                     Volver a ajustes
                 </button>
 
-                <form id="objetivos-form" class="settings-card">
-                    <h2>Convocatoria y objetivos</h2>
+                <div class="settings-card">
+                    <h2>Mis convocatorias</h2>
+                    <p class="field__hint">
+                        Cada convocatoria empieza el día que indiques y termina cuando empieza la siguiente.
+                        Las estadísticas, el historial de notas y las recomendaciones muestran por defecto
+                        la convocatoria en curso, así que al empezar una nueva partes de cero.
+                    </p>
+                    <ul id="lista-convocatorias" class="lista-convocatorias"></ul>
+                    <button type="button" id="btn-nueva-convocatoria" class="btn btn--primary mt-4">Nueva convocatoria</button>
+                </div>
 
-                    <div class="form-group">
-                        <label for="fecha-examen">Fecha de la convocatoria</label>
-                        <input type="date" id="fecha-examen">
-                        <p class="field__hint">Se mostrará una cuenta atrás en la pantalla de inicio. Déjalo vacío si aún no hay fecha.</p>
-                    </div>
+                <form id="objetivos-form" class="settings-card">
+                    <h2>Objetivos</h2>
 
                     <div class="form-group">
                         <label for="meta-semanal">Objetivo de estudio semanal</label>
@@ -208,8 +213,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="session-topic-input">Tema</label>
-                            <input type="text" id="session-topic-input">
+                            <span class="field__label">Temas</span>
+                            <div id="session-temas-selector"></div>
                         </div>
                     </div>
 

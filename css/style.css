@@ -3415,3 +3415,129 @@ body.has-dialog { overflow: hidden; }
     .reco-cards-grid { grid-template-columns: 1fr; }
     .day-column { min-width: 88vw; max-width: 88vw; }
 }
+
+/* ==========================================================================
+   Selector de varios temas (js/selector-temas.js)
+   ========================================================================== */
+.selector-temas {
+    position: relative;
+    width: 100%;
+}
+.selector-temas__resumen {
+    display: block;
+    text-align: left;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.selector-temas__resumen--vacio { color: var(--c-text-subtle); }
+.input-with-icon .selector-temas__resumen { padding-left: 36px; }
+
+.selector-temas__panel {
+    position: absolute;
+    z-index: 30;
+    top: calc(100% + var(--sp-1));
+    left: 0;
+    right: 0;
+    min-width: 260px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: var(--sp-3);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border-strong);
+    border-radius: var(--r-md);
+    box-shadow: var(--sh-md);
+}
+.selector-temas__panel[hidden] { display: none; }
+.selector-temas__panel--derecha { left: auto; }
+.selector-temas__panel { max-width: calc(100vw - 32px); }
+
+.selector-temas__rejilla {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+    gap: var(--sp-1);
+    margin: var(--sp-2) 0;
+}
+.selector-temas .selector-temas__opcion {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-1) var(--sp-2);
+    border-radius: var(--r-sm);
+    font-size: 0.8125rem;
+    font-family: var(--f-mono);
+    margin: 0;
+    color: var(--c-text);
+    font-weight: 400;
+    cursor: pointer;
+    user-select: none;
+}
+.selector-temas .selector-temas__opcion:hover { background: var(--c-surface-alt); }
+.selector-temas .selector-temas__opcion input {
+    flex: none;
+    width: auto;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    accent-color: var(--c-accent);
+}
+.selector-temas .selector-temas__opcion--todo {
+    font-family: var(--f-sans);
+    font-weight: 600;
+    padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--c-border);
+    border-radius: 0;
+}
+
+.selector-temas__titulo {
+    margin: var(--sp-2) 0 var(--sp-1);
+    padding-top: var(--sp-2);
+    border-top: 1px solid var(--c-border);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--c-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.selector-temas__fila {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.selector-temas .selector-temas__fila .selector-temas__opcion {
+    flex: 1;
+    font-family: var(--f-sans);
+}
+.selector-temas__anadir { margin-top: var(--sp-2); }
+
+/* Filtro de convocatoria (estadísticas y notas) */
+.convocatoria-filtro {
+    max-width: 320px;
+    margin-bottom: var(--sp-5);
+}
+.convocatoria-filtro .section-label { display: block; }
+
+/* Lista de convocatorias (Ajustes) */
+.lista-convocatorias { list-style: none; margin: var(--sp-3) 0 0; padding: 0; }
+.convocatoria-detalle {
+    display: block;
+    margin-top: 2px;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--c-text-muted);
+}
+.convocatoria-actual {
+    display: inline-block;
+    margin-left: var(--sp-2);
+    padding: 1px var(--sp-2);
+    border: 1px solid var(--c-accent-border);
+    border-radius: var(--r-sm);
+    background: var(--c-accent-soft);
+    color: var(--c-accent);
+    font-size: 0.75rem;
+    font-weight: 600;
+    vertical-align: middle;
+}

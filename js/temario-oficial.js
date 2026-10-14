@@ -49,11 +49,33 @@ export const TEMARIO_OFICIAL = [
     { numero: 45, tema: "Tema 45", bloque: "MATERIAS TÉCNICO CIENTÍFICAS", nombre: "PRL EN SEGURIDAD VIAL", media: 0.5 },
 ];
 
+// Identificadores de los 45 temas, en orden ("Tema 1" ... "Tema 45")
+export const TEMAS_OFICIALES = TEMARIO_OFICIAL.map(t => t.tema);
+
+export function esTemaOficial(tema) {
+    return TEMAS_OFICIALES.includes(tema);
+}
+
 /**
- * Valor que se guarda en el campo "tema" de una nota cuando el examen no es
- * de un tema concreto, sino de todo el temario (un simulacro completo).
+ * ¿La lista abarca los 45 temas? Es lo que distingue un examen global (un
+ * simulacro completo) de uno de temas sueltos: no hay un valor especial, el
+ * examen global es simplemente el que lleva todos los temas.
  */
-export const TEMA_GLOBAL = 'GLOBAL';
+export function cubreTodoElTemario(temas) {
+    return Array.isArray(temas) && TEMAS_OFICIALES.every(t => temas.includes(t));
+}
+
+/**
+ * Texto corto para mostrar una lista de temas:
+ * "Tema 3, Tema 5", "Todo el temario", "Tema 1, Tema 2 y 4 más"...
+ */
+export function resumirTemas(temas, vacio = 'Sin tema') {
+    if (!Array.isArray(temas) || temas.length === 0) return vacio;
+    const propios = temas.filter(t => !esTemaOficial(t));
+    if (cubreTodoElTemario(temas)) return ['Todo el temario', ...propios].join(', ');
+    if (temas.length <= 3) return temas.join(', ');
+    return `${temas.slice(0, 2).join(', ')} y ${temas.length - 2} más`;
+}
 
 const MEDIA_MAXIMA = Math.max(...TEMARIO_OFICIAL.map(t => t.media));
 
