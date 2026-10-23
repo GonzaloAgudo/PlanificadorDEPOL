@@ -12,6 +12,7 @@
       "firestore.rules",
       "firestore.indexes.json",
       "**/.*",
+      "**/.*/**",
       "**/node_modules/**",
       "test/**"
     ],
