@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mainNav.innerHTML = `
         <div class="nav-brand">
-            <img src="assets/logo.png" alt="">
+            <img src="assets/logo.svg" alt="">
             <span>
                 <span class="nav-brand__name">Planificador</span>
                 <span class="nav-brand__sub">Oposición CNP</span>
