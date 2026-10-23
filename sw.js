@@ -16,7 +16,7 @@
  * Al cambiar archivos hay que subir el número de VERSION para que los
  * navegadores se descarguen la copia nueva.
  */
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE_APP = `planificador-app-${VERSION}`;
 const CACHE_EXTERNO = `planificador-externo-${VERSION}`;
 
@@ -65,10 +65,10 @@ const ARCHIVOS = [
     'js/ui.js',
     'js/verificar.js',
     'assets/logo.svg',
-    'assets/logo.png',
-    'assets/icon-192.png',
-    'assets/icon-512.png',
-    'assets/apple-touch-icon.png',
+    'assets/logo.png?v=2',
+    'assets/icon-192.png?v=2',
+    'assets/icon-512.png?v=2',
+    'assets/apple-touch-icon.png?v=2',
     'assets/alarma.mp3'
 ];
 
