@@ -442,20 +442,27 @@ async function terminarSesionRemota() {
     audioAlarma.play().catch(e => console.log(e));
     if (Notification.permission === "granted") new Notification("Tiempo Terminado", { body: esEstudio ? "¡Descanso!" : "A estudiar" });
 
+    // Si la pantalla está abierta en varios dispositivos, todos llegan a cero
+    // a la vez y todos pasan por aquí antes de recibir la escritura de los
+    // demás. La sesión se guarda con un identificador derivado del propio
+    // temporizador, así que todos escriben el mismo documento y no se duplica.
+    // No se espera a la escritura: sin conexión no termina hasta recuperarla,
+    // y el temporizador debe quedar detenido igualmente.
     if (remoteState.modo === 'estudio') {
         const minutos = Math.round(remoteState.duracion_segundos / 60);
         const desc = inputDescripcion.value.trim();
-        if (minutos > 0) await guardarSesionEnBD(minutos, remoteState.actividad, remoteState.temas, desc);
+        const idSesion = `${auth.currentUser.uid}_${remoteState.instante_fin}`;
+        if (minutos > 0) guardarSesionEnBD(minutos, remoteState.actividad, remoteState.temas, desc, idSesion);
     }
     
     let nextMode = remoteState.modo === 'estudio' ? 'descanso' : 'estudio';
     if (remoteState.modo === 'estudio') pomodoroCount++;
 
+    inputDescripcion.value = '';
     try {
         await setDoc(doc(db, "temporizadores", auth.currentUser.uid), {
             estado: 'detenido', modo: nextMode, actividad: remoteState.actividad, segundos_restantes: 0, ultima_actualizacion: Date.now()
         });
-        inputDescripcion.value = ''; 
     } catch (e) { console.error("Error al terminar sesión:", e); }
 }
 
@@ -463,23 +470,28 @@ async function terminarSesionRemota() {
 //  GUARDADO DE DATOS (BD) - POMODORO Y MANUAL
 // ==============================================================
 
-async function guardarSesionEnBD(duracion, actividad, temas = [], descripcion = "") {
+// idFijo: identificador del documento cuando debe ser el mismo en todos los
+// dispositivos (fin del temporizador); sin él, lo genera Firestore.
+async function guardarSesionEnBD(duracion, actividad, temas = [], descripcion = "", idFijo = null) {
     if (!auth.currentUser || !duracion || duracion <= 0) return;
 
+    const sesion = {
+        id_usuario: auth.currentUser.uid,
+        fecha: Timestamp.now(),
+        duracion_minutos: Number(duracion),
+        actividad: actividad,
+        temas: temas || [],
+        descripcion: descripcion
+    };
+
+    if (actividad === 'estudio') {
+        pomodorosHoy++;
+        if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
+    }
+
     try {
-        await addDoc(collection(db, "sesiones_estudio"), {
-            id_usuario: auth.currentUser.uid,
-            fecha: Timestamp.now(), 
-            duracion_minutos: Number(duracion),
-            actividad: actividad,
-            temas: temas || [],
-            descripcion: descripcion 
-        });
-        
-        if (actividad === 'estudio') {
-            pomodorosHoy++;
-            if(pomodoroCountDisplay) pomodoroCountDisplay.textContent = pomodorosHoy;
-        }
+        if (idFijo) await setDoc(doc(db, "sesiones_estudio", idFijo), sesion);
+        else await addDoc(collection(db, "sesiones_estudio"), sesion);
     } catch (error) { console.error("Error guardando sesión:", error); }
 }
 
